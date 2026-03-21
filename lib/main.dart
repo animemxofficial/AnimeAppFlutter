@@ -3,17 +3,27 @@ import 'package:carousel_slider/carousel_slider.dart';
 
 void main() => runApp(const AnimeMX());
 
+class Anime {
+  final String title;
+  final String image;
+  Anime({required this.title, required this.image});
+}
+
+final List<Anime> animeList = [
+  Anime(title: "Classroom", image: "https://i.ibb.co/KpsCLmBg/imager.jpg"),
+  Anime(title: "Solo Leveling", image: "https://i.ibb.co/vxJtwkcX/k.jpg"),
+  Anime(title: "One Piece", image: "https://i.ibb.co/jvVk3XSY/g.jpg"),
+  Anime(title: "Naruto", image: "https://i.ibb.co/YFg2hKvf/j.jpg"),
+  Anime(title: "Demon Slayer", image: "https://i.ibb.co/yFRNxJbG/o.jpg"),
+];
+
 class AnimeMX extends StatelessWidget {
   const AnimeMX({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.light,
-        primaryColor: Colors.deepPurple,
-        scaffoldBackgroundColor: Colors.white,
-      ),
+      theme: ThemeData.light().copyWith(primaryColor: Colors.deepPurple),
       home: const MainScreen(),
     );
   }
@@ -27,12 +37,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
-  final List<Widget> _pages = [
-    const HomeScreen(),
-    const Center(child: Text("Dubbed Anime")),
-    const Center(child: Text("Favourites")),
-    const Center(child: Text("Account")),
-  ];
+  final List<Widget> _pages = [const HomeScreen(), const Center(child: Text("Dubbed")), const Center(child: Text("Fav")), const Center(child: Text("Account"))];
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +45,15 @@ class _MainScreenState extends State<MainScreen> {
       body: _pages[_index],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.deepPurple,
+        selectedItemColor: Colors.purple,
         unselectedItemColor: Colors.grey,
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.play_circle_fill), label: "Dubbed"),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite_border), label: "Favourite"),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle), label: "Account"),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.play_circle), label: "Dubbed"),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Favourite"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
         ],
       ),
     );
@@ -58,27 +63,20 @@ class _MainScreenState extends State<MainScreen> {
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  final List<String> slides = const [
-    "https://i.ibb.co/7tppGVqq/images.jpg",
-    "https://i.ibb.co/bg2q2Ldn/images-1.jpg",
-    "https://i.ibb.co/Wvp6sGN0/images-2.jpg",
-    "https://i.ibb.co/Cjj478G/images-3.jpg"
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("AnimeMX", style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)), backgroundColor: Colors.white, elevation: 0),
+      appBar: AppBar(title: const Text("AnimeMX", style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold)), backgroundColor: Colors.white, elevation: 0),
       body: ListView(
         children: [
-          // 1. Auto Slider
+          // Auto Slide Banner
           CarouselSlider.builder(
-            itemCount: slides.length,
-            options: CarouselOptions(height: 200, autoPlay: true, enlargeCenterPage: true),
-            itemBuilder: (ctx, i, realIdx) => ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(slides[i], fit: BoxFit.cover, width: double.infinity)),
+            itemCount: animeList.length,
+            options: CarouselOptions(height: 220, autoPlay: true, enlargeCenterPage: true),
+            itemBuilder: (c, i, r) => ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(animeList[i].image, fit: BoxFit.cover, width: double.infinity)),
           ),
           
-          // 2. Top Picks (Small Button)
+          // Top Picks
           Container(
             margin: const EdgeInsets.all(15), padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
@@ -87,19 +85,23 @@ class HomeScreen extends StatelessWidget {
                 Text("Top Picks for You", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 Text("New episodes now!", style: TextStyle(color: Colors.grey, fontSize: 12)),
               ]),
-              SizedBox(height: 30, child: ElevatedButton(onPressed: () {}, child: const Text("Watch", style: TextStyle(fontSize: 10)))),
+              ElevatedButton(onPressed: () {}, child: const Text("Watch")),
             ]),
           ),
 
-          // 3. Trending
-          const Padding(padding: EdgeInsets.all(15), child: Text("Trending Now", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-          SizedBox(height: 180, child: ListView.builder(
+          // Trending
+          const Padding(padding: EdgeInsets.only(left: 15, bottom: 10), child: Text("Trending Now 🔥", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+          SizedBox(height: 210, child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: 4,
-            itemBuilder: (ctx, i) => Container(width: 110, margin: const EdgeInsets.only(left: 15), child: Column(children: [
-              Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network("https://i.ibb.co/KpsCLmBg/imager.jpg", fit: BoxFit.cover))),
-              const Text("Anime Name", overflow: TextOverflow.ellipsis),
-            ])),
+            itemCount: animeList.length,
+            itemBuilder: (ctx, i) => Container(
+              width: 130, margin: const EdgeInsets.only(left: 15),
+              child: Column(children: [
+                Container(height: 170, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), image: DecorationImage(image: NetworkImage(animeList[i].image), fit: BoxFit.cover))),
+                const SizedBox(height: 5),
+                Text(animeList[i].title, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              ]),
+            ),
           )),
         ],
       ),
