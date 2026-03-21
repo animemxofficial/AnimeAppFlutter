@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const AnimeMX());
-}
+void main() => runApp(const AnimeMXApp());
 
-class AnimeMX extends StatelessWidget {
-  const AnimeMX({super.key});
+class AnimeMXApp extends StatelessWidget {
+  const AnimeMXApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -13,58 +11,49 @@ class AnimeMX extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
-        primaryColor: const Color(0xFFF47521), // Aapka Orange Color
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Colors.black,
+          selectedItemColor: Colors.orange,
+          unselectedItemColor: Colors.grey,
+        ),
       ),
-      home: const HomeScreen(),
+      home: const MainScreen(),
     );
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _currentIndex = 0;
+  
+  final List<Widget> _pages = [
+    const Center(child: Text("Home Page UI")),
+    const Center(child: Text("Search Page")),
+    const Center(child: Text("Watchlist")),
+    const Center(child: Text("Downloads")),
+    const Center(child: Text("Account")),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("AnimeMX", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFF47521))),
-        backgroundColor: Colors.black,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-              child: Text("Trending Now 🔥", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-            ),
-            SizedBox(
-              height: 200,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: 5,
-                itemBuilder: (context, index) {
-                  return Container(
-                    width: 130,
-                    margin: const EdgeInsets.only(left: 15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[900], 
-                      borderRadius: BorderRadius.circular(12)
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.play_circle_fill, size: 50, color: Color(0xFFF47521)),
-                        const SizedBox(height: 10),
-                        Text("Anime ${index + 1}", style: const TextStyle(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+          BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: "Watchlist"),
+          BottomNavigationBarItem(icon: Icon(Icons.download), label: "Downloads"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
+        ],
       ),
     );
   }
