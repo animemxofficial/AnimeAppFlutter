@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 
 void main() => runApp(const AnimeMX());
 
+// Data Model
 class Anime {
   final String title;
   final String image;
-  final String videoUrl;
-  final String description;
-  Anime({required this.title, required this.image, required this.videoUrl, required this.description});
+  final String genre;
+  Anime({required this.title, required this.image, required this.genre});
 }
 
-// Tera Anime Data
-List<Anime> trendingList = [
-  Anime(
-    title: "Classroom of the Elite",
-    image: "https://iili.io/qeQX3Ml.jpg",
-    videoUrl: "https://archive.org/download/videoplayback_20260126_1040/videoplayback.mp4",
-    description: "Kiyotaka Ayanokouji enters a prestigious school where only the superior students are treated well. He must survive in Class-D.",
-  ),
+// Data List
+final List<Anime> animeList = [
+  Anime(title: "Classroom of the Elite", image: "https://i.ibb.co/KpsCLmBg/imager.jpg", genre: "Thriller"),
+  Anime(title: "Solo Leveling", image: "https://i.ibb.co/vxJtwkcX/k.jpg", genre: "Action"),
+  Anime(title: "One Piece", image: "https://i.ibb.co/jvVk3XSY/g.jpg", genre: "Adventure"),
+  Anime(title: "Naruto", image: "https://i.ibb.co/YFg2hKvf/j.jpg", genre: "Action"),
+  Anime(title: "Demon Slayer", image: "https://i.ibb.co/yFRNxJbG/o.jpg", genre: "Action"),
 ];
 
 class AnimeMX extends StatelessWidget {
@@ -27,110 +25,64 @@ class AnimeMX extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: Colors.black,
-        primaryColor: Colors.purple, // Purple Theme
+      theme: ThemeData(
+        brightness: Brightness.light,
+        primaryColor: Colors.deepPurple,
+        scaffoldBackgroundColor: Colors.white,
       ),
-      home: const MainScreen(),
-    );
-  }
-}
-
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _index = 0;
-  final List<Widget> _pages = [const HomeScreen(), const Center(child: Text("Dubbed")), const Center(child: Text("Favourite")), const Center(child: Text("Account"))];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_index],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.purpleAccent,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.headset), label: "Dubbed"),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: "Favourite"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
-        ],
-      ),
+      home: const HomeScreen(),
     );
   }
 }
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("AnimeMX", style: TextStyle(color: Colors.purpleAccent))),
-      body: ListView.builder(
-        itemCount: trendingList.length,
-        itemBuilder: (ctx, i) => ListTile(
-          leading: Image.network(trendingList[i].image, width: 60, fit: BoxFit.cover),
-          title: Text(trendingList[i].title),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: trendingList[i]))),
-        ),
+      appBar: AppBar(
+        title: const Text("AnimeMX", style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.search, color: Colors.black))],
       ),
-    );
-  }
-}
-
-class DetailsPage extends StatelessWidget {
-  final Anime anime;
-  const DetailsPage({super.key, required this.anime});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(anime.title)),
-      body: Column(
+      body: ListView(
         children: [
-          Image.network(anime.image, height: 250, width: double.infinity, fit: BoxFit.cover),
-          Padding(padding: const EdgeInsets.all(16), child: Text(anime.description)),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(url: anime.videoUrl))),
-            child: const Text("Watch Now"),
-          ),
+          _buildSlider(),
+          _buildSection("Top Picks For You"),
+          _buildSection("Trending Now"),
+          _buildMostViewedSection(),
         ],
       ),
     );
   }
-}
 
-// Video Player Page
-class VideoPlayerPage extends StatefulWidget {
-  final String url;
-  const VideoPlayerPage({super.key, required this.url});
-  @override
-  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
-}
+  Widget _buildSlider() {
+    return SizedBox(height: 200, child: PageView.builder(itemCount: 3, itemBuilder: (c, i) => Container(margin: const EdgeInsets.all(10), decoration: BoxDecoration(borderRadius: BorderRadius.circular(15), image: DecorationImage(image: NetworkImage(animeList[i].image), fit: BoxFit.cover)))));
+  }
 
-class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late VideoPlayerController _controller;
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))..initialize().then((_) => setState(() {}));
+  Widget _buildSection(String title) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(padding: const EdgeInsets.all(15), child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+      SizedBox(height: 150, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: animeList.length, itemBuilder: (c, i) => Container(width: 100, margin: const EdgeInsets.only(left: 15), child: Column(children: [Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(animeList[i].image, fit: BoxFit.cover))), Text(animeList[i].title, overflow: TextOverflow.ellipsis)])))),
+    ]);
   }
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _controller.value.isInitialized ? VideoPlayer(_controller) : const Center(child: CircularProgressIndicator()),
-      floatingActionButton: FloatingActionButton(onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play()), child: Icon(_controller.value.isPlaying ? Icons.pause : Icons.play_arrow)),
-    );
+
+  Widget _buildMostViewedSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Padding(padding: EdgeInsets.all(15), child: Text("Most Viewed", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+      GridView.builder(
+        shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(10),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.7),
+        itemCount: 4,
+        itemBuilder: (c, i) => Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(border: Border.all(color: Colors.white, width: 2), borderRadius: BorderRadius.circular(12)),
+          child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(animeList[i].image, fit: BoxFit.cover)),
+        ),
+      ),
+    ]);
   }
-  @override
-  void dispose() { _controller.dispose(); super.dispose(); }
 }
