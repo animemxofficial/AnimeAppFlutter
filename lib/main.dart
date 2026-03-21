@@ -1,60 +1,100 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const AnimeMXApp());
+void main() => runApp(const AnimeMX());
 
-class AnimeMXApp extends StatelessWidget {
-  const AnimeMXApp({super.key});
-
+class AnimeMX extends StatelessWidget {
+  const AnimeMX({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: Colors.black,
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Colors.black,
-          selectedItemColor: Colors.orange,
-          unselectedItemColor: Colors.grey,
-        ),
+        primaryColor: const Color(0xFFF47521), // Tera Orange Color
       ),
-      home: const MainScreen(),
+      home: const HomeScreen(),
     );
   }
 }
 
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
-  
-  final List<Widget> _pages = [
-    const Center(child: Text("Home Page UI")),
-    const Center(child: Text("Search Page")),
-    const Center(child: Text("Watchlist")),
-    const Center(child: Text("Downloads")),
-    const Center(child: Text("Account")),
-  ];
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark), label: "Watchlist"),
-          BottomNavigationBarItem(icon: Icon(Icons.download), label: "Downloads"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
+      appBar: AppBar(
+        title: const Text("AnimeMX", style: TextStyle(color: Color(0xFFF47521), fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black,
+      ),
+      body: ListView(
+        children: [
+          // 1. Slider Section
+          _buildSlider(),
+          
+          // 2. Dynamic Categories
+          _buildAnimeSection("Trending Now 🔥", Colors.orange),
+          _buildAnimeSection("Action", Colors.blue),
+          _buildAnimeSection("Romance", Colors.pink),
+          _buildAnimeSection("Comedy", Colors.green),
         ],
       ),
+    );
+  }
+
+  // Hero Slider
+  Widget _buildSlider() {
+    return Container(
+      height: 200,
+      margin: const EdgeInsets.symmetric(vertical: 10),
+      child: PageView.builder(
+        itemCount: 3,
+        itemBuilder: (ctx, i) => Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.grey[800],
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: const Center(child: Text("Hero Slider Poster")),
+        ),
+      ),
+    );
+  }
+
+  // Common Section for Categories
+  Widget _buildAnimeSection(String title, Color accent) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(15.0),
+          child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accent)),
+        ),
+        SizedBox(
+          height: 160,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 6,
+            itemBuilder: (ctx, i) => Container(
+              width: 110,
+              margin: const EdgeInsets.only(left: 15),
+              child: Column(
+                children: [
+                  Container(
+                    height: 130,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  const Text("Anime Title", style: TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
