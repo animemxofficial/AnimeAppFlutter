@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Naya import System UI ke liye
 import 'package:carousel_slider/carousel_slider.dart';
 
-void main() => runApp(const AnimeMX());
+void main() {
+  // YAHAN SYSTEM NAVIGATION BAR KO WHITE KIYA GAYA HAI
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.white, // Bottom bar ka background white
+    systemNavigationBarIconBrightness: Brightness.dark, // Bottom bar ke icons black
+    statusBarColor: Colors.transparent, // Top status bar transparent
+    statusBarIconBrightness: Brightness.dark, // Top status bar ke icons black
+  ));
+  
+  runApp(const AnimeMX());
+}
 
 // Data Model
 class Anime {
@@ -54,7 +65,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
-  // YAHAN 2ND TAB MEIN BROWSE SCREEN ADD KI HAI
   final List<Widget> _pages =[const HomeScreen(), const BrowseScreen(), const Center(child: Text("Dubs")), const Center(child: Text("Profile"))];
 
   @override
@@ -103,7 +113,7 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(color: Colors.white),
                 child: Column(
-                  children:[
+                  children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children:[
@@ -113,9 +123,7 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     GestureDetector(
-                      onTap: () {
-                         // Optional: Agar home ke search bar pe click kare toh Browse tab pe le jaaye
-                      },
+                      onTap: () {},
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                         decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(12)),
@@ -317,9 +325,7 @@ class DetailsPage extends StatelessWidget {
   }
 }
 
-// ==========================================
-// NEW BROWSE SCREEN (EXACTLY AS REQUESTED)
-// ==========================================
+// BROWSE SCREEN
 class BrowseScreen extends StatelessWidget {
   const BrowseScreen({super.key});
 
@@ -367,7 +373,7 @@ class BrowseScreen extends StatelessWidget {
               const Text("Trending Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
               const SizedBox(height: 12),
               Row(
-                children: [
+                children:[
                   Expanded(child: Column(
                     children:[
                       _buildTrendingItem("1", "Solo Leveling"),
@@ -394,7 +400,7 @@ class BrowseScreen extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: 2.2, // Width / Height ratio of the card
+                childAspectRatio: 2.2,
                 children:[
                   _buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFFFFEAEA), Colors.redAccent),
                   _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFFF0E6FF), const Color(0xFF6A5AE0)),
@@ -410,7 +416,6 @@ class BrowseScreen extends StatelessWidget {
     );
   }
 
-  // Helper Widget for Recent Searches
   Widget _buildRecentItem(String title) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -436,7 +441,6 @@ class BrowseScreen extends StatelessWidget {
     );
   }
 
-  // Helper Widget for Trending Searches
   Widget _buildTrendingItem(String number, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -454,13 +458,9 @@ class BrowseScreen extends StatelessWidget {
     );
   }
 
-  // Helper Widget for Genre Cards
   Widget _buildGenreCard(String title, String subtitle, IconData icon, Color bgColor, Color iconColor) {
     return Container(
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children:[
