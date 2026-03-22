@@ -54,7 +54,8 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
-  final List<Widget> _pages =[const HomeScreen(), const Center(child: Text("Browse")), const Center(child: Text("Dubs")), const Center(child: Text("Profile"))];
+  // YAHAN 2ND TAB MEIN BROWSE SCREEN ADD KI HAI
+  final List<Widget> _pages =[const HomeScreen(), const BrowseScreen(), const Center(child: Text("Dubs")), const Center(child: Text("Profile"))];
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +103,7 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(color: Colors.white),
                 child: Column(
-                  children: [
+                  children:[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children:[
@@ -111,17 +112,22 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                      decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(12)),
-                      child: Row(
-                        children:[
-                          Icon(Icons.search, color: Colors.grey[600]),
-                          const SizedBox(width: 10),
-                          Text("Search anime, movies, series...", style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500)),
-                          const Spacer(),
-                          Icon(Icons.mic_none, color: Colors.grey[600]),
-                        ],
+                    GestureDetector(
+                      onTap: () {
+                         // Optional: Agar home ke search bar pe click kare toh Browse tab pe le jaaye
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+                        decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          children:[
+                            Icon(Icons.search, color: Colors.grey[600]),
+                            const SizedBox(width: 10),
+                            Text("Search anime, movies, series...", style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500)),
+                            const Spacer(),
+                            Icon(Icons.mic_none, color: Colors.grey[600]),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -170,7 +176,6 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
-        // YAHAN CARDS KI HEIGHT KAM KI HAI (260 se 210 ki)
         SizedBox(
           height: 210, 
           child: ListView.builder(
@@ -194,13 +199,12 @@ class AnimePosterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // CLICK KARNE PAR DETAILS PAGE OPEN HOGA
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsPage(anime: anime)));
       },
       child: Container(
-        width: 170, // YAHAN WIDTH BADHA DI HAI (155 se 170 ki, chouda karne ke liye)
+        width: 170, 
         margin: const EdgeInsets.only(right: 14, bottom: 10),
         decoration: BoxDecoration(
           color: Colors.white, 
@@ -226,7 +230,6 @@ class AnimePosterCard extends StatelessWidget {
                 ),
               ),
 
-              // TOP BADGES (Sirf DUB tag rakha hai, 13+ hata diya hai)
               Positioned(
                 top: 8, right: 8,
                 child: Container(
@@ -256,7 +259,6 @@ class AnimePosterCard extends StatelessWidget {
   }
 }
 
-// NAYA DETAILS PAGE JO CLICK KARNE PAR KHULEGA
 class DetailsPage extends StatelessWidget {
   final Anime anime;
   const DetailsPage({super.key, required this.anime});
@@ -286,7 +288,6 @@ class DetailsPage extends StatelessWidget {
                   Text("${anime.season} • ${anime.views} Views • ${anime.dubStatus}", style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 14)),
                   const SizedBox(height: 24),
                   
-                  // Watch Now Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -296,9 +297,7 @@ class DetailsPage extends StatelessWidget {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 5,
                       ),
-                      onPressed: () {
-                        // Yahan aage chalkar Video Player add hoga
-                      }, 
+                      onPressed: () {}, 
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
                       label: const Text("Watch Episode 1", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
@@ -313,6 +312,169 @@ class DetailsPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// NEW BROWSE SCREEN (EXACTLY AS REQUESTED)
+// ==========================================
+class BrowseScreen extends StatelessWidget {
+  const BrowseScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children:[
+              // Search Bar
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
+                ),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: "Search anime, movies, episodes...",
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 15),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                    suffixIcon: Icon(Icons.cancel, color: Colors.grey[400]),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Recent Searches
+              const Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              const SizedBox(height: 12),
+              _buildRecentItem("Naruto"),
+              _buildRecentItem("One Piece"),
+              _buildRecentItem("Demon Slayer"),
+              _buildRecentItem("Attack on Titan"),
+              
+              const SizedBox(height: 24),
+
+              // Trending Searches
+              const Text("Trending Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: Column(
+                    children:[
+                      _buildTrendingItem("1", "Solo Leveling"),
+                      _buildTrendingItem("3", "Chainsaw Man"),
+                    ],
+                  )),
+                  Expanded(child: Column(
+                    children:[
+                      _buildTrendingItem("2", "Jujutsu Kaisen"),
+                      _buildTrendingItem("4", "Tokyo Revengers"),
+                    ],
+                  )),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Browse by Genre
+              const Text("Browse by Genre", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              const SizedBox(height: 12),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 2.2, // Width / Height ratio of the card
+                children:[
+                  _buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFFFFEAEA), Colors.redAccent),
+                  _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFFF0E6FF), const Color(0xFF6A5AE0)),
+                  _buildGenreCard("Drama", "Series", Icons.masks, const Color(0xFFE6F2FF), Colors.blueAccent),
+                  _buildGenreCard("Romance", "Love", Icons.favorite, const Color(0xFFFFE6F0), Colors.pinkAccent),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper Widget for Recent Searches
+  Widget _buildRecentItem(String title) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children:[
+          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+          Row(
+            children:[
+              Icon(Icons.close, size: 18, color: Colors.grey[500]),
+              const SizedBox(width: 12),
+              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  // Helper Widget for Trending Searches
+  Widget _buildTrendingItem(String number, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children:[
+          Container(
+            width: 20, height: 20,
+            decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(4)),
+            child: Center(child: Text(number, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black))),
+          ),
+          const SizedBox(width: 10),
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87), overflow: TextOverflow.ellipsis)),
+        ],
+      ),
+    );
+  }
+
+  // Helper Widget for Genre Cards
+  Widget _buildGenreCard(String title, String subtitle, IconData icon, Color bgColor, Color iconColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children:[
+          Icon(icon, size: 30, color: iconColor),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children:[
+              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+              Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.black.withOpacity(0.5))),
+            ],
+          )
+        ],
       ),
     );
   }
