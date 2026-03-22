@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart'; // Ab hum separate files banayenge
 
 void main() => runApp(const AnimeMX());
 
@@ -9,10 +8,7 @@ class AnimeMX extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.light),
-      ),
+      theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.deepPurple),
       home: const MainScreen(),
     );
   }
@@ -26,27 +22,28 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
-  final List<Widget> _pages = [
-    const HomeScreen(),
-    const Center(child: Text("Search Page")),
-    const Center(child: Text("Categories")),
-    const Center(child: Text("Favorites")),
-    const Center(child: Text("Account")),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_index],
+      body: IndexedStack(
+        index: _index,
+        children: const [
+          Center(child: Text("Home Page")),
+          Center(child: Text("Search Page")),
+          Center(child: Text("Categories")),
+          Center(child: Text("Favorites")),
+          Center(child: Text("Account")),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: "Home"),
+          NavigationDestination(icon: Icon(Icons.home), label: "Home"),
           NavigationDestination(icon: Icon(Icons.search), label: "Search"),
-          NavigationDestination(icon: Icon(Icons.category_outlined), label: "Categories"),
-          NavigationDestination(icon: Icon(Icons.favorite_border), label: "Favorites"),
-          NavigationDestination(icon: Icon(Icons.person_outline), label: "Account"),
+          NavigationDestination(icon: Icon(Icons.category), label: "Categories"),
+          NavigationDestination(icon: Icon(Icons.favorite), label: "Fav"),
+          NavigationDestination(icon: Icon(Icons.person), label: "Account"),
         ],
       ),
     );
