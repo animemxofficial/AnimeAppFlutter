@@ -51,21 +51,91 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
-  final List<Widget> _pages =[const HomeScreen(), const Center(child: Text("Search")), const Center(child: Text("Categories")), const Center(child: Text("Favorites")), const Center(child: Text("Account"))];
+  final List<Widget> _pages =[
+    const HomeScreen(), 
+    const Center(child: Text("Browse")), 
+    const Center(child: Text("Dubs")), 
+    const Center(child: Text("Profile"))
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Background content ko nav bar ke neeche scroll hone dega
       body: _pages[_index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const[
-          NavigationDestination(icon: Icon(Icons.home), label: "Home"),
-          NavigationDestination(icon: Icon(Icons.search), label: "Search"),
-          NavigationDestination(icon: Icon(Icons.category), label: "Categories"),
-          NavigationDestination(icon: Icon(Icons.favorite), label: "Favorites"),
-          NavigationDestination(icon: Icon(Icons.person), label: "Account"),
+      // YAHAN NAYA FLOATING NAVIGATION BAR ADD KIYA HAI SAME TERE IMAGE JAISA
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+        child: Container(
+          height: 70,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A), // Dark background matching the image
+            borderRadius: BorderRadius.circular(35), // Gol kinare (Rounded)
+            boxShadow:[
+              BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 15, offset: const Offset(0, 5)),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children:[
+              _buildNavItem(0, Icons.explore_outlined, "Explore"),
+              _buildDivider(),
+              _buildNavItem(1, Icons.manage_search_outlined, "Browse"),
+              _buildDivider(),
+              _buildNavItem(2, Icons.headphones_outlined, "Dubs"),
+              _buildDivider(),
+              _buildProfileItem(3, "Profile", "https://i.ibb.co/vxJtwkcX/k.jpg"), // Avatar Image
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Faint vertical line between icons (jaisa screenshot me hai)
+  Widget _buildDivider() {
+    return Container(
+      width: 1,
+      height: 30,
+      color: Colors.white.withOpacity(0.15),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _index == index;
+    return GestureDetector(
+      onTap: () => setState(() => _index = index),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children:[
+          Icon(icon, color: isSelected ? Colors.white : Colors.white54, size: 26),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileItem(int index, String label, String imageUrl) {
+    final isSelected = _index == index;
+    return GestureDetector(
+      onTap: () => setState(() => _index = index),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children:[
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: isSelected ? Colors.white : Colors.transparent, width: 1.5),
+              image: DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -80,9 +150,11 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("AnimeMX", style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [IconButton(onPressed: () {}, icon: const Icon(Icons.search))],
+        actions:[IconButton(onPressed: () {}, icon: const Icon(Icons.search))],
       ),
       body: SingleChildScrollView(
+        // Padding bottom add ki taaki last list nav bar ke peeche na chhupe
+        padding: const EdgeInsets.only(bottom: 100), 
         child: Column(
           children:[
             CarouselSlider.builder(itemCount: 3, options: CarouselOptions(height: 200, autoPlay: true, enlargeCenterPage: true), itemBuilder: (ctx, i, real) => ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network("https://i.ibb.co/rW2Zk9B/images.jpg", fit: BoxFit.cover, width: double.infinity))),
@@ -110,7 +182,6 @@ class HomeScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children:[
         Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-        // YAHAN CARD KI HEIGHT BADHA DI HAI TAAYKI LAMBA CARD FIT HO SAKE
         SizedBox(height: 270, child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -133,51 +204,47 @@ class AnimePosterCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 165, // Card ki width badhayi (screenshot match karne ke liye)
+      width: 155,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        // Faint outline jo screenshot mein hai
-        border: Border.all(color: Colors.white.withOpacity(0.15), width: 1), 
+        border: Border.all(color: Colors.white.withOpacity(0.15), width: 0.8), 
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
         child: Stack(
           children:[
-            // Background Image
             Image.network(anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
             
-            // Smooth Dark Gradient Overlay (Neeche andhera taaki text dikhe)
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.4), Colors.transparent],
-                  stops: const[0.0, 0.5, 1.0],
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.4), Colors.transparent],
+                    stops: const[0.0, 0.5, 1.0],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
                 ),
               ),
             ),
 
-            // Top Badges (PG-13 and DUB)
             Positioned(
               top: 10, left: 10, right: 10,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children:[
-                  // PG-13 (White Solid)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.95), borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.95), borderRadius: BorderRadius.circular(12)),
                     child: Text(anime.rating, style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
-                  // DUB (Translucent Glassmorphism)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.15), 
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
                     ),
                     child: Text(anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                   ),
@@ -185,14 +252,13 @@ class AnimePosterCard extends StatelessWidget {
               ),
             ),
             
-            // Bottom Info (Title, Season, Views)
             Positioned(
               bottom: 12, left: 12, right: 12,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children:[
-                  Text(anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  Text(anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 6),
                   Text("${anime.season} • ${anime.status}", style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 6),
