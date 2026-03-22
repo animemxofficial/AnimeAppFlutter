@@ -35,10 +35,9 @@ class AnimeMX extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      // UI/UX PSYCHOLOGY: Clean White Theme with Purple Accent
       theme: ThemeData(
         brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA), // Soft Light Grey Background (Aankhon ko aaram)
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
         primaryColor: const Color(0xFF6A5AE0),
         useMaterial3: true,
       ),
@@ -61,7 +60,6 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_index],
-      // FLIPKART STYLE CLEAN NAVIGATION BAR
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
@@ -70,7 +68,7 @@ class _MainScreenState extends State<MainScreen> {
           backgroundColor: Colors.white,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
-          selectedItemColor: const Color(0xFF6A5AE0), // Purple Accent
+          selectedItemColor: const Color(0xFF6A5AE0),
           unselectedItemColor: Colors.grey[500],
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
@@ -100,7 +98,6 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children:[
-              // FLIPKART STYLE SEARCH HEADER
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(color: Colors.white),
@@ -114,12 +111,11 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    // Big Search Bar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
                       decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(12)),
                       child: Row(
-                        children: [
+                        children:[
                           Icon(Icons.search, color: Colors.grey[600]),
                           const SizedBox(width: 10),
                           Text("Search anime, movies, series...", style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500)),
@@ -134,7 +130,6 @@ class HomeScreen extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // SLIDER
               CarouselSlider.builder(
                 itemCount: 3,
                 options: CarouselOptions(height: 180, autoPlay: true, enlargeCenterPage: true, viewportFraction: 0.9),
@@ -149,7 +144,6 @@ class HomeScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
               
-              // SECTIONS
               _buildCategorySection("🔥 Trending Now", animeData),
               _buildCategorySection("👀 Most Viewed", animeData.reversed.toList()),
               _buildCategorySection("⏰ Latest Episodes", animeData),
@@ -176,8 +170,9 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
+        // YAHAN CARDS KI HEIGHT KAM KI HAI (260 se 210 ki)
         SizedBox(
-          height: 260, 
+          height: 210, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -193,73 +188,126 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// UI/UX Psychology: Soft Shadows, Rounded Corners, Readable Text
 class AnimePosterCard extends StatelessWidget {
   final Anime anime;
   const AnimePosterCard({super.key, required this.anime});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 155,
-      margin: const EdgeInsets.only(right: 14, bottom: 10), // Bottom margin for shadow
-      decoration: BoxDecoration(
-        color: Colors.white, // White card base
-        borderRadius: BorderRadius.circular(16),
-        boxShadow:[
-          // Soft Shadow (Flipkart Style)
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          children:[
-            // Anime Image
-            Image.network(anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-            
-            // Bottom Gradient for Text Readability
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors:[Colors.black.withOpacity(0.9), Colors.transparent],
-                    begin: Alignment.bottomCenter, end: Alignment.center,
+    // CLICK KARNE PAR DETAILS PAGE OPEN HOGA
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsPage(anime: anime)));
+      },
+      child: Container(
+        width: 170, // YAHAN WIDTH BADHA DI HAI (155 se 170 ki, chouda karne ke liye)
+        margin: const EdgeInsets.only(right: 14, bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          borderRadius: BorderRadius.circular(16),
+          boxShadow:[
+            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            children:[
+              Image.network(anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+              
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors:[Colors.black.withOpacity(0.9), Colors.transparent],
+                      begin: Alignment.bottomCenter, end: Alignment.center,
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // Top Badges
-            Positioned(
-              top: 8, left: 8, right: 8,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children:[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6)),
-                    child: Text(anime.rating, style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.w800)),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFF6A5AE0), borderRadius: BorderRadius.circular(6)),
-                    child: Text(anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
-                  ),
-                ],
+              // TOP BADGES (Sirf DUB tag rakha hai, 13+ hata diya hai)
+              Positioned(
+                top: 8, right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFF6A5AE0), borderRadius: BorderRadius.circular(6)),
+                  child: Text(anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                ),
               ),
-            ),
-            
-            // Bottom Text Info
-            Positioned(
-              bottom: 12, left: 10, right: 10,
+              
+              Positioned(
+                bottom: 12, left: 10, right: 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children:[
+                    Text(anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text("${anime.season} • ${anime.views} Views", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// NAYA DETAILS PAGE JO CLICK KARNE PAR KHULEGA
+class DetailsPage extends StatelessWidget {
+  final Anime anime;
+  const DetailsPage({super.key, required this.anime});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text(anime.title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            Image.network(anime.image, width: double.infinity, height: 260, fit: BoxFit.cover),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
                 children:[
-                  Text(anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 4),
-                  Text("${anime.season} • ${anime.views} Views", style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(anime.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.black87)),
+                  const SizedBox(height: 8),
+                  Text("${anime.season} • ${anime.views} Views • ${anime.dubStatus}", style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 24),
+                  
+                  // Watch Now Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6A5AE0),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 5,
+                      ),
+                      onPressed: () {
+                        // Yahan aage chalkar Video Player add hoga
+                      }, 
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                      label: const Text("Watch Episode 1", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  const Text("Synopsis", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black87)),
+                  const SizedBox(height: 8),
+                  Text("A thrilling journey of ${anime.title}. Dive into the fantastic world filled with amazing characters and an unforgettable storyline. Watch it now on AnimeMX in high quality.", style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5)),
                 ],
               ),
             ),
