@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 
 void main() => runApp(const AnimeMX());
+
+class Anime {
+  final String title;
+  final String image;
+  Anime({required this.title, required this.image});
+}
+
+final List<Anime> animeList = [
+  Anime(title: "Classroom", image: "https://i.ibb.co/KpsCLmBg/imager.jpg"),
+  Anime(title: "Solo Leveling", image: "https://i.ibb.co/vxJtwkcX/k.jpg"),
+  Anime(title: "One Piece", image: "https://i.ibb.co/jvVk3XSY/g.jpg"),
+];
 
 class AnimeMX extends StatelessWidget {
   const AnimeMX({super.key});
@@ -11,8 +22,9 @@ class AnimeMX extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: GoogleFonts.poppins().fontFamily,
+        // Default Font use hoga
         scaffoldBackgroundColor: Colors.white,
+        primarySwatch: Colors.deepPurple,
       ),
       home: const MainScreen(),
     );
@@ -28,10 +40,10 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
   final List<Widget> _pages = [
-    const HomeScreen(), 
-    const Center(child: Text("Dubbed Page")), 
-    const Center(child: Text("Favourite Page")), 
-    const Center(child: Text("Account Page"))
+    const HomeScreen(),
+    const Center(child: Text("Dubbed")),
+    const Center(child: Text("Favourite")),
+    const Center(child: Text("Account")),
   ];
 
   @override
@@ -40,13 +52,12 @@ class _MainScreenState extends State<MainScreen> {
       body: _pages[_index],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF6A5AE0),
-        unselectedItemColor: Colors.grey[400],
+        selectedItemColor: Colors.deepPurple,
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.video_library_rounded), label: "Dubbed"),
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.play_circle_fill), label: "Dubbed"),
           BottomNavigationBarItem(icon: Icon(Icons.favorite_rounded), label: "Favourite"),
           BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: "Account"),
         ],
@@ -62,58 +73,35 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("AnimeMX", style: TextStyle(color: Color(0xFF6A5AE0), fontWeight: FontWeight.bold)),
+        title: const Text("AnimeMX", style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white, elevation: 0,
-        actions: [IconButton(icon: const Icon(Icons.search, color: Colors.black), onPressed: () {})],
       ),
       body: ListView(
         children: [
+          const SizedBox(height: 10),
           CarouselSlider.builder(
-            itemCount: 4,
-            options: CarouselOptions(height: 220, autoPlay: true, viewportFraction: 0.9, enlargeCenterPage: true),
+            itemCount: animeList.length,
+            options: CarouselOptions(height: 200, autoPlay: true, enlargeCenterPage: true, viewportFraction: 0.9),
             itemBuilder: (ctx, i, real) => Container(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))]),
-              child: ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.network("https://i.ibb.co/7tppGVqq/images.jpg", fit: BoxFit.cover)),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)]),
+              child: ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.network(animeList[i].image, fit: BoxFit.cover)),
             ),
           ),
-          _buildAnimeSection("Trending Now 🔥"),
-          _buildAnimeSection("Most Viewed 👁️"),
+          const Padding(padding: EdgeInsets.all(15), child: Text("Trending Now", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
+          SizedBox(height: 200, child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: animeList.length,
+            itemBuilder: (ctx, i) => Container(
+              width: 130, margin: const EdgeInsets.only(left: 15),
+              child: Column(children: [
+                Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(15), child: Image.network(animeList[i].image, fit: BoxFit.cover))),
+                const SizedBox(height: 8),
+                Text(animeList[i].title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          )),
         ],
       ),
-    );
-  }
-
-  Widget _buildAnimeSection(String title) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(padding: const EdgeInsets.all(15), child: Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-        SizedBox(
-          height: 240, // Cards thode bade ho gaye
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: 5,
-            itemBuilder: (ctx, i) => Container(
-              width: 150, // Cards thode chaunde (wide) ho gaye
-              margin: const EdgeInsets.only(left: 15),
-              child: Column(
-                children: [
-                  Container(
-                    height: 190,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
-                      image: const DecorationImage(image: NetworkImage("https://i.ibb.co/KpsCLmBg/imager.jpg"), fit: BoxFit.cover),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text("Anime Name", style: TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
