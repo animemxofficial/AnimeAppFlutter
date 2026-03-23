@@ -46,7 +46,7 @@ class AnimeMX extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA), // White Theme Background
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA), 
         primaryColor: const Color(0xFF6A5AE0),
         useMaterial3: true,
       ),
@@ -101,7 +101,8 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _index == index;
     return GestureDetector(
-      onTap: () => setState(() => _index = i),
+      // 👇 YAHI GALTI THI (index ki jagah 'i' likh diya tha maine), AB YE FIX HAI!
+      onTap: () => setState(() => _index = index),
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -132,7 +133,7 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: const BoxDecoration(color: Colors.white),
                 child: Column(
-                  children: [
+                  children:[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children:[
@@ -196,7 +197,6 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
-        // CARD HEIGHT EXACTLY SET TO MATCH SCREENSHOT
         SizedBox(
           height: 260, 
           child: ListView.builder(
@@ -214,9 +214,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ==========================================
-// 🌟 EXACT MATCH ANIME CARD DESIGN (SAME TO SAME)
-// ==========================================
+// EXACT MATCH ANIME CARD DESIGN
 class AnimePosterCard extends StatefulWidget {
   final Anime anime;
   const AnimePosterCard({super.key, required this.anime});
@@ -226,7 +224,7 @@ class AnimePosterCard extends StatefulWidget {
 }
 
 class _AnimePosterCardState extends State<AnimePosterCard> {
-  bool _isTapped = false; // Tap Hover Animation Trigger
+  bool _isTapped = false; 
 
   @override
   Widget build(BuildContext context) {
@@ -234,19 +232,17 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
       onTapDown: (_) => setState(() => _isTapped = true),
       onTapUp: (_) {
         setState(() => _isTapped = false);
-        // Navigation to Details Page will go here
+        Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsPage(anime: widget.anime)));
       },
       onTapCancel: () => setState(() => _isTapped = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
-        // TAP ANIMATION: Card chota hoga jab user click karega
         transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
-        width: 160, // Proper Width
+        width: 160, 
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          // FAINT OUTLINE BORDER AS SEEN IN SCREENSHOT
           border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1), 
           boxShadow:[
             BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4)),
@@ -256,10 +252,8 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
           borderRadius: BorderRadius.circular(15),
           child: Stack(
             children:[
-              // 1. Full Cover Poster Image
               Image.network(widget.anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
               
-              // 2. Dark Gradient Overlay (For Text Visibility)
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -273,19 +267,16 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
                 ),
               ),
 
-              // 3. Top Badges (PG-13 and DUB)
               Positioned(
                 top: 10, left: 10, right: 10,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children:[
-                    // PG-13 Tag (Solid White)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
                       child: Text(widget.anime.rating, style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
                     ),
-                    // DUB Tag (Translucent Glassmorphism)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -299,7 +290,6 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
                 ),
               ),
               
-              // 4. Bottom Text Info
               Positioned(
                 bottom: 12, left: 12, right: 12,
                 child: Column(
@@ -339,7 +329,65 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
   }
 }
 
-// BROWSE SCREEN (Kept completely unchanged as requested)
+class DetailsPage extends StatelessWidget {
+  final Anime anime;
+  const DetailsPage({super.key, required this.anime});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      appBar: AppBar(
+        title: Text(anime.title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            Image.network(anime.image, width: double.infinity, height: 260, fit: BoxFit.cover),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  Text(anime.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.black87)),
+                  const SizedBox(height: 8),
+                  Text("${anime.season} • ${anime.views} Views • ${anime.dubStatus}", style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 24),
+                  
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6A5AE0),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 5,
+                      ),
+                      onPressed: () {}, 
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                      label: const Text("Watch Episode 1", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  const Text("Synopsis", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black87)),
+                  const SizedBox(height: 8),
+                  Text("A thrilling journey of ${anime.title}. Dive into the fantastic world filled with amazing characters and an unforgettable storyline. Watch it now on AnimeMX in high quality.", style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// BROWSE SCREEN (Unchanged)
 class BrowseScreen extends StatelessWidget {
   const BrowseScreen({super.key});
 
