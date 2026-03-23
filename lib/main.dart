@@ -16,6 +16,7 @@ void main() {
 class Anime {
   final String title, image, rating, dubStatus, season, status, views;
   final bool isNew;
+  final Color dubColor;
 
   Anime({
     required this.title,
@@ -26,16 +27,17 @@ class Anime {
     this.season = "Season 1",
     this.status = "Ongoing",
     this.views = "1.1M",
+    this.dubColor = const Color(0xFFFF4D4D),
   });
 }
 
 // Dummy Data
 final List<Anime> animeData =[
-  Anime(title: "Jujutsu Kaisen", image: "https://i.ibb.co/KpsCLmBg/imager.jpg", views: "5.2K", isNew: true),
-  Anime(title: "The Eminence in Shadow", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "202"),
-  Anime(title: "Classroom of the Elite", image: "https://i.ibb.co/vxJtwkcX/k.jpg", season: "Season 3", status: "Completed", views: "3.8K"),
-  Anime(title: "Tokyo Revengers", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "4.1K"),
-  Anime(title: "Wang Ling", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "3.1K", dubStatus: "MIX"),
+  Anime(title: "Jujutsu Kaisen", image: "https://i.ibb.co/KpsCLmBg/imager.jpg", views: "5.2K", dubColor: const Color(0xFFFF4D4D)), 
+  Anime(title: "Eminence in Shadow", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "202", dubColor: const Color(0xFF7A5CFF)), 
+  Anime(title: "Classroom of Elite", image: "https://i.ibb.co/vxJtwkcX/k.jpg", season: "Season 3", status: "Completed", views: "3.8K", dubColor: const Color(0xFF4DA6FF)), 
+  Anime(title: "Tokyo Revengers", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "4.1K", dubColor: const Color(0xFFFF9F43)), 
+  Anime(title: "Wang Ling", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "3.1K", dubStatus: "MIX", dubColor: const Color(0xFF00C853)), 
 ];
 
 class AnimeMX extends StatelessWidget {
@@ -46,7 +48,7 @@ class AnimeMX extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA), 
+        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
         primaryColor: const Color(0xFF6A5AE0),
         useMaterial3: true,
       ),
@@ -68,49 +70,28 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       body: _pages[_index],
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-        child: Container(
-          height: 70,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(35),
-            boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 5))],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children:[
-              _buildNavItem(0, Icons.explore_outlined, "Explore"),
-              _buildDivider(),
-              _buildNavItem(1, Icons.manage_search_outlined, "Browse"),
-              _buildDivider(),
-              _buildNavItem(2, Icons.headphones_outlined, "Dubs"),
-              _buildDivider(),
-              _buildNavItem(3, Icons.person_outline, "Profile"),
-            ],
-          ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDivider() => Container(width: 1, height: 30, color: Colors.grey[300]);
-
-  Widget _buildNavItem(int index, IconData icon, String label) {
-    final isSelected = _index == index;
-    return GestureDetector(
-      // 👇 YAHI GALTI THI (index ki jagah 'i' likh diya tha maine), AB YE FIX HAI!
-      onTap: () => setState(() => _index = index),
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children:[
-          Icon(icon, color: isSelected ? const Color(0xFF6A5AE0) : Colors.grey[500], size: 26),
-          const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: isSelected ? const Color(0xFF6A5AE0) : Colors.grey[500], fontSize: 11, fontWeight: FontWeight.bold)),
-        ],
+        child: BottomNavigationBar(
+          backgroundColor: Colors.white,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          selectedItemColor: const Color(0xFF6A5AE0),
+          unselectedItemColor: Colors.grey[500],
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
+          currentIndex: _index,
+          onTap: (i) => setState(() => _index = i),
+          items: const[
+            BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: "Explore"),
+            BottomNavigationBarItem(icon: Icon(Icons.manage_search_outlined), activeIcon: Icon(Icons.manage_search), label: "Browse"),
+            BottomNavigationBarItem(icon: Icon(Icons.headphones_outlined), activeIcon: Icon(Icons.headphones), label: "Dubs"),
+            BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: "Profile"),
+          ],
+        ),
       ),
     );
   }
@@ -125,7 +106,6 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children:[
@@ -150,6 +130,8 @@ class HomeScreen extends StatelessWidget {
                           Icon(Icons.search, color: Colors.grey[600]),
                           const SizedBox(width: 10),
                           Text("Search anime, movies, series...", style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500)),
+                          const Spacer(),
+                          Icon(Icons.mic_none, color: Colors.grey[600]),
                         ],
                       ),
                     ),
@@ -176,6 +158,8 @@ class HomeScreen extends StatelessWidget {
               _buildCategorySection("🔥 Trending Now", animeData),
               _buildCategorySection("👀 Most Viewed", animeData.reversed.toList()),
               _buildCategorySection("⏰ Latest Episodes", animeData),
+              
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -198,23 +182,22 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 260, 
+          height: 280, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), 
             itemCount: list.length,
             itemBuilder: (context, index) {
               return AnimePosterCard(anime: list[index]);
             },
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
       ],
     );
   }
 }
 
-// EXACT MATCH ANIME CARD DESIGN
 class AnimePosterCard extends StatefulWidget {
   final Anime anime;
   const AnimePosterCard({super.key, required this.anime});
@@ -236,89 +219,85 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
       },
       onTapCancel: () => setState(() => _isTapped = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
-        transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
-        width: 160, 
-        margin: const EdgeInsets.only(right: 12),
+        transform: Matrix4.identity()..scale(_isTapped ? 0.97 : 1.0),
+        width: 170, 
+        height: 250, 
+        margin: const EdgeInsets.only(right: 14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withOpacity(0.3), width: 1), 
+          color: const Color(0xFFFFFFFF), 
+          borderRadius: BorderRadius.circular(18), 
           boxShadow:[
-            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08), 
+              blurRadius: 20, 
+              offset: const Offset(0, 8),
+            ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: Stack(
+          borderRadius: BorderRadius.circular(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children:[
-              Image.network(widget.anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-              
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
-                      stops: const[0.0, 0.45, 1.0],
-                      begin: Alignment.bottomCenter, 
-                      end: Alignment.topCenter,
-                    ),
-                  ),
-                ),
-              ),
-
-              Positioned(
-                top: 10, left: 10, right: 10,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Expanded(
+                flex: 7, 
+                child: Stack(
                   children:[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                      child: Text(widget.anime.rating, style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2), 
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
-                      ),
-                      child: Text(widget.anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Positioned(
-                bottom: 12, left: 12, right: 12,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children:[
-                    Text(
-                      widget.anime.title, 
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15, height: 1.2), 
-                      maxLines: 2, overflow: TextOverflow.ellipsis
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "${widget.anime.season} • ${widget.anime.status}", 
-                      style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11), 
-                      maxLines: 1, overflow: TextOverflow.ellipsis
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children:[
-                        Icon(Icons.remove_red_eye_outlined, color: Colors.white.withOpacity(0.75), size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          "${widget.anime.views} Views", 
-                          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11)
+                    Image.network(widget.anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                            begin: Alignment.bottomCenter, 
+                            end: Alignment.topCenter,
+                          ),
                         ),
-                      ],
+                      ),
+                    ),
+                    Positioned(
+                      top: 10, left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFFF1F1F1), borderRadius: BorderRadius.circular(20)),
+                        child: Text(widget.anime.rating, style: const TextStyle(color: Color(0xFF333333), fontSize: 11, fontWeight: FontWeight.w700)),
+                      ),
+                    ),
+                    Positioned(
+                      top: 10, right: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: widget.anime.dubColor, borderRadius: BorderRadius.circular(20)),
+                        child: Text(widget.anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                      ),
                     ),
                   ],
+                ),
+              ),
+              Expanded(
+                flex: 3,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 12, right: 12, bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children:[
+                      Text(widget.anime.title, style: const TextStyle(color: Color(0xFF111111), fontWeight: FontWeight.w700, fontSize: 15, height: 1.2), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Text("${widget.anime.season} • ${widget.anime.status}", style: const TextStyle(color: Color(0xFF666666), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      const Spacer(),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children:[
+                          const Icon(Icons.remove_red_eye_rounded, color: Color(0xFF888888), size: 14),
+                          const SizedBox(width: 5),
+                          Text("${widget.anime.views} Views", style: const TextStyle(color: Color(0xFF888888), fontSize: 12, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -329,59 +308,195 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
   }
 }
 
+// ==========================================
+// 🔥 NEW PREMIUM DETAILS PAGE 🔥
+// ==========================================
 class DetailsPage extends StatelessWidget {
   final Anime anime;
   const DetailsPage({super.key, required this.anime});
 
   @override
   Widget build(BuildContext context) {
+    // Theme Colors based on screenshot
+    const Color softBgColor = Color(0xFFEFEAF5); // Soft Lavender background
+    const Color darkPurpleText = Color(0xFF1C0D35); // Deep Purple text
+    const Color tagBgColor = Color(0xFFD6C8EE); // Light purple for tags
+    const Color activeBtnColor = Color(0xFF5B3C88); // Dark Purple for buttons
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: Text(anime.title, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
+      backgroundColor: softBgColor,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            Image.network(anime.image, width: double.infinity, height: 260, fit: BoxFit.cover),
+            // 1. Hero Image with Overlay and Back Button
+            Stack(
+              children:[
+                Image.network(
+                  anime.image, 
+                  width: double.infinity, 
+                  height: 250, 
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                ),
+                // Gradient blending to background
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [softBgColor, Colors.transparent],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.center,
+                      ),
+                    ),
+                  ),
+                ),
+                // Back Button
+                Positioned(
+                  top: 45, left: 10,
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, shadows:[Shadow(color: Colors.black45, blurRadius: 10)]),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ],
+            ),
+
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children:[
-                  Text(anime.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.black87)),
-                  const SizedBox(height: 8),
-                  Text("${anime.season} • ${anime.views} Views • ${anime.dubStatus}", style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600, fontSize: 14)),
-                  const SizedBox(height: 24),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6A5AE0),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 5,
-                      ),
-                      onPressed: () {}, 
-                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
-                      label: const Text("Watch Episode 1", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
+                  // 2. Anime Title
+                  Text(
+                    anime.title,
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: darkPurpleText, letterSpacing: -0.5),
                   ),
+                  const SizedBox(height: 14),
+
+                  // 3. Genre & Info Tags
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children:[
+                      _buildTag(Icons.closed_caption, "Dub", tagBgColor, darkPurpleText),
+                      _buildTag(Icons.verified_user_rounded, "U/A 16+", tagBgColor, darkPurpleText),
+                      _buildTag(null, "Thriller", tagBgColor, darkPurpleText),
+                      _buildTag(null, "Mystery", tagBgColor, darkPurpleText),
+                      _buildTag(null, "Drama", tagBgColor, darkPurpleText),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 4. Description
+                  Text(
+                    "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School, which is dedicated to fostering the best students...",
+                    style: TextStyle(fontSize: 14, color: darkPurpleText.withOpacity(0.85), height: 1.5),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text("Read More", style: TextStyle(color: activeBtnColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                  const SizedBox(height: 30),
+
+                  // 5. Seasons Section
+                  const Text("Seasons", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: darkPurpleText)),
+                  const SizedBox(height: 14),
+                  Row(
+                    children:[
+                      _buildSeasonTab("Season 1", true, activeBtnColor, tagBgColor),
+                      const SizedBox(width: 10),
+                      _buildSeasonTab("Season 2", false, darkPurpleText, tagBgColor),
+                      const SizedBox(width: 10),
+                      _buildSeasonTab("Season 3", false, darkPurpleText, tagBgColor),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+
+                  // 6. Episodes List
+                  const Text("Episodes", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: darkPurpleText)),
+                  const SizedBox(height: 14),
                   
-                  const SizedBox(height: 24),
-                  const Text("Synopsis", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black87)),
-                  const SizedBox(height: 8),
-                  Text("A thrilling journey of ${anime.title}. Dive into the fantastic world filled with amazing characters and an unforgettable storyline. Watch it now on AnimeMX in high quality.", style: TextStyle(fontSize: 14, color: Colors.grey[800], height: 1.5)),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    itemCount: 4,
+                    itemBuilder: (context, index) {
+                      return _buildEpisodeItem(index + 1, anime.image, darkPurpleText);
+                    },
+                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildTag(IconData? icon, String text, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(10)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children:[
+          if (icon != null) ...[Icon(icon, size: 14, color: textColor), const SizedBox(width: 6)],
+          Text(text, style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeasonTab(String text, bool isActive, Color activeColor, Color inactiveBg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      decoration: BoxDecoration(
+        color: isActive ? activeColor : inactiveBg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: isActive ? Colors.white : activeColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEpisodeItem(int episodeNumber, String image, Color darkPurple) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        children:[
+          // Thumbnail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              image, 
+              width: 120, height: 70, 
+              fit: BoxFit.cover, alignment: Alignment.topCenter,
+            ),
+          ),
+          const SizedBox(width: 16),
+          // Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children:[
+                Text("Episode $episodeNumber", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: darkPurple)),
+                const SizedBox(height: 4),
+                Text("24 min", style: TextStyle(fontSize: 13, color: darkPurple.withOpacity(0.6), fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          // Play Icon
+          IconButton(
+            icon: Icon(Icons.play_circle_fill, color: darkPurple, size: 40),
+            onPressed: () {},
+          ),
+        ],
       ),
     );
   }
@@ -412,7 +527,7 @@ class BrowseScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const Text("Trending Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
               const SizedBox(height: 12),
-              Row(children: [Expanded(child: Column(children:[_buildTrendingItem("1", "Solo Leveling"), _buildTrendingItem("3", "Chainsaw Man")])), Expanded(child: Column(children:[_buildTrendingItem("2", "Jujutsu Kaisen"), _buildTrendingItem("4", "Tokyo Revengers")]))]),
+              Row(children:[Expanded(child: Column(children:[_buildTrendingItem("1", "Solo Leveling"), _buildTrendingItem("3", "Chainsaw Man")])), Expanded(child: Column(children:[_buildTrendingItem("2", "Jujutsu Kaisen"), _buildTrendingItem("4", "Tokyo Revengers")]))]),
               const SizedBox(height: 24),
               const Text("Browse by Genre", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
               const SizedBox(height: 12),
