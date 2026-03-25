@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
-import 'package:image_picker/image_picker.dart'; // Gallery kholne ke liye
+import 'package:image_picker/image_picker.dart';
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -70,8 +70,8 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages =[
     const HomeScreen(), 
     const BrowseScreen(), 
-    const Center(child: Text("Dubs", style: TextStyle(color: Colors.white))), 
-    const ProfileScreen() // NAYA PROFILE SCREEN YAHAN HAI
+    const DubsScreen(), // 🔥 NAYA DUBS SCREEN ADD KIYA
+    const ProfileScreen()
   ];
 
   @override
@@ -119,6 +119,139 @@ class _MainScreenState extends State<MainScreen> {
           const SizedBox(height: 4),
           Text(label, style: TextStyle(color: isSelected ? const Color(0xFF6A5AE0) : Colors.grey[500], fontSize: 11, fontWeight: FontWeight.bold)),
         ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 🔥 NEW DUBS SCREEN (TABS + GRID) 🔥
+// ==========================================
+class DubsScreen extends StatelessWidget {
+  const DubsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F0F0F),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0F0F0F),
+          elevation: 0,
+          toolbarHeight: 10, // Hide normal title space
+          bottom: const TabBar(
+            indicatorColor: Color(0xFF6A5AE0),
+            indicatorWeight: 3,
+            labelColor: Color(0xFF6A5AE0),
+            unselectedLabelColor: Colors.white70,
+            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            tabs:[
+              Tab(text: "ADR DUBBED"),
+              Tab(text: "ORIGINAL"),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children:[
+            _buildGrid(),
+            _buildGrid(), // Same grid for original as demo
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.65, // Card ratio
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: animeData.length,
+      itemBuilder: (context, index) {
+        return GridAnimeCard(anime: animeData[index]); // Use special Grid card
+      },
+    );
+  }
+}
+
+// Special Card for Grid (Height/Width auto-adjusts to GridView)
+class GridAnimeCard extends StatefulWidget {
+  final Anime anime;
+  const GridAnimeCard({super.key, required this.anime});
+  @override
+  State<GridAnimeCard> createState() => _GridAnimeCardState();
+}
+
+class _GridAnimeCardState extends State<GridAnimeCard> {
+  bool _isTapped = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isTapped = true),
+      onTapUp: (_) {
+        setState(() => _isTapped = false);
+        Navigator.push(context, MaterialPageRoute(builder: (context) => VideoDetailsPage(anime: widget.anime)));
+      },
+      onTapCancel: () => setState(() => _isTapped = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A), 
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1), 
+          boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Stack(
+            children:[
+              Image.network(widget.anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
+                      stops: const[0.0, 0.45, 1.0],
+                      begin: Alignment.bottomCenter, end: Alignment.topCenter,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8, left: 8, right: 8,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children:[
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)), child: Text(widget.anime.rating, style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold))),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5)), child: Text(widget.anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
+                  ],
+                ),
+              ),
+              Positioned(
+                bottom: 12, left: 10, right: 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children:[
+                    Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 6),
+                    Text("${widget.anime.season} • ${widget.anime.status}", style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Row(children:[Icon(Icons.remove_red_eye_outlined, color: Colors.white.withOpacity(0.75), size: 12), const SizedBox(width: 4), Text("${widget.anime.views} Views", style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10))]),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -217,9 +350,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ==========================================
-// ANIME CARD DESIGN (UNCHANGED)
-// ==========================================
+// HORIZONTAL ANIME CARD (UNCHANGED)
 class AnimePosterCard extends StatefulWidget {
   final Anime anime;
   const AnimePosterCard({super.key, required this.anime});
@@ -229,7 +360,6 @@ class AnimePosterCard extends StatefulWidget {
 
 class _AnimePosterCardState extends State<AnimePosterCard> {
   bool _isTapped = false;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -255,17 +385,7 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
           child: Stack(
             children:[
               Image.network(widget.anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
-                      stops: const[0.0, 0.45, 1.0],
-                      begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                    ),
-                  ),
-                ),
-              ),
+              Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent], stops: const[0.0, 0.45, 1.0], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
               Positioned(
                 top: 10, left: 10, right: 10,
                 child: Row(
@@ -299,7 +419,7 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
 }
 
 // ==========================================
-// 🔥 NEW UPDATED PROFILE PAGE 🔥
+// PROFILE SCREEN (UNCHANGED)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -313,57 +433,35 @@ class ProfileScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
           child: Column(
             children:[
-              // 1. EXACT MATCH PROFILE HEADER
               _buildProfileHeader(),
               const SizedBox(height: 24),
-
-              // 2. GO PREMIUM CARD (Chaudai kam ki gayi hai margins ke through)
               GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 10), // Width reduce
-                  padding: const EdgeInsets.all(16), // Padding slightly reduced
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    gradient: const LinearGradient(
-                      colors:[Color(0xFF8B5CF6), Color(0xFF6A5AE0)],
-                      begin: Alignment.topLeft, end: Alignment.bottomRight,
-                    ),
+                    gradient: const LinearGradient(colors:[Color(0xFF8B5CF6), Color(0xFF6A5AE0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children:[
-                      const Row(
-                        children:[
-                          Icon(Icons.workspace_premium, color: Colors.white, size: 26),
-                          SizedBox(width: 8),
-                          Text("Go Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
+                      const Row(children:[Icon(Icons.workspace_premium, color: Colors.white, size: 26), SizedBox(width: 8), Text("Go Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))]),
                       const SizedBox(height: 6),
                       const Text("Unlock all episodes & Remove ads", style: TextStyle(color: Colors.white70, fontSize: 13)),
                       const SizedBox(height: 12),
-                      Row(
-                        children:[
-                          _buildPricePill("₹90"),
-                          const SizedBox(width: 8),
-                          _buildPricePill("₹160"),
-                          const SizedBox(width: 8),
-                          _buildPricePill("₹299"),
-                        ],
-                      )
+                      Row(children:[_buildPricePill("₹90"), const SizedBox(width: 8), _buildPricePill("₹160"), const SizedBox(width: 8), _buildPricePill("₹299")]),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              
-              // 3. MENU ITEMS WITH GREY HOLD ANIMATION
               _buildMenuItem(context, Icons.receipt_long, "Activity & Orders", const ActivityPage()),
               _buildMenuItem(context, Icons.payment, "Payment Proof", const PaymentProofPage()),
               _buildMenuItem(context, Icons.headset_mic, "Support", const SupportPage()),
-              _buildMenuItem(context, Icons.info_outline, "About Us", const AboutUsPage()),
-              _buildMenuItem(context, Icons.privacy_tip_outlined, "Privacy Policy", const PrivacyPolicyPage()),
+              _buildMenuItem(context, Icons.info_outline, "About Us", const Scaffold(backgroundColor: Color(0xFF0F0F0F), body: Center(child: Text("About Us", style: TextStyle(color: Colors.white))))),
+              _buildMenuItem(context, Icons.privacy_tip_outlined, "Privacy Policy", const Scaffold(backgroundColor: Color(0xFF0F0F0F), body: Center(child: Text("Privacy Policy", style: TextStyle(color: Colors.white))))),
             ],
           ),
         ),
@@ -371,69 +469,29 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Profile Header as requested
   Widget _buildProfileHeader() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Avatar + Edit
         Column(
           children:[
-            Container(
-              width: 75, height: 75,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow:[BoxShadow(color: Colors.redAccent.withOpacity(0.5), blurRadius: 15)], // Red glow
-                image: const DecorationImage(image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"), fit: BoxFit.cover),
-              ),
-            ),
+            Container(width: 75, height: 75, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow:[BoxShadow(color: Colors.redAccent.withOpacity(0.5), blurRadius: 15)], image: const DecorationImage(image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"), fit: BoxFit.cover))),
             const SizedBox(height: 8),
-            const Row(
-              children:[
-                Icon(Icons.edit, color: Colors.purpleAccent, size: 14),
-                SizedBox(width: 4),
-                Text("Edit Profile", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 12)),
-              ],
-            )
+            const Row(children:[Icon(Icons.edit, color: Colors.purpleAccent, size: 14), SizedBox(width: 4), Text("Edit Profile", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 12))])
           ],
         ),
         const SizedBox(width: 20),
-        // Details
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children:[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children:[
-                  const Text("Flexxy xD", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                  Container(
-                    width: 14, height: 14,
-                    decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle, boxShadow:[BoxShadow(color: Colors.greenAccent, blurRadius: 8)]),
-                  ),
-                ],
-              ),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[const Text("Flexxy xD", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), Container(width: 14, height: 14, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle, boxShadow:[BoxShadow(color: Colors.greenAccent, blurRadius: 8)]))]),
               const SizedBox(height: 4),
               const Text("flexxy0xd@gmail.com", style: TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 8),
-              Row(
-                children:[
-                  Text("UID: VcXZJDac...", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.copy_outlined, color: Colors.grey, size: 14),
-                ],
-              ),
+              Row(children:[const Text("UID: VcXZJDac...", style: TextStyle(color: Colors.grey, fontSize: 12)), const SizedBox(width: 8), const Icon(Icons.copy_outlined, color: Colors.grey, size: 14)]),
               const SizedBox(height: 12),
-              // Bronze Tag
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B4513), // Bronze
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.orangeAccent.withOpacity(0.6)),
-                ),
-                child: const Text("BRONZE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1)),
-              ),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFF8B4513), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.orangeAccent.withOpacity(0.6))), child: const Text("BRONZE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1))),
             ],
           ),
         ),
@@ -441,15 +499,8 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPricePill(String price) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-      child: Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-    );
-  }
+  Widget _buildPricePill(String price) { return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))); }
 
-  // InkWell ADDED FOR GREY HIGHLIGHT ANIMATION
   Widget _buildMenuItem(BuildContext context, IconData icon, String title, Widget page) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -458,18 +509,14 @@ class ProfileScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          splashColor: Colors.grey.withOpacity(0.3), // Grey animation on tap
-          highlightColor: Colors.grey.withOpacity(0.3), // Grey animation on hold
+          splashColor: Colors.grey.withOpacity(0.3),
+          highlightColor: Colors.grey.withOpacity(0.3),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
               children:[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
-                  child: Icon(icon, color: Colors.white70, size: 20),
-                ),
+                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.white70, size: 20)),
                 const SizedBox(width: 16),
                 Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600))),
                 const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
@@ -482,77 +529,142 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-// ----------------------------------------------------
-// DUMMY PAGES FOR NAVIGATION (Appears when options clicked)
-// ----------------------------------------------------
-class PremiumPage extends StatelessWidget { const PremiumPage({super.key}); @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFF0F0F0F), appBar: AppBar(title: const Text("Premium Plans"), backgroundColor: Colors.black), body: const Center(child: Text("Premium Plans Page", style: TextStyle(color: Colors.white)))); } }
-class ActivityPage extends StatelessWidget { const ActivityPage({super.key}); @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFF0F0F0F), appBar: AppBar(title: const Text("Activity & Orders"), backgroundColor: Colors.black), body: const Center(child: Text("Activity Page", style: TextStyle(color: Colors.white)))); } }
-class SupportPage extends StatelessWidget { const SupportPage({super.key}); @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFF0F0F0F), appBar: AppBar(title: const Text("Support"), backgroundColor: Colors.black), body: const Center(child: Text("Support Page", style: TextStyle(color: Colors.white)))); } }
-class AboutUsPage extends StatelessWidget { const AboutUsPage({super.key}); @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFF0F0F0F), appBar: AppBar(title: const Text("About Us"), backgroundColor: Colors.black), body: const Center(child: Text("About Us Page", style: TextStyle(color: Colors.white)))); } }
-class PrivacyPolicyPage extends StatelessWidget { const PrivacyPolicyPage({super.key}); @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFF0F0F0F), appBar: AppBar(title: const Text("Privacy Policy"), backgroundColor: Colors.black), body: const Center(child: Text("Privacy Policy Page", style: TextStyle(color: Colors.white)))); } }
+// ==========================================
+// 🔥 HTML DESIGN RESTORED: PREMIUM, PAYMENT, SUPPORT 🔥
+// ==========================================
 
-// ==========================================
-// 🔥 PAYMENT PROOF PAGE (GALLERY UPLOAD ADDED) 🔥
-// ==========================================
+class PremiumPage extends StatelessWidget {
+  const PremiumPage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: AppBar(title: const Text("Go Premium", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children:[
+            const Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 5),
+            const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const SizedBox(height: 30),
+            _buildPlanCard("🥈 Silver Plan", "HD (720p) • Medium Ads • Limited Access", "₹90", false),
+            const SizedBox(height: 15),
+            _buildPlanCard("🥇 Gold Plan", "Full HD (1080p) • Low Ads • Full Access", "₹160", true),
+            const SizedBox(height: 15),
+            _buildPlanCard("💎 Diamond Plan", "Ultra HD (4K) • Ad-Free • 3 Devices", "₹299", false),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanCard(String title, String subtitle, String price, bool isGold) {
+    return Stack(
+      children:[
+        Container(
+          margin: const EdgeInsets.only(top: 10),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            border: Border.all(color: isGold ? Colors.amber : Colors.white24, width: isGold ? 2 : 1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children:[
+                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children:[Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12))]),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: isGold ? Colors.amber : const Color(0xFF6A5AE0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                    onPressed: () {}, 
+                    child: Text("Select", style: TextStyle(color: isGold ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+        if (isGold)
+          Positioned(
+            top: 0, left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: const BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8))),
+              child: const Text("RECOMMENDED", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
+          )
+      ],
+    );
+  }
+}
+
 class PaymentProofPage extends StatefulWidget {
   const PaymentProofPage({super.key});
   @override
   State<PaymentProofPage> createState() => _PaymentProofPageState();
 }
-
 class _PaymentProofPageState extends State<PaymentProofPage> {
   File? _imageFile;
-
   Future<void> _pickImage() async {
     final picker = ImagePicker();
-    // Gallery open hogi aur sirf ek image select hogi
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-    }
+    if (pickedFile != null) setState(() { _imageFile = File(pickedFile.path); });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(title: const Text("Payment Proof"), backgroundColor: Colors.black),
-      body: Padding(
+      appBar: AppBar(title: const Text("Verify Payment", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
+            Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Row(children:[Icon(Icons.info_outline, color: Colors.blue), SizedBox(width: 10), Expanded(child: Text("Verify your payment to activate plan instantly.", style: TextStyle(color: Colors.blue)))])),
+            const SizedBox(height: 24),
+            const Text("Select Amount Paid", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              dropdownColor: const Color(0xFF1A1A1A),
+              decoration: InputDecoration(filled: true, fillColor: const Color(0xFF1A1A1A), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)),
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+              value: "90",
+              items: const[DropdownMenuItem(value: "90", child: Text("₹90 (Silver)")), DropdownMenuItem(value: "160", child: Text("₹160 (Gold)")), DropdownMenuItem(value: "299", child: Text("₹299 (Diamond)"))],
+              onChanged: (val) {},
+            ),
+            const SizedBox(height: 24),
+            const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                height: 220,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.withOpacity(0.5), style: BorderStyle.solid),
-                ),
+                height: 200, width: double.infinity,
+                decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF6A5AE0).withOpacity(0.5), style: BorderStyle.solid, width: 2)),
                 child: _imageFile != null
-                    // Photo select hone ke baad box mein dikhegi
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.file(_imageFile!, fit: BoxFit.cover),
-                      )
-                    // Photo select nahi hone par ye dikhega
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const[
-                          Icon(Icons.cloud_upload_outlined, color: Colors.purpleAccent, size: 50),
-                          SizedBox(height: 10),
-                          Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white70)),
-                        ],
-                      ),
+                    ? ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                    : Column(mainAxisAlignment: MainAxisAlignment.center, children: const[Icon(Icons.cloud_upload_outlined, color: Color(0xFF6A5AE0), size: 50), SizedBox(height: 10), Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text("Supports JPG, PNG", style: TextStyle(color: Colors.white54, fontSize: 12))]),
               ),
             ),
+            const SizedBox(height: 24),
+            const Text("Transaction ID / UTR", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            TextFormField(style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "e.g. 3089XXXXXXX", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF1A1A1A), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none))),
+            const SizedBox(height: 30),
+            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6A5AE0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () {}, child: const Text("Submit & Verify", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))),
           ],
         ),
       ),
@@ -560,13 +672,48 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   }
 }
 
+class SupportPage extends StatelessWidget {
+  const SupportPage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: AppBar(title: const Text("Help Center", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            Container(
+              padding: const EdgeInsets.all(20), decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), gradient: const LinearGradient(colors:[Color(0xFF8B5CF6), Color(0xFF6A5AE0)])),
+              child: Row(children:[Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.headset_mic, color: Colors.white, size: 30)), const SizedBox(width: 15), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text("How can we help?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), Text("We're here to help you with any issues.", style: TextStyle(color: Colors.white70, fontSize: 12))]))]),
+            ),
+            const SizedBox(height: 30),
+            const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent),
+            _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green),
+            _buildSupportTile(Icons.email, "Email", "24-hour Response Time", Colors.orangeAccent),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildSupportTile(IconData icon, String title, String sub, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
+      child: Row(children:[Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12))])), const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)]),
+    );
+  }
+}
+
+class ActivityPage extends StatelessWidget { const ActivityPage({super.key}); @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFF0F0F0F), appBar: AppBar(title: const Text("Activity & Orders", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)), body: const Center(child: Text("No recent orders.", style: TextStyle(color: Colors.white54)))); } }
 
 // ==========================================
 // BROWSE SCREEN (UNCHANGED)
 // ==========================================
 class BrowseScreen extends StatelessWidget {
   const BrowseScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -577,17 +724,7 @@ class BrowseScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children:[
-              Container(
-                decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)),
-                child: TextField(
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: Icon(Icons.cancel, color: Colors.grey[600]),
-                    border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
+              Container(decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)), child: TextField(style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: Icon(Icons.cancel, color: Colors.grey[600]), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16)))),
               const SizedBox(height: 24),
               const Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 12),
@@ -599,15 +736,7 @@ class BrowseScreen extends StatelessWidget {
               const SizedBox(height: 24),
               const Text("Browse by Genre", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 2.2,
-                children:[
-                  _buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFF3A1C1C), Colors.redAccent),
-                  _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFF2D1B4E), const Color(0xFF9D84FF)),
-                  _buildGenreCard("Drama", "Series", Icons.masks, const Color(0xFF162B44), Colors.blueAccent),
-                  _buildGenreCard("Romance", "Love", Icons.favorite, const Color(0xFF421A28), Colors.pinkAccent),
-                ],
-              ),
+              GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 2.2, children:[_buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFF3A1C1C), Colors.redAccent), _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFF2D1B4E), const Color(0xFF9D84FF)), _buildGenreCard("Drama", "Series", Icons.masks, const Color(0xFF162B44), Colors.blueAccent), _buildGenreCard("Romance", "Love", Icons.favorite, const Color(0xFF421A28), Colors.pinkAccent)]),
             ],
           ),
         ),
@@ -625,11 +754,9 @@ class BrowseScreen extends StatelessWidget {
 class VideoDetailsPage extends StatefulWidget {
   final Anime anime;
   const VideoDetailsPage({super.key, required this.anime});
-
   @override
   State<VideoDetailsPage> createState() => _VideoDetailsPageState();
 }
-
 class _VideoDetailsPageState extends State<VideoDetailsPage> {
   late VideoPlayerController _controller;
   bool _showControls = true;
@@ -638,40 +765,18 @@ class _VideoDetailsPageState extends State<VideoDetailsPage> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(
-      Uri.parse(widget.anime.videoUrl),
-    )..initialize().then((_) {
-        setState(() {});
-        _controller.play(); 
-      });
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.anime.videoUrl))..initialize().then((_) { setState(() {}); _controller.play(); });
   }
-
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _toggleControls() {
-    setState(() {
-      _showControls = !_showControls;
-    });
-  }
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    final minutes = twoDigits(duration.inMinutes.remainder(60));
-    final seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$minutes:$seconds";
-  }
+  void dispose() { _controller.dispose(); super.dispose(); }
+  void _toggleControls() { setState(() { _showControls = !_showControls; }); }
+  String _formatDuration(Duration duration) { String twoDigits(int n) => n.toString().padLeft(2, '0'); return "${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}"; }
 
   @override
   Widget build(BuildContext context) {
     const Color primaryPurple = Color(0xFF6A5AE0);
-    const Color darkBg = Color(0xFF0F0F0F);
-
     return Scaffold(
-      backgroundColor: darkBg,
+      backgroundColor: const Color(0xFF0F0F0F),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,10 +785,7 @@ class _VideoDetailsPageState extends State<VideoDetailsPage> {
               aspectRatio: 16 / 9,
               child: Stack(
                 children:[
-                  _controller.value.isInitialized
-                      ? VideoPlayer(_controller)
-                      : const Center(child: CircularProgressIndicator(color: primaryPurple)),
-                  
+                  _controller.value.isInitialized ? VideoPlayer(_controller) : const Center(child: CircularProgressIndicator(color: primaryPurple)),
                   if (_showControls)
                     GestureDetector(
                       onTap: _toggleControls,
@@ -692,45 +794,9 @@ class _VideoDetailsPageState extends State<VideoDetailsPage> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children:[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children:[
-                                IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)),
-                                Row(
-                                  children:[
-                                    IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}),
-                                    IconButton(icon: const Icon(Icons.fullscreen, color: Colors.white), onPressed: () {}),
-                                  ],
-                                )
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children:[
-                                IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position - const Duration(seconds: 10))),
-                                IconButton(
-                                  icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60),
-                                  onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play()),
-                                ),
-                                IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position + const Duration(seconds: 10))),
-                              ],
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              child: Row(
-                                children:[
-                                  Text(_formatDuration(_controller.value.position), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                                  Expanded(
-                                    child: VideoProgressIndicator(
-                                      _controller, allowScrubbing: true,
-                                      colors: const VideoProgressColors(playedColor: primaryPurple, bufferedColor: Colors.white24, backgroundColor: Colors.white12),
-                                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                                    ),
-                                  ),
-                                  Text(_formatDuration(_controller.value.duration), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                                ],
-                              ),
-                            ),
+                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)), Row(children:[IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}), IconButton(icon: const Icon(Icons.fullscreen, color: Colors.white), onPressed: () {})])]),
+                            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children:[IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position - const Duration(seconds: 10))), IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play())), IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position + const Duration(seconds: 10)))]),
+                            Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), child: Row(children:[Text(_formatDuration(_controller.value.position), style: const TextStyle(color: Colors.white, fontSize: 12)), Expanded(child: VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: primaryPurple, bufferedColor: Colors.white24, backgroundColor: Colors.white12), padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0))), Text(_formatDuration(_controller.value.duration), style: const TextStyle(color: Colors.white, fontSize: 12))])),
                           ],
                         ),
                       ),
@@ -740,7 +806,6 @@ class _VideoDetailsPageState extends State<VideoDetailsPage> {
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
@@ -749,53 +814,17 @@ class _VideoDetailsPageState extends State<VideoDetailsPage> {
                   children:[
                     Text("E${_currentEpisode + 1} | ${widget.anime.title}", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 10),
-                    Row(
-                      children:[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)),
-                          child: const Text("U/A 16+", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                        ),
-                        const SizedBox(width: 10),
-                        const Expanded(child: Text("• Dub | Action, Drama", style: TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis)),
-                      ],
-                    ),
+                    Row(children:[Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)), child: const Text("U/A 16+", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))), const SizedBox(width: 10), const Expanded(child: Text("• Dub | Action, Drama", style: TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis))]),
                     const SizedBox(height: 24),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children:[
-                        const Text("Episodes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(8)),
-                          child: const Row(children:[Text("Season 1", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), SizedBox(width: 5), Icon(Icons.keyboard_arrow_down, color: primaryPurple, size: 18)]),
-                        ),
-                      ],
-                    ),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[const Text("Episodes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(8)), child: const Row(children:[Text("Season 1", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), SizedBox(width: 5), Icon(Icons.keyboard_arrow_down, color: primaryPurple, size: 18)]))]),
                     const SizedBox(height: 16),
-
                     ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: 4,
+                      shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: 4,
                       itemBuilder: (context, index) {
                         bool isActive = index == _currentEpisode;
                         return GestureDetector(
                           onTap: () => setState(() => _currentEpisode = index),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(color: isActive ? primaryPurple : const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)),
-                            child: Row(
-                              children:[
-                                ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(widget.anime.image, width: 120, height: 70, fit: BoxFit.cover)),
-                                const SizedBox(width: 16),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text("Episode ${index + 1}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 4), Text("24 min", style: TextStyle(color: Colors.white70, fontSize: 13))])),
-                                Icon(isActive ? Icons.pause_circle_filled : Icons.play_circle_filled, color: Colors.white, size: 36),
-                              ],
-                            ),
-                          ),
+                          child: Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: isActive ? primaryPurple : const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)), child: Row(children:[ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(widget.anime.image, width: 120, height: 70, fit: BoxFit.cover)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text("Episode ${index + 1}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 4), Text("24 min", style: TextStyle(color: Colors.white70, fontSize: 13))])), Icon(isActive ? Icons.pause_circle_filled : Icons.play_circle_filled, color: Colors.white, size: 36)])),
                         );
                       },
                     ),
