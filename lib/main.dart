@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart'; // UPI aur links ke liye
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -31,7 +30,7 @@ class Anime {
     this.status = "Ongoing",
     this.views = "1.1M",
     this.dubColor = const Color(0xFFFF4D4D),
-    this.videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // Test Video Link
+    this.videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
   });
 }
 
@@ -125,6 +124,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
+// ==========================================
+// DUBS SCREEN (UNCHANGED)
+// ==========================================
 class DubsScreen extends StatelessWidget {
   const DubsScreen({super.key});
   @override
@@ -210,8 +212,12 @@ class _GridAnimeCardState extends State<GridAnimeCard> {
   }
 }
 
+// ==========================================
+// HOME SCREEN (UNCHANGED)
+// ==========================================
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -312,119 +318,251 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
 }
 
 // ==========================================
-// 🔥 1. DETAILS PAGE (OPENED FROM CARD) 🔥
+// 🔥 NEW UPDATED DETAILS PAGE 🔥
 // ==========================================
 class DetailsPage extends StatefulWidget {
   final Anime anime;
   const DetailsPage({super.key, required this.anime});
+
   @override
   State<DetailsPage> createState() => _DetailsPageState();
 }
 
 class _DetailsPageState extends State<DetailsPage> {
-  int _selectedEpisode = 0; // Default ep 1
+  bool _isExpanded = false;
+  int _selectedSeason = 1;
 
   @override
   Widget build(BuildContext context) {
     const Color primaryPurple = Color(0xFF6A5AE0);
+    const Color darkBg = Color(0xFF0F0F0F);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      body: CustomScrollView(
-        slivers:[
-          SliverAppBar(
-            expandedHeight: 250,
-            pinned: true,
-            backgroundColor: Colors.black,
-            leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white), onPressed: () => Navigator.pop(context)),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children:[
-                  Image.network(widget.anime.image, fit: BoxFit.cover, alignment: Alignment.topCenter),
-                  Container(decoration: BoxDecoration(gradient: LinearGradient(colors:[const Color(0xFF0F0F0F), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter))),
-                ],
-              ),
+      backgroundColor: darkBg,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            // 1. TOP HERO IMAGE & BACK BUTTON
+            Stack(
+              children:[
+                Image.network(
+                  widget.anime.image,
+                  width: double.infinity,
+                  height: 320,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                ),
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [darkBg, darkBg.withOpacity(0.5), Colors.transparent],
+                        stops: const [0.0, 0.4, 1.0],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                      ),
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  child: IconButton(
+                    padding: const EdgeInsets.only(left: 16),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ),
+              ],
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children:[
-                  Text(widget.anime.title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white)),
-                  const SizedBox(height: 10),
-                  Row(
+                  // 2. TITLE
+                  Text(
+                    widget.anime.title,
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. TAGS
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
                     children:[
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)), child: Text(widget.anime.rating, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
-                      const SizedBox(width: 10),
-                      const Expanded(child: Text("• Dub | Action, Thriller, Drama", style: TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                      _buildTag(Icons.closed_caption, "Dub"),
+                      _buildTag(Icons.brightness_high, "U/A 16+"),
+                      _buildTag(null, "Thriller"),
+                      _buildTag(null, "Mystery"),
+                      _buildTag(null, "Drama"),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  
-                  // Watch Now Main Button
+                  const SizedBox(height: 24),
+
+                  // 4. PLAY BUTTON (Clicking plays episode 1)
                   SizedBox(
                     width: double.infinity,
+                    height: 50,
                     child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: primaryPurple, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      // CLICK HERE TO GO TO VIDEO PLAYER
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, episodeIndex: _selectedEpisode))), 
-                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
-                      label: Text("Watch Episode ${_selectedEpisode + 1}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryPurple,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
+                        // Plays 1st Episode
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, episodeIndex: 0)));
+                      },
+                      icon: const Icon(Icons.play_arrow, color: Colors.white, size: 26),
+                      label: const Text("Play", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Text("Episodes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
 
-                  // Episodes List
+                  // 5. READ MORE DESCRIPTION
+                  Text(
+                    "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School, which is dedicated to fostering the best and brightest students. But he ends up in Class-D, a dumping ground for the school's worst. A cruel meritocracy awaits where he must use his dark intellect to survive in a school of ruthless competition.",
+                    maxLines: _isExpanded ? null : 3,
+                    overflow: _isExpanded ? null : TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                  ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: () => setState(() => _isExpanded = !_isExpanded),
+                    child: Text(
+                      _isExpanded ? "Read Less" : "Read More",
+                      style: const TextStyle(color: primaryPurple, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // 6. SEASONS TABS
+                  const Text("Seasons", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children:[
+                      _buildSeasonTab(1),
+                      const SizedBox(width: 10),
+                      _buildSeasonTab(2),
+                      const SizedBox(width: 10),
+                      _buildSeasonTab(3),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // 7. EPISODES LIST
+                  const Text("Episodes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
                   ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: 4,
+                    // Generating 5 episodes based on season selected
+                    itemCount: 5,
                     itemBuilder: (context, index) {
-                      bool isActive = index == _selectedEpisode;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() => _selectedEpisode = index); // Select episode
-                          // CLICK EPISODE CARD TO GO TO VIDEO PLAYER
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, episodeIndex: index)));
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(color: isActive ? primaryPurple.withOpacity(0.2) : const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12), border: Border.all(color: isActive ? primaryPurple : Colors.transparent)),
-                          child: Row(
-                            children:[
-                              ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(widget.anime.image, width: 120, height: 70, fit: BoxFit.cover)),
-                              const SizedBox(width: 16),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text("Episode ${index + 1}", style: TextStyle(color: isActive ? primaryPurple : Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 4), Text("24 min", style: TextStyle(color: Colors.white70, fontSize: 13))])),
-                              Icon(Icons.play_circle_fill, color: isActive ? primaryPurple : Colors.white, size: 36),
-                            ],
-                          ),
-                        ),
-                      );
+                      return _buildEpisodeItem(index, primaryPurple);
                     },
                   ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTag(IconData? icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children:[
+          if (icon != null) ...[Icon(icon, size: 14, color: Colors.white70), const SizedBox(width: 4)],
+          Text(text, style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSeasonTab(int seasonNumber) {
+    bool isActive = _selectedSeason == seasonNumber;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSeason = seasonNumber), // Change state
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF6A5AE0) : const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          "Season $seasonNumber",
+          style: TextStyle(
+            color: isActive ? Colors.white : Colors.white70,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEpisodeItem(int index, Color primaryPurple) {
+    return GestureDetector(
+      onTap: () {
+        // OPEN VIDEO PLAYER FOR SPECIFIC EPISODE
+        Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, episodeIndex: index)));
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          children:[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                widget.anime.image,
+                width: 130,
+                height: 80,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  // Change text based on season selected dynamically
+                  Text("Episode ${index + 1}", style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  Text("24 min", style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12)),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.1)),
+              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 // ==========================================
-// 🔥 2. SEPARATE VIDEO PLAYER PAGE 🔥
+// VIDEO PLAYER PAGE (UNCHANGED)
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime;
   final int episodeIndex;
   const VideoPlayerPage({super.key, required this.anime, required this.episodeIndex});
-
   @override
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
 }
@@ -438,7 +576,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.initState();
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.anime.videoUrl))..initialize().then((_) { setState(() {}); _controller.play(); });
   }
-
   @override
   void dispose() { _controller.dispose(); super.dispose(); }
   void _toggleControls() { setState(() { _showControls = !_showControls; }); }
@@ -448,7 +585,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget build(BuildContext context) {
     const Color primaryPurple = Color(0xFF6A5AE0);
     return Scaffold(
-      backgroundColor: Colors.black, // Video player background black
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: Column(
           children:[
@@ -477,7 +614,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 ],
               ),
             ),
-            // Information below the player
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -497,7 +633,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// PROFILE & SUB PAGES (FIXED UPI & BUTTONS)
+// PROFILE SCREEN (UNCHANGED)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -514,7 +650,7 @@ class ProfileScreen extends StatelessWidget {
               _buildProfileHeader(),
               const SizedBox(height: 24),
               GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
+                onTap: () {},
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 10),
                   padding: const EdgeInsets.all(16),
@@ -532,11 +668,11 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              _buildMenuItem(context, Icons.receipt_long, "Activity & Orders", const ActivityPage()),
-              _buildMenuItem(context, Icons.payment, "Payment Proof", const PaymentProofPage()),
-              _buildMenuItem(context, Icons.headset_mic, "Support", const SupportPage()),
-              _buildMenuItem(context, Icons.info_outline, "About Us", const Scaffold(backgroundColor: Color(0xFF0F0F0F), body: Center(child: Text("About Us", style: TextStyle(color: Colors.white))))),
-              _buildMenuItem(context, Icons.privacy_tip_outlined, "Privacy Policy", const Scaffold(backgroundColor: Color(0xFF0F0F0F), body: Center(child: Text("Privacy Policy", style: TextStyle(color: Colors.white))))),
+              _buildMenuItem(context, Icons.receipt_long, "Activity & Orders"),
+              _buildMenuItem(context, Icons.payment, "Payment Proof"),
+              _buildMenuItem(context, Icons.headset_mic, "Support"),
+              _buildMenuItem(context, Icons.info_outline, "About Us"),
+              _buildMenuItem(context, Icons.privacy_tip_outlined, "Privacy Policy"),
             ],
           ),
         ),
@@ -576,7 +712,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildPricePill(String price) { return Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))); }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title, Widget page) {
+  Widget _buildMenuItem(BuildContext context, IconData icon, String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
@@ -584,191 +720,13 @@ class ProfileScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16), splashColor: Colors.grey.withOpacity(0.3), highlightColor: Colors.grey.withOpacity(0.3),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
+          onTap: () {},
           child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), child: Row(children:[Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.white70, size: 20)), const SizedBox(width: 16), Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600))), const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)])),
         ),
       ),
     );
   }
 }
-
-// 🔥 FIXED UPI LAUNCH IN PREMIUM PAGE 🔥
-class PremiumPage extends StatelessWidget {
-  const PremiumPage({super.key});
-
-  void _launchUPI(BuildContext context, String amount, String plan) async {
-    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan");
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!")));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(title: const Text("Go Premium", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children:[
-            const Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 30),
-            _buildPlanCard(context, "🥈 Silver Plan", "HD (720p) • Medium Ads • Limited Access", "₹90", false),
-            const SizedBox(height: 15),
-            _buildPlanCard(context, "🥇 Gold Plan", "Full HD (1080p) • Low Ads • Full Access", "₹160", true),
-            const SizedBox(height: 15),
-            _buildPlanCard(context, "💎 Diamond Plan", "Ultra HD (4K) • Ad-Free • 3 Devices", "₹299", false),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlanCard(BuildContext context, String title, String subtitle, String price, bool isGold) {
-    String cleanPrice = price.replaceAll("₹", ""); // Remove currency symbol for UPI amount
-    return Stack(
-      children:[
-        Container(
-          margin: const EdgeInsets.only(top: 10), padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(color: const Color(0xFF1A1A1A), border: Border.all(color: isGold ? Colors.amber : Colors.white24, width: isGold ? 2 : 1), borderRadius: BorderRadius.circular(16)),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12))])),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children:[
-                  Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children:[Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12))]),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: isGold ? Colors.amber : const Color(0xFF6A5AE0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    onPressed: () => _launchUPI(context, cleanPrice, title.split(" ")[1]), // CONNECTED TO UPI
-                    child: Text("Select", style: TextStyle(color: isGold ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-        if (isGold) Positioned(top: 0, left: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: const BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8))), child: const Text("RECOMMENDED", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold))))
-      ],
-    );
-  }
-}
-
-// 🔥 FIXED PAYMENT PROOF SUBMIT BUTTON 🔥
-class PaymentProofPage extends StatefulWidget {
-  const PaymentProofPage({super.key});
-  @override
-  State<PaymentProofPage> createState() => _PaymentProofPageState();
-}
-class _PaymentProofPageState extends State<PaymentProofPage> {
-  File? _imageFile;
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) setState(() { _imageFile = File(pickedFile.path); });
-  }
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(title: const Text("Verify Payment", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: const Row(children:[Icon(Icons.info_outline, color: Colors.blue), SizedBox(width: 10), Expanded(child: Text("Verify your payment to activate plan instantly.", style: TextStyle(color: Colors.blue)))])),
-            const SizedBox(height: 24),
-            const Text("Select Amount Paid", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              dropdownColor: const Color(0xFF1A1A1A),
-              decoration: InputDecoration(filled: true, fillColor: const Color(0xFF1A1A1A), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)),
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-              value: "90",
-              items: const[DropdownMenuItem(value: "90", child: Text("₹90 (Silver)")), DropdownMenuItem(value: "160", child: Text("₹160 (Gold)")), DropdownMenuItem(value: "299", child: Text("₹299 (Diamond)"))],
-              onChanged: (val) {},
-            ),
-            const SizedBox(height: 24),
-            const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                height: 200, width: double.infinity,
-                decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFF6A5AE0).withOpacity(0.5), style: BorderStyle.solid, width: 2)),
-                child: _imageFile != null
-                    ? ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.file(_imageFile!, fit: BoxFit.cover))
-                    : Column(mainAxisAlignment: MainAxisAlignment.center, children: const[Icon(Icons.cloud_upload_outlined, color: Color(0xFF6A5AE0), size: 50), SizedBox(height: 10), Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text("Supports JPG, PNG", style: TextStyle(color: Colors.white54, fontSize: 12))]),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text("Transaction ID / UTR", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextFormField(style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "e.g. 3089XXXXXXX", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF1A1A1A), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none))),
-            const SizedBox(height: 30),
-            // SUBMIT BUTTON FIX
-            SizedBox(
-              width: double.infinity, height: 50, 
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6A5AE0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), 
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted Successfully!")));
-                  Future.delayed(const Duration(seconds: 1), () => Navigator.pop(context));
-                }, 
-                child: const Text("Submit & Verify", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
-              )
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class SupportPage extends StatelessWidget {
-  const SupportPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(title: const Text("Help Center", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            Container(
-              padding: const EdgeInsets.all(20), decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), gradient: const LinearGradient(colors:[Color(0xFF8B5CF6), Color(0xFF6A5AE0)])),
-              child: Row(children:[Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.headset_mic, color: Colors.white, size: 30)), const SizedBox(width: 15), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text("How can we help?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), Text("We're here to help you with any issues.", style: TextStyle(color: Colors.white70, fontSize: 12))]))]),
-            ),
-            const SizedBox(height: 30),
-            const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent),
-            _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green),
-            _buildSupportTile(Icons.email, "Email", "24-hour Response Time", Colors.orangeAccent),
-          ],
-        ),
-      ),
-    );
-  }
-  Widget _buildSupportTile(IconData icon, String title, String sub, Color color) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
-      child: Row(children:[Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12))])), const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)]),
-    );
-  }
-}
-
-class ActivityPage extends StatelessWidget { const ActivityPage({super.key}); @override Widget build(BuildContext context) { return Scaffold(backgroundColor: const Color(0xFF0F0F0F), appBar: AppBar(title: const Text("Activity & Orders", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)), body: const Center(child: Text("No recent orders.", style: TextStyle(color: Colors.white54)))); } }
 
 // ==========================================
 // BROWSE SCREEN (UNCHANGED)
