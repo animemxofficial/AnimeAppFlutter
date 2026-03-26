@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart'; // UPI aur links ke liye
 
 void main() {
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -30,7 +31,7 @@ class Anime {
     this.status = "Ongoing",
     this.views = "1.1M",
     this.dubColor = const Color(0xFFFF4D4D),
-    this.videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    this.videoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", // Test Video Link
   });
 }
 
@@ -70,7 +71,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages =[
     const HomeScreen(), 
     const BrowseScreen(), 
-    const DubsScreen(), // 🔥 NAYA DUBS SCREEN ADD KIYA
+    const DubsScreen(), 
     const ProfileScreen()
   ];
 
@@ -124,12 +125,8 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// ==========================================
-// 🔥 NEW DUBS SCREEN (TABS + GRID) 🔥
-// ==========================================
 class DubsScreen extends StatelessWidget {
   const DubsScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -139,92 +136,49 @@ class DubsScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: const Color(0xFF0F0F0F),
           elevation: 0,
-          toolbarHeight: 10, // Hide normal title space
+          toolbarHeight: 10, 
           bottom: const TabBar(
-            indicatorColor: Color(0xFF6A5AE0),
-            indicatorWeight: 3,
-            labelColor: Color(0xFF6A5AE0),
-            unselectedLabelColor: Colors.white70,
-            labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            tabs:[
-              Tab(text: "ADR DUBBED"),
-              Tab(text: "ORIGINAL"),
-            ],
+            indicatorColor: Color(0xFF6A5AE0), indicatorWeight: 3, labelColor: Color(0xFF6A5AE0), unselectedLabelColor: Colors.white70, labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            tabs:[Tab(text: "ADR DUBBED"), Tab(text: "ORIGINAL")],
           ),
         ),
-        body: TabBarView(
-          children:[
-            _buildGrid(),
-            _buildGrid(), // Same grid for original as demo
-          ],
-        ),
+        body: TabBarView(children:[_buildGrid(), _buildGrid()]),
       ),
     );
   }
-
   Widget _buildGrid() {
     return GridView.builder(
       padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.65, // Card ratio
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 16,
-      ),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16),
       itemCount: animeData.length,
-      itemBuilder: (context, index) {
-        return GridAnimeCard(anime: animeData[index]); // Use special Grid card
-      },
+      itemBuilder: (context, index) => GridAnimeCard(anime: animeData[index]),
     );
   }
 }
 
-// Special Card for Grid (Height/Width auto-adjusts to GridView)
 class GridAnimeCard extends StatefulWidget {
   final Anime anime;
   const GridAnimeCard({super.key, required this.anime});
   @override
   State<GridAnimeCard> createState() => _GridAnimeCardState();
 }
-
 class _GridAnimeCardState extends State<GridAnimeCard> {
   bool _isTapped = false;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _isTapped = true),
-      onTapUp: (_) {
-        setState(() => _isTapped = false);
-        Navigator.push(context, MaterialPageRoute(builder: (context) => VideoDetailsPage(anime: widget.anime)));
-      },
+      onTapUp: (_) { setState(() => _isTapped = false); Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsPage(anime: widget.anime))); },
       onTapCancel: () => setState(() => _isTapped = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A), 
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1), 
-          boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
-        ),
+        duration: const Duration(milliseconds: 150), curve: Curves.easeOut, transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
+        decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(0.1), width: 1), boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))]),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
           child: Stack(
             children:[
               Image.network(widget.anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
-                      stops: const[0.0, 0.45, 1.0],
-                      begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                    ),
-                  ),
-                ),
-              ),
+              Positioned.fill(child: DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent], stops: const[0.0, 0.45, 1.0], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
               Positioned(
                 top: 8, left: 8, right: 8,
                 child: Row(
@@ -238,8 +192,7 @@ class _GridAnimeCardState extends State<GridAnimeCard> {
               Positioned(
                 bottom: 12, left: 10, right: 10,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min,
                   children:[
                     Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
@@ -257,12 +210,8 @@ class _GridAnimeCardState extends State<GridAnimeCard> {
   }
 }
 
-// ==========================================
-// HOME SCREEN (UNCHANGED)
-// ==========================================
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -277,37 +226,14 @@ class HomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Column(
                   children:[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children:[
-                        const Text("AnimeMX", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF6A5AE0), letterSpacing: -0.5)),
-                        IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none_rounded, color: Colors.white)),
-                      ],
-                    ),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[const Text("AnimeMX", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF6A5AE0), letterSpacing: -0.5)), IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none_rounded, color: Colors.white))]),
                     const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                      decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)),
-                      child: Row(
-                        children:[
-                          Icon(Icons.search, color: Colors.grey[400]),
-                          const SizedBox(width: 10),
-                          Text("Search anime, movies, series...", style: TextStyle(color: Colors.grey[400], fontSize: 14, fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12), decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)), child: Row(children:[Icon(Icons.search, color: Colors.grey[400]), const SizedBox(width: 10), Text("Search anime, movies, series...", style: TextStyle(color: Colors.grey[400], fontSize: 14, fontWeight: FontWeight.w500))])),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
-              CarouselSlider.builder(
-                itemCount: 3,
-                options: CarouselOptions(height: 180, autoPlay: true, enlargeCenterPage: true, viewportFraction: 0.9),
-                itemBuilder: (ctx, i, real) => Container(
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
-                  child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network("https://i.ibb.co/rW2Zk9B/images.jpg", fit: BoxFit.cover, width: double.infinity)),
-                ),
-              ),
+              CarouselSlider.builder(itemCount: 3, options: CarouselOptions(height: 180, autoPlay: true, enlargeCenterPage: true, viewportFraction: 0.9), itemBuilder: (ctx, i, real) => Container(decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)), child: ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.network("https://i.ibb.co/rW2Zk9B/images.jpg", fit: BoxFit.cover, width: double.infinity)))),
               const SizedBox(height: 24),
               _buildCategorySection("🔥 Trending Now", animeData),
               _buildCategorySection("👀 Most Viewed", animeData.reversed.toList()),
@@ -318,68 +244,36 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildCategorySection(String title, List<Anime> list) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children:[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children:[
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 260, 
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-            itemCount: list.length,
-            itemBuilder: (context, index) {
-              return AnimePosterCard(anime: list[index]);
-            },
-          ),
-        ),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white)), const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey)])),
+        SizedBox(height: 260, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, itemBuilder: (context, index) { return AnimePosterCard(anime: list[index]); })),
         const SizedBox(height: 16),
       ],
     );
   }
 }
 
-// HORIZONTAL ANIME CARD (UNCHANGED)
 class AnimePosterCard extends StatefulWidget {
   final Anime anime;
   const AnimePosterCard({super.key, required this.anime});
   @override
   State<AnimePosterCard> createState() => _AnimePosterCardState();
 }
-
 class _AnimePosterCardState extends State<AnimePosterCard> {
   bool _isTapped = false;
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => setState(() => _isTapped = true),
-      onTapUp: (_) {
-        setState(() => _isTapped = false);
-        Navigator.push(context, MaterialPageRoute(builder: (context) => VideoDetailsPage(anime: widget.anime)));
-      },
+      onTapUp: (_) { setState(() => _isTapped = false); Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsPage(anime: widget.anime))); }, // OPEN DETAILS PAGE
       onTapCancel: () => setState(() => _isTapped = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
-        width: 160, 
-        margin: const EdgeInsets.only(right: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A), 
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1), 
-        ),
+        duration: const Duration(milliseconds: 150), curve: Curves.easeOut, transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
+        width: 160, margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(0.1), width: 1)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(15),
           child: Stack(
@@ -399,8 +293,7 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
               Positioned(
                 bottom: 12, left: 12, right: 12,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min,
                   children:[
                     Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 6),
@@ -419,7 +312,192 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
 }
 
 // ==========================================
-// PROFILE SCREEN (UNCHANGED)
+// 🔥 1. DETAILS PAGE (OPENED FROM CARD) 🔥
+// ==========================================
+class DetailsPage extends StatefulWidget {
+  final Anime anime;
+  const DetailsPage({super.key, required this.anime});
+  @override
+  State<DetailsPage> createState() => _DetailsPageState();
+}
+
+class _DetailsPageState extends State<DetailsPage> {
+  int _selectedEpisode = 0; // Default ep 1
+
+  @override
+  Widget build(BuildContext context) {
+    const Color primaryPurple = Color(0xFF6A5AE0);
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
+      body: CustomScrollView(
+        slivers:[
+          SliverAppBar(
+            expandedHeight: 250,
+            pinned: true,
+            backgroundColor: Colors.black,
+            leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white), onPressed: () => Navigator.pop(context)),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children:[
+                  Image.network(widget.anime.image, fit: BoxFit.cover, alignment: Alignment.topCenter),
+                  Container(decoration: BoxDecoration(gradient: LinearGradient(colors:[const Color(0xFF0F0F0F), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter))),
+                ],
+              ),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  Text(widget.anime.title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white)),
+                  const SizedBox(height: 10),
+                  Row(
+                    children:[
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)), child: Text(widget.anime.rating, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                      const SizedBox(width: 10),
+                      const Expanded(child: Text("• Dub | Action, Thriller, Drama", style: TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Watch Now Main Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(backgroundColor: primaryPurple, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      // CLICK HERE TO GO TO VIDEO PLAYER
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, episodeIndex: _selectedEpisode))), 
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                      label: Text("Watch Episode ${_selectedEpisode + 1}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text("Episodes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+
+                  // Episodes List
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: 4,
+                    itemBuilder: (context, index) {
+                      bool isActive = index == _selectedEpisode;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedEpisode = index); // Select episode
+                          // CLICK EPISODE CARD TO GO TO VIDEO PLAYER
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, episodeIndex: index)));
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: isActive ? primaryPurple.withOpacity(0.2) : const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12), border: Border.all(color: isActive ? primaryPurple : Colors.transparent)),
+                          child: Row(
+                            children:[
+                              ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(widget.anime.image, width: 120, height: 70, fit: BoxFit.cover)),
+                              const SizedBox(width: 16),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text("Episode ${index + 1}", style: TextStyle(color: isActive ? primaryPurple : Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 4), Text("24 min", style: TextStyle(color: Colors.white70, fontSize: 13))])),
+                              Icon(Icons.play_circle_fill, color: isActive ? primaryPurple : Colors.white, size: 36),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 🔥 2. SEPARATE VIDEO PLAYER PAGE 🔥
+// ==========================================
+class VideoPlayerPage extends StatefulWidget {
+  final Anime anime;
+  final int episodeIndex;
+  const VideoPlayerPage({super.key, required this.anime, required this.episodeIndex});
+
+  @override
+  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+}
+
+class _VideoPlayerPageState extends State<VideoPlayerPage> {
+  late VideoPlayerController _controller;
+  bool _showControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.anime.videoUrl))..initialize().then((_) { setState(() {}); _controller.play(); });
+  }
+
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+  void _toggleControls() { setState(() { _showControls = !_showControls; }); }
+  String _formatDuration(Duration duration) { String twoDigits(int n) => n.toString().padLeft(2, '0'); return "${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}"; }
+
+  @override
+  Widget build(BuildContext context) {
+    const Color primaryPurple = Color(0xFF6A5AE0);
+    return Scaffold(
+      backgroundColor: Colors.black, // Video player background black
+      body: SafeArea(
+        child: Column(
+          children:[
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                children:[
+                  _controller.value.isInitialized ? VideoPlayer(_controller) : const Center(child: CircularProgressIndicator(color: primaryPurple)),
+                  if (_showControls)
+                    GestureDetector(
+                      onTap: _toggleControls,
+                      child: Container(
+                        color: Colors.black54,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children:[
+                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)), Row(children:[IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}), IconButton(icon: const Icon(Icons.fullscreen, color: Colors.white), onPressed: () {})])]),
+                            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children:[IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position - const Duration(seconds: 10))), IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play())), IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position + const Duration(seconds: 10)))]),
+                            Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), child: Row(children:[Text(_formatDuration(_controller.value.position), style: const TextStyle(color: Colors.white, fontSize: 12)), Expanded(child: VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: primaryPurple, bufferedColor: Colors.white24, backgroundColor: Colors.white12), padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0))), Text(_formatDuration(_controller.value.duration), style: const TextStyle(color: Colors.white, fontSize: 12))])),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    GestureDetector(onTap: _toggleControls, child: Container(color: Colors.transparent)),
+                ],
+              ),
+            ),
+            // Information below the player
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  Text("Episode ${widget.episodeIndex + 1}", style: const TextStyle(color: primaryPurple, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// PROFILE & SUB PAGES (FIXED UPI & BUTTONS)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -440,10 +518,7 @@ class ProfileScreen extends StatelessWidget {
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 10),
                   padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: const LinearGradient(colors:[Color(0xFF8B5CF6), Color(0xFF6A5AE0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                  ),
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(20), gradient: const LinearGradient(colors:[Color(0xFF8B5CF6), Color(0xFF6A5AE0)], begin: Alignment.topLeft, end: Alignment.bottomRight)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children:[
@@ -508,33 +583,28 @@ class ProfileScreen extends StatelessWidget {
         color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          splashColor: Colors.grey.withOpacity(0.3),
-          highlightColor: Colors.grey.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(16), splashColor: Colors.grey.withOpacity(0.3), highlightColor: Colors.grey.withOpacity(0.3),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Row(
-              children:[
-                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.white70, size: 20)),
-                const SizedBox(width: 16),
-                Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600))),
-                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-              ],
-            ),
-          ),
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), child: Row(children:[Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: Colors.white70, size: 20)), const SizedBox(width: 16), Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600))), const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)])),
         ),
       ),
     );
   }
 }
 
-// ==========================================
-// 🔥 HTML DESIGN RESTORED: PREMIUM, PAYMENT, SUPPORT 🔥
-// ==========================================
-
+// 🔥 FIXED UPI LAUNCH IN PREMIUM PAGE 🔥
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
+
+  void _launchUPI(BuildContext context, String amount, String plan) async {
+    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!")));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -548,49 +618,36 @@ class PremiumPage extends StatelessWidget {
             const SizedBox(height: 5),
             const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 30),
-            _buildPlanCard("🥈 Silver Plan", "HD (720p) • Medium Ads • Limited Access", "₹90", false),
+            _buildPlanCard(context, "🥈 Silver Plan", "HD (720p) • Medium Ads • Limited Access", "₹90", false),
             const SizedBox(height: 15),
-            _buildPlanCard("🥇 Gold Plan", "Full HD (1080p) • Low Ads • Full Access", "₹160", true),
+            _buildPlanCard(context, "🥇 Gold Plan", "Full HD (1080p) • Low Ads • Full Access", "₹160", true),
             const SizedBox(height: 15),
-            _buildPlanCard("💎 Diamond Plan", "Ultra HD (4K) • Ad-Free • 3 Devices", "₹299", false),
+            _buildPlanCard(context, "💎 Diamond Plan", "Ultra HD (4K) • Ad-Free • 3 Devices", "₹299", false),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlanCard(String title, String subtitle, String price, bool isGold) {
+  Widget _buildPlanCard(BuildContext context, String title, String subtitle, String price, bool isGold) {
+    String cleanPrice = price.replaceAll("₹", ""); // Remove currency symbol for UPI amount
     return Stack(
       children:[
         Container(
-          margin: const EdgeInsets.only(top: 10),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
-            border: Border.all(color: isGold ? Colors.amber : Colors.white24, width: isGold ? 2 : 1),
-            borderRadius: BorderRadius.circular(16),
-          ),
+          margin: const EdgeInsets.only(top: 10), padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(color: const Color(0xFF1A1A1A), border: Border.all(color: isGold ? Colors.amber : Colors.white24, width: isGold ? 2 : 1), borderRadius: BorderRadius.circular(16)),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children:[
-                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  ],
-                ),
-              ),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 8), Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12))])),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
+                children:[
                   Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children:[Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12))]),
                   const SizedBox(height: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: isGold ? Colors.amber : const Color(0xFF6A5AE0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    onPressed: () {}, 
+                    onPressed: () => _launchUPI(context, cleanPrice, title.split(" ")[1]), // CONNECTED TO UPI
                     child: Text("Select", style: TextStyle(color: isGold ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ],
@@ -598,20 +655,13 @@ class PremiumPage extends StatelessWidget {
             ],
           ),
         ),
-        if (isGold)
-          Positioned(
-            top: 0, left: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: const BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8))),
-              child: const Text("RECOMMENDED", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-            ),
-          )
+        if (isGold) Positioned(top: 0, left: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: const BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8))), child: const Text("RECOMMENDED", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold))))
       ],
     );
   }
 }
 
+// 🔥 FIXED PAYMENT PROOF SUBMIT BUTTON 🔥
 class PaymentProofPage extends StatefulWidget {
   const PaymentProofPage({super.key});
   @override
@@ -664,7 +714,18 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             const SizedBox(height: 8),
             TextFormField(style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "e.g. 3089XXXXXXX", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF1A1A1A), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none))),
             const SizedBox(height: 30),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6A5AE0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () {}, child: const Text("Submit & Verify", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))),
+            // SUBMIT BUTTON FIX
+            SizedBox(
+              width: double.infinity, height: 50, 
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6A5AE0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), 
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted Successfully!")));
+                  Future.delayed(const Duration(seconds: 1), () => Navigator.pop(context));
+                }, 
+                child: const Text("Submit & Verify", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+              )
+            ),
           ],
         ),
       ),
@@ -746,95 +807,4 @@ class BrowseScreen extends StatelessWidget {
   Widget _buildRecentItem(String title) { return Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(10)), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)), Row(children:[Icon(Icons.close, size: 18, color: Colors.grey[500]), const SizedBox(width: 12), Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600])])])); }
   Widget _buildTrendingItem(String num, String title) { return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children:[Container(width: 20, height: 20, decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(4)), child: Center(child: Text(num, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black)))), const SizedBox(width: 10), Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis))])); }
   Widget _buildGenreCard(String title, String subtitle, IconData icon, Color bgColor, Color iconColor) { return Container(decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(horizontal: 12), child: Row(children:[Icon(icon, size: 30, color: iconColor), const SizedBox(width: 10), Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children:[Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)), Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)))])])); }
-}
-
-// ==========================================
-// VIDEO PLAYER & DETAILS PAGE (UNCHANGED)
-// ==========================================
-class VideoDetailsPage extends StatefulWidget {
-  final Anime anime;
-  const VideoDetailsPage({super.key, required this.anime});
-  @override
-  State<VideoDetailsPage> createState() => _VideoDetailsPageState();
-}
-class _VideoDetailsPageState extends State<VideoDetailsPage> {
-  late VideoPlayerController _controller;
-  bool _showControls = true;
-  int _currentEpisode = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.anime.videoUrl))..initialize().then((_) { setState(() {}); _controller.play(); });
-  }
-  @override
-  void dispose() { _controller.dispose(); super.dispose(); }
-  void _toggleControls() { setState(() { _showControls = !_showControls; }); }
-  String _formatDuration(Duration duration) { String twoDigits(int n) => n.toString().padLeft(2, '0'); return "${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}"; }
-
-  @override
-  Widget build(BuildContext context) {
-    const Color primaryPurple = Color(0xFF6A5AE0);
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Stack(
-                children:[
-                  _controller.value.isInitialized ? VideoPlayer(_controller) : const Center(child: CircularProgressIndicator(color: primaryPurple)),
-                  if (_showControls)
-                    GestureDetector(
-                      onTap: _toggleControls,
-                      child: Container(
-                        color: Colors.black54,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children:[
-                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)), Row(children:[IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}), IconButton(icon: const Icon(Icons.fullscreen, color: Colors.white), onPressed: () {})])]),
-                            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children:[IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position - const Duration(seconds: 10))), IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play())), IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position + const Duration(seconds: 10)))]),
-                            Padding(padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), child: Row(children:[Text(_formatDuration(_controller.value.position), style: const TextStyle(color: Colors.white, fontSize: 12)), Expanded(child: VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: primaryPurple, bufferedColor: Colors.white24, backgroundColor: Colors.white12), padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0))), Text(_formatDuration(_controller.value.duration), style: const TextStyle(color: Colors.white, fontSize: 12))])),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    GestureDetector(onTap: _toggleControls, child: Container(color: Colors.transparent)),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children:[
-                    Text("E${_currentEpisode + 1} | ${widget.anime.title}", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 10),
-                    Row(children:[Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)), child: const Text("U/A 16+", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))), const SizedBox(width: 10), const Expanded(child: Text("• Dub | Action, Drama", style: TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis))]),
-                    const SizedBox(height: 24),
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children:[const Text("Episodes", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(8)), child: const Row(children:[Text("Season 1", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), SizedBox(width: 5), Icon(Icons.keyboard_arrow_down, color: primaryPurple, size: 18)]))]),
-                    const SizedBox(height: 16),
-                    ListView.builder(
-                      shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: 4,
-                      itemBuilder: (context, index) {
-                        bool isActive = index == _currentEpisode;
-                        return GestureDetector(
-                          onTap: () => setState(() => _currentEpisode = index),
-                          child: Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: isActive ? primaryPurple : const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)), child: Row(children:[ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(widget.anime.image, width: 120, height: 70, fit: BoxFit.cover)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Text("Episode ${index + 1}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 4), Text("24 min", style: TextStyle(color: Colors.white70, fontSize: 13))])), Icon(isActive ? Icons.pause_circle_filled : Icons.play_circle_filled, color: Colors.white, size: 36)])),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
