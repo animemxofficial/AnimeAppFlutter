@@ -11,13 +11,13 @@ void main() {
     systemNavigationBarColor: Colors.black,
     systemNavigationBarIconBrightness: Brightness.light,
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.dark,
   ));
   runApp(const AnimeMX());
 }
 
 // ==========================================
-// DATA MODELS & DUMMY DATA
+// DATA MODELS & GLOBAL STATE
 // ==========================================
 class Anime {
   final String title, image, rating, dubStatus, season, status, views, videoUrl, genre;
@@ -39,12 +39,32 @@ class Anime {
   });
 }
 
+// CONTINUE WATCHING TRACKER (Global State)
+class CWItem {
+  final Anime anime;
+  int episodeIndex;
+  Duration position;
+  Duration totalDuration;
+
+  CWItem({
+    required this.anime,
+    required this.episodeIndex,
+    required this.position,
+    required this.totalDuration,
+  });
+}
+// Ye variable app mein kahin se bhi video progress update karne mein madad karega
+final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
+
+
 final List<Anime> animeData =[
   Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "38K", dubColor: const Color(0xFFFF4D4D)),
   Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", season: "S3", status: "Completed", views: "3K", dubColor: const Color(0xFF4DA6FF)),
   Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", season: "S1", views: "8.1K", dubColor: const Color(0xFF4DA6FF)),
   Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "4.5K", dubColor: const Color(0xFFFF9F43)),
   Anime(title: "Demon Slayer", genre: "Action", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "3.1K", dubStatus: "MIX", dubColor: const Color(0xFF00C853)),
+  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "2M", dubColor: const Color(0xFFFF4D4D)),
+  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "9M", dubColor: const Color(0xFF7A5CFF)),
 ];
 
 class OrderItem {
@@ -120,7 +140,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
-// HOME SCREEN
+// HOME SCREEN (WITH SMART CONTINUE WATCHING)
 // ==========================================
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -140,6 +160,7 @@ class HomeScreen extends StatelessWidget {
           "AnimeMX", 
           style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)
         ),
+        actions:[IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: () {})],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 20),
@@ -198,17 +219,14 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            _buildSectionHeader("Continue Watching", icon: Icons.history, iconColor: Colors.orange),
-            SizedBox(
-              height: 140,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal, 
-                padding: const EdgeInsets.symmetric(horizontal: 16), 
-                itemCount: animeData.length,
-                itemBuilder: (ctx, i) => ThumbnailAnimeCard(anime: animeData[i], isContinueWatching: true),
-              ),
+            // 🔥 SMART CONTINUE WATCHING SECTION 🔥
+            ValueListenableBuilder<List<CWItem>>(
+              valueListenable: continueWatchingNotifier,
+              builder: (context, cwList, child) {
+                if (cwList.isEmpty) return const SizedBox.shrink(); // Hide if list is empty
+                return _buildCWSection("⏳ Continue Watching", cwList);
+              },
             ),
-            const SizedBox(height: 20),
 
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16), 
@@ -257,19 +275,19 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            _buildSectionHeader("Thriller"), 
+            _buildSectionHeader("Fantasy"), 
             _buildPortraitList(animeData.reversed.toList()),
             
-            _buildSectionHeader("Action"), 
+            _buildSectionHeader("Thriller"), 
             _buildPortraitList(animeData),
             
             _buildSectionHeader("Romance"), 
             _buildPortraitList(animeData.reversed.toList()),
             
-            _buildSectionHeader("Horror & Mystery"), 
+            _buildSectionHeader("Mystery"), 
             _buildPortraitList(animeData),
             
-            _buildSectionHeader("Comedy"), 
+            _buildSectionHeader("Action"), 
             _buildPortraitList(animeData.reversed.toList()),
 
             Padding(
@@ -380,7 +398,7 @@ class HomeScreen extends StatelessWidget {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [Colors.black.withOpacity(0.9), Colors.transparent], 
+                            colors:[Colors.black.withOpacity(0.9), Colors.transparent], 
                             begin: Alignment.bottomCenter, 
                             end: Alignment.center
                           )
@@ -432,20 +450,134 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
+  // DYNAMIC CONTINUE WATCHING BUILDER
+  Widget _buildCWSection(String title, List<CWItem> list) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children:[
+              Row(
+                children:[
+                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)),
+                  const SizedBox(width: 6), 
+                  const Icon(Icons.history, color: Colors.orange, size: 20),
+                ]
+              ),
+              const Text("See All", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 150, 
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal, 
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), 
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              return CWAnimeCard(item: list[index]);
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
 }
 
 // ==========================================
-// THUMBNAIL ANIME CARD
+// CONTINUE WATCHING CARD (WITH PROGRESS BAR)
+// ==========================================
+class CWAnimeCard extends StatefulWidget {
+  final CWItem item;
+  const CWAnimeCard({super.key, required this.item});
+  @override
+  State<CWAnimeCard> createState() => _CWAnimeCardState();
+}
+
+class _CWAnimeCardState extends State<CWAnimeCard> {
+  bool _isTapped = false;
+  @override
+  Widget build(BuildContext context) {
+    // Calculate progress (0.0 to 1.0)
+    double progress = 0.0;
+    if (widget.item.totalDuration.inMilliseconds > 0) {
+      progress = widget.item.position.inMilliseconds / widget.item.totalDuration.inMilliseconds;
+    }
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isTapped = true),
+      onTapUp: (_) {
+        setState(() => _isTapped = false);
+        // Play Video exactly from where left
+        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.item.anime, episodeIndex: widget.item.episodeIndex, startPosition: widget.item.position)));
+      },
+      onTapCancel: () => setState(() => _isTapped = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
+        width: 180, 
+        margin: const EdgeInsets.only(right: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children:[
+                    Image.network(widget.item.anime.image, fit: BoxFit.cover),
+                    Container(color: Colors.black38), // Overlay
+                    const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                    // PROGRESS BAR AT BOTTOM
+                    Positioned(
+                      bottom: 0, left: 0, right: 0,
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.white24,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
+                        minHeight: 4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              widget.item.anime.title, 
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), 
+              maxLines: 1, 
+              overflow: TextOverflow.ellipsis
+            ),
+            Text(
+              "Episode ${widget.item.episodeIndex + 1}", 
+              style: const TextStyle(color: Colors.grey, fontSize: 11)
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// REGULAR THUMBNAIL CARD
 // ==========================================
 class ThumbnailAnimeCard extends StatefulWidget {
   final Anime anime;
-  final bool isContinueWatching;
   final bool isLatest;
 
   const ThumbnailAnimeCard({
     super.key, 
     required this.anime, 
-    this.isContinueWatching = false, 
     this.isLatest = false
   });
 
@@ -455,7 +587,6 @@ class ThumbnailAnimeCard extends StatefulWidget {
 
 class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
   bool _isTapped = false;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -482,10 +613,6 @@ class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
                   fit: StackFit.expand,
                   children:[
                     Image.network(widget.anime.image, fit: BoxFit.cover),
-                    if (widget.isContinueWatching) ...[
-                      Container(color: Colors.black38),
-                      const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
-                    ],
                     if (widget.isLatest) ...[
                       Positioned(
                         top: 6, left: 6, 
@@ -522,7 +649,7 @@ class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
               overflow: TextOverflow.ellipsis
             ),
             Text(
-              widget.isContinueWatching ? "Episode 2" : "Latest Episode", 
+              widget.isLatest ? "Latest Episode" : "Episode 1", 
               style: const TextStyle(color: Colors.grey, fontSize: 11)
             ),
           ],
@@ -551,7 +678,7 @@ class _DetailsPageState extends State<DetailsPage> {
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Colors.orange;
-    const Color darkBg = Color(0xFF0F0F0F);
+    const Color darkBg = Colors.black;
 
     return Scaffold(
       backgroundColor: darkBg,
@@ -573,8 +700,8 @@ class _DetailsPageState extends State<DetailsPage> {
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [darkBg, darkBg.withOpacity(0.5), Colors.transparent], 
-                        stops: const [0.0, 0.4, 1.0], 
+                        colors:[darkBg, darkBg.withOpacity(0.5), Colors.transparent], 
+                        stops: const[0.0, 0.4, 1.0], 
                         begin: Alignment.bottomCenter, 
                         end: Alignment.topCenter
                       )
@@ -720,12 +847,14 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// VIDEO PLAYER PAGE
+// 🔥 VIDEO PLAYER PAGE (WITH SMART PROGRESS SAVING) 🔥
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
   final int episodeIndex;
-  const VideoPlayerPage({super.key, required this.anime, required this.episodeIndex});
+  final Duration? startPosition; // NAYA: Wahan se shuru karne ke liye jahan chhoda tha
+
+  const VideoPlayerPage({super.key, required this.anime, required this.episodeIndex, this.startPosition});
 
   @override 
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
@@ -740,15 +869,55 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.initState(); 
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.anime.videoUrl))
       ..initialize().then((_) { 
+        if (widget.startPosition != null) {
+          _controller.seekTo(widget.startPosition!);
+        }
         setState(() {}); 
         _controller.play(); 
       }); 
   }
 
+  // JAISE HI VIDEO BAND HOGA, PROGRESS SAVE HO JAYEGI
   @override 
   void dispose() { 
+    _updateContinueWatching();
     _controller.dispose(); 
     super.dispose(); 
+  }
+
+  void _updateContinueWatching() {
+    if (!_controller.value.isInitialized) return;
+    
+    final pos = _controller.value.position;
+    final dur = _controller.value.duration;
+    
+    // Sirf tab save hoga agar video kam se kam 2 second dekhi ho
+    if (pos > const Duration(seconds: 2)) {
+      final list = List<CWItem>.from(continueWatchingNotifier.value);
+      
+      // Check karte hain ki kya ye anime pehle se list me hai
+      final existingIdx = list.indexWhere((item) => item.anime.title == widget.anime.title);
+      
+      if (existingIdx != -1) {
+        // Update karo aur list me sabse upar le aao
+        list[existingIdx].position = pos;
+        list[existingIdx].totalDuration = dur;
+        list[existingIdx].episodeIndex = widget.episodeIndex;
+        final item = list.removeAt(existingIdx);
+        list.insert(0, item);
+      } else {
+        // Naya hai toh list me add kar do
+        list.insert(0, CWItem(
+          anime: widget.anime, 
+          episodeIndex: widget.episodeIndex, 
+          position: pos, 
+          totalDuration: dur
+        ));
+      }
+      
+      // Notify Home Screen
+      continueWatchingNotifier.value = list;
+    }
   }
 
   void _toggleControls() { 
@@ -768,7 +937,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children:[
             AspectRatio(
               aspectRatio: 16 / 9, 
               child: Stack(
@@ -787,7 +956,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                               children:[
-                                IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)), 
+                                IconButton(
+                                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), 
+                                  onPressed: () {
+                                    _updateContinueWatching(); // Save on back button press
+                                    Navigator.pop(context);
+                                  }
+                                ), 
                                 Row(
                                   children:[
                                     IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}), 
@@ -800,7 +975,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                               children:[
                                 IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position - const Duration(seconds: 10))), 
-                                IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play())), 
+                                IconButton(
+                                  icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), 
+                                  onPressed: () {
+                                    setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play());
+                                    _updateContinueWatching(); // Save on Pause
+                                  }
+                                ), 
                                 IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position + const Duration(seconds: 10)))
                               ]
                             ), 
@@ -849,15 +1030,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// BROWSE SCREEN
+// BROWSE SCREEN & DUBS SCREEN
 // ==========================================
 class BrowseScreen extends StatelessWidget {
   const BrowseScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
@@ -938,11 +1118,11 @@ class BrowseScreen extends StatelessWidget {
             children:[
               Icon(Icons.close, size: 18, color: Colors.grey[500]),
               const SizedBox(width: 12),
-              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600])
-            ]
-          )
-        ]
-      )
+              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600]),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -952,14 +1132,17 @@ class BrowseScreen extends StatelessWidget {
       child: Row(
         children:[
           Container(
-            width: 20, height: 20,
+            width: 20,
+            height: 20,
             decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(4)),
-            child: Center(child: Text(num, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black)))
+            child: Center(child: Text(num, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black))),
           ),
           const SizedBox(width: 10),
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis))
-        ]
-      )
+          Expanded(
+            child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
     );
   }
 
@@ -976,29 +1159,25 @@ class BrowseScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children:[
               Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-              Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)))
-            ]
-          )
-        ]
-      )
+              Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6))),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
 
-// ==========================================
-// DUBS SCREEN
-// ==========================================
 class DubsScreen extends StatelessWidget {
   const DubsScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F0F0F),
+        backgroundColor: Colors.black,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0F0F0F),
+          backgroundColor: Colors.black,
           elevation: 0,
           toolbarHeight: 10,
           bottom: const TabBar(
@@ -1006,7 +1185,7 @@ class DubsScreen extends StatelessWidget {
             indicatorWeight: 3,
             labelColor: Colors.orange,
             unselectedLabelColor: Colors.white70,
-            tabs: [Tab(text: "ADR DUBBED"), Tab(text: "ORIGINAL")],
+            tabs:[Tab(text: "ADR DUBBED"), Tab(text: "ORIGINAL")],
           ),
         ),
         body: TabBarView(
@@ -1072,63 +1251,80 @@ class _GridAnimeCardState extends State<GridAnimeCard> {
                       colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
                       stops: const[0.0, 0.45, 1.0],
                       begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter
-                    )
-                  )
-                )
+                      end: Alignment.topCenter,
+                    ),
+                  ),
+                ),
               ),
               Positioned(
-                top: 8, left: 8, right: 8,
+                top: 8,
+                left: 8,
+                right: 8,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children:[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-                      child: Text(widget.anime.rating, style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold))
+                      child: Text(widget.anime.rating, style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold)),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5)
+                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
                       ),
-                      child: Text(widget.anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))
-                    )
-                  ]
-                )
+                      child: Text(widget.anime.dubStatus, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
               ),
               Positioned(
-                bottom: 12, left: 10, right: 10,
+                bottom: 12,
+                left: 10,
+                right: 10,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children:[
-                    Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, height: 1.2), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    Text(
+                      widget.anime.title,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, height: 1.2),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 6),
-                    Text("${widget.anime.season} • ${widget.anime.status}", style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(
+                      "${widget.anime.season} • ${widget.anime.status}",
+                      style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children:[
                         Icon(Icons.remove_red_eye_outlined, color: Colors.white.withOpacity(0.75), size: 12),
                         const SizedBox(width: 4),
-                        Text("${widget.anime.views} Views", style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10))
-                      ]
-                    )
-                  ]
-                )
-              )
-            ]
-          )
-        )
-      )
+                        Text(
+                          "${widget.anime.views} Views",
+                          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
 
 // ==========================================
-// PROFILE, PREMIUM, ACTIVITY & SUPPORT PAGES
+// PROFILE, PREMIUM & SUPPORT PAGES
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -1136,22 +1332,22 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
           child: Column(
-            children:[
+            children: [
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
+                children:[
                   Column(
                     children:[
                       Container(
                         width: 75, height: 75,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 15)],
+                          boxShadow:[BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 15)],
                           image: const DecorationImage(image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"), fit: BoxFit.cover)
                         )
                       ),
@@ -1301,7 +1497,7 @@ class PremiumPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text("Go Premium", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: Colors.black,
@@ -1353,7 +1549,7 @@ class PremiumPage extends StatelessWidget {
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
+                children:[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
@@ -1412,7 +1608,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("Verify Payment", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -1461,7 +1657,8 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                height: 200, width: double.infinity,
+                height: 200,
+                width: double.infinity,
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A1A1A),
                   borderRadius: BorderRadius.circular(16),
@@ -1493,7 +1690,8 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             ),
             const SizedBox(height: 30),
             SizedBox(
-              width: double.infinity, height: 50,
+              width: double.infinity,
+              height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 onPressed: () {
@@ -1519,8 +1717,12 @@ class SupportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(title: const Text("Help Center", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Help Center", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1545,22 +1747,22 @@ class SupportPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children:[
                         Text("How can we help?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text("We're here to help you with any issues.", style: TextStyle(color: Colors.white70, fontSize: 12))
-                      ]
-                    )
-                  )
-                ]
-              )
+                        Text("We're here to help you with any issues.", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 30),
             const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent),
             _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green),
-            _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent)
-          ]
-        )
-      )
+            _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1582,13 +1784,13 @@ class SupportPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children:[
                 Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12))
-              ]
-            )
+                Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
           ),
-          const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)
-        ]
-      )
+          const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+        ],
+      ),
     );
   }
 }
@@ -1603,8 +1805,12 @@ class _ActivityPageState extends State<ActivityPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(title: const Text("Activity & Orders", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Activity & Orders", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: userOrders.isEmpty
           ? const Center(child: Text("No recent orders.", style: TextStyle(color: Colors.white54)))
           : ListView.builder(
@@ -1622,14 +1828,14 @@ class _ActivityPageState extends State<ActivityPage> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children:[
+                    children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children:[
                           Text(order.planName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                           const SizedBox(height: 4),
-                          Text("${order.amount} • ${order.date}", style: const TextStyle(color: Colors.white54, fontSize: 12))
-                        ]
+                          Text("${order.amount} • ${order.date}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                        ],
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1643,11 +1849,11 @@ class _ActivityPageState extends State<ActivityPage> {
                             color: order.status == "Pending" ? Colors.orange : Colors.green,
                             fontSize: 12,
                             fontWeight: FontWeight.bold
-                          )
-                        )
+                          ),
+                        ),
                       )
-                    ]
-                  )
+                    ],
+                  ),
                 );
               },
             ),
