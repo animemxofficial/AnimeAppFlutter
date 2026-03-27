@@ -17,7 +17,7 @@ void main() {
 }
 
 // ==========================================
-// DATA MODELS & GLOBAL STATE
+// DATA MODELS & DUMMY DATA
 // ==========================================
 class Anime {
   final String title, image, rating, dubStatus, season, status, views, videoUrl, genre;
@@ -39,32 +39,12 @@ class Anime {
   });
 }
 
-// CONTINUE WATCHING TRACKER (Global State)
-class CWItem {
-  final Anime anime;
-  int episodeIndex;
-  Duration position;
-  Duration totalDuration;
-
-  CWItem({
-    required this.anime,
-    required this.episodeIndex,
-    required this.position,
-    required this.totalDuration,
-  });
-}
-// Ye variable app mein kahin se bhi video progress update karne mein madad karega
-final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
-
-
 final List<Anime> animeData =[
   Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "38K", dubColor: const Color(0xFFFF4D4D)),
   Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", season: "S3", status: "Completed", views: "3K", dubColor: const Color(0xFF4DA6FF)),
   Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", season: "S1", views: "8.1K", dubColor: const Color(0xFF4DA6FF)),
   Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "4.5K", dubColor: const Color(0xFFFF9F43)),
   Anime(title: "Demon Slayer", genre: "Action", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "3.1K", dubStatus: "MIX", dubColor: const Color(0xFF00C853)),
-  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "2M", dubColor: const Color(0xFFFF4D4D)),
-  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "9M", dubColor: const Color(0xFF7A5CFF)),
 ];
 
 class OrderItem {
@@ -140,7 +120,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
-// HOME SCREEN (WITH SMART CONTINUE WATCHING)
+// HOME SCREEN
 // ==========================================
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -160,7 +140,6 @@ class HomeScreen extends StatelessWidget {
           "AnimeMX", 
           style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)
         ),
-        actions:[IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: () {})],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 20),
@@ -219,14 +198,17 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // 🔥 SMART CONTINUE WATCHING SECTION 🔥
-            ValueListenableBuilder<List<CWItem>>(
-              valueListenable: continueWatchingNotifier,
-              builder: (context, cwList, child) {
-                if (cwList.isEmpty) return const SizedBox.shrink(); // Hide if list is empty
-                return _buildCWSection("⏳ Continue Watching", cwList);
-              },
+            _buildSectionHeader("Continue Watching", icon: Icons.history, iconColor: Colors.orange),
+            SizedBox(
+              height: 140,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal, 
+                padding: const EdgeInsets.symmetric(horizontal: 16), 
+                itemCount: animeData.length,
+                itemBuilder: (ctx, i) => ThumbnailAnimeCard(anime: animeData[i], isContinueWatching: true),
+              ),
             ),
+            const SizedBox(height: 20),
 
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16), 
@@ -275,19 +257,19 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            _buildSectionHeader("Fantasy"), 
+            _buildSectionHeader("Thriller"), 
             _buildPortraitList(animeData.reversed.toList()),
             
-            _buildSectionHeader("Thriller"), 
+            _buildSectionHeader("Action"), 
             _buildPortraitList(animeData),
             
             _buildSectionHeader("Romance"), 
             _buildPortraitList(animeData.reversed.toList()),
             
-            _buildSectionHeader("Mystery"), 
+            _buildSectionHeader("Horror & Mystery"), 
             _buildPortraitList(animeData),
             
-            _buildSectionHeader("Action"), 
+            _buildSectionHeader("Comedy"), 
             _buildPortraitList(animeData.reversed.toList()),
 
             Padding(
@@ -392,7 +374,7 @@ class HomeScreen extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Stack(
-                  children: [
+                  children:[
                     Image.network(list[i].image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                     Positioned.fill(
                       child: DecoratedBox(
@@ -450,134 +432,20 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
-  // DYNAMIC CONTINUE WATCHING BUILDER
-  Widget _buildCWSection(String title, List<CWItem> list) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children:[
-              Row(
-                children:[
-                  Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)),
-                  const SizedBox(width: 6), 
-                  const Icon(Icons.history, color: Colors.orange, size: 20),
-                ]
-              ),
-              const Text("See All", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: 150, 
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, 
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), 
-            itemCount: list.length,
-            itemBuilder: (context, index) {
-              return CWAnimeCard(item: list[index]);
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
 }
 
 // ==========================================
-// CONTINUE WATCHING CARD (WITH PROGRESS BAR)
-// ==========================================
-class CWAnimeCard extends StatefulWidget {
-  final CWItem item;
-  const CWAnimeCard({super.key, required this.item});
-  @override
-  State<CWAnimeCard> createState() => _CWAnimeCardState();
-}
-
-class _CWAnimeCardState extends State<CWAnimeCard> {
-  bool _isTapped = false;
-  @override
-  Widget build(BuildContext context) {
-    // Calculate progress (0.0 to 1.0)
-    double progress = 0.0;
-    if (widget.item.totalDuration.inMilliseconds > 0) {
-      progress = widget.item.position.inMilliseconds / widget.item.totalDuration.inMilliseconds;
-    }
-
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isTapped = true),
-      onTapUp: (_) {
-        setState(() => _isTapped = false);
-        // Play Video exactly from where left
-        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.item.anime, episodeIndex: widget.item.episodeIndex, startPosition: widget.item.position)));
-      },
-      onTapCancel: () => setState(() => _isTapped = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
-        width: 180, 
-        margin: const EdgeInsets.only(right: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            AspectRatio(
-              aspectRatio: 16 / 9,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children:[
-                    Image.network(widget.item.anime.image, fit: BoxFit.cover),
-                    Container(color: Colors.black38), // Overlay
-                    const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
-                    // PROGRESS BAR AT BOTTOM
-                    Positioned(
-                      bottom: 0, left: 0, right: 0,
-                      child: LinearProgressIndicator(
-                        value: progress,
-                        backgroundColor: Colors.white24,
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
-                        minHeight: 4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.item.anime.title, 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), 
-              maxLines: 1, 
-              overflow: TextOverflow.ellipsis
-            ),
-            Text(
-              "Episode ${widget.item.episodeIndex + 1}", 
-              style: const TextStyle(color: Colors.grey, fontSize: 11)
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// REGULAR THUMBNAIL CARD
+// THUMBNAIL ANIME CARD
 // ==========================================
 class ThumbnailAnimeCard extends StatefulWidget {
   final Anime anime;
+  final bool isContinueWatching;
   final bool isLatest;
 
   const ThumbnailAnimeCard({
     super.key, 
     required this.anime, 
+    this.isContinueWatching = false, 
     this.isLatest = false
   });
 
@@ -587,6 +455,7 @@ class ThumbnailAnimeCard extends StatefulWidget {
 
 class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
   bool _isTapped = false;
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -613,6 +482,10 @@ class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
                   fit: StackFit.expand,
                   children:[
                     Image.network(widget.anime.image, fit: BoxFit.cover),
+                    if (widget.isContinueWatching) ...[
+                      Container(color: Colors.black38),
+                      const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                    ],
                     if (widget.isLatest) ...[
                       Positioned(
                         top: 6, left: 6, 
@@ -649,7 +522,7 @@ class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
               overflow: TextOverflow.ellipsis
             ),
             Text(
-              widget.isLatest ? "Latest Episode" : "Episode 1", 
+              widget.isContinueWatching ? "Episode 2" : "Latest Episode", 
               style: const TextStyle(color: Colors.grey, fontSize: 11)
             ),
           ],
@@ -660,7 +533,7 @@ class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
 }
 
 // ==========================================
-// DETAILS PAGE
+// DETAILS PAGE (UNCHANGED)
 // ==========================================
 class DetailsPage extends StatefulWidget {
   final Anime anime;
@@ -678,7 +551,7 @@ class _DetailsPageState extends State<DetailsPage> {
   @override
   Widget build(BuildContext context) {
     const Color primaryColor = Colors.orange;
-    const Color darkBg = Colors.black;
+    const Color darkBg = Color(0xFF0F0F0F);
 
     return Scaffold(
       backgroundColor: darkBg,
@@ -847,14 +720,13 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// 🔥 VIDEO PLAYER PAGE (WITH SMART PROGRESS SAVING) 🔥
+// 🔥 NEW VIDEO PLAYER PAGE (SKIP ANIMATIONS + NEXT EP CARD) 🔥
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
   final int episodeIndex;
-  final Duration? startPosition; // NAYA: Wahan se shuru karne ke liye jahan chhoda tha
-
-  const VideoPlayerPage({super.key, required this.anime, required this.episodeIndex, this.startPosition});
+  
+  const VideoPlayerPage({super.key, required this.anime, required this.episodeIndex});
 
   @override 
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
@@ -863,65 +735,46 @@ class VideoPlayerPage extends StatefulWidget {
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
   late VideoPlayerController _controller; 
   bool _showControls = true;
+  
+  // Naye Variables Animation ke liye
+  double _forwardOpacity = 0.0;
+  double _rewindOpacity = 0.0;
 
   @override 
   void initState() { 
     super.initState(); 
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.anime.videoUrl))
       ..initialize().then((_) { 
-        if (widget.startPosition != null) {
-          _controller.seekTo(widget.startPosition!);
-        }
         setState(() {}); 
         _controller.play(); 
       }); 
   }
 
-  // JAISE HI VIDEO BAND HOGA, PROGRESS SAVE HO JAYEGI
   @override 
   void dispose() { 
-    _updateContinueWatching();
     _controller.dispose(); 
     super.dispose(); 
   }
 
-  void _updateContinueWatching() {
-    if (!_controller.value.isInitialized) return;
-    
-    final pos = _controller.value.position;
-    final dur = _controller.value.duration;
-    
-    // Sirf tab save hoga agar video kam se kam 2 second dekhi ho
-    if (pos > const Duration(seconds: 2)) {
-      final list = List<CWItem>.from(continueWatchingNotifier.value);
-      
-      // Check karte hain ki kya ye anime pehle se list me hai
-      final existingIdx = list.indexWhere((item) => item.anime.title == widget.anime.title);
-      
-      if (existingIdx != -1) {
-        // Update karo aur list me sabse upar le aao
-        list[existingIdx].position = pos;
-        list[existingIdx].totalDuration = dur;
-        list[existingIdx].episodeIndex = widget.episodeIndex;
-        final item = list.removeAt(existingIdx);
-        list.insert(0, item);
-      } else {
-        // Naya hai toh list me add kar do
-        list.insert(0, CWItem(
-          anime: widget.anime, 
-          episodeIndex: widget.episodeIndex, 
-          position: pos, 
-          totalDuration: dur
-        ));
-      }
-      
-      // Notify Home Screen
-      continueWatchingNotifier.value = list;
-    }
-  }
-
   void _toggleControls() { 
     setState(() { _showControls = !_showControls; }); 
+  }
+
+  // Animation Control Functions
+  void _skipForward() {
+    _controller.seekTo(_controller.value.position + const Duration(seconds: 10));
+    setState(() => _forwardOpacity = 1.0);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if(mounted) setState(() => _forwardOpacity = 0.0);
+    });
+  }
+
+  void _skipBackward() {
+    _controller.seekTo(_controller.value.position - const Duration(seconds: 10));
+    setState(() => _rewindOpacity = 1.0);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if(mounted) setState(() => _rewindOpacity = 0.0);
+    });
   }
 
   String _formatDuration(Duration duration) { 
@@ -945,6 +798,47 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   _controller.value.isInitialized 
                     ? VideoPlayer(_controller) 
                     : const Center(child: CircularProgressIndicator(color: primaryColor)),
+                  
+                  // ✨ SKIP BACKWARD ANIMATION UI ✨
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 40),
+                      child: AnimatedOpacity(
+                        opacity: _rewindOpacity,
+                        duration: const Duration(milliseconds: 300),
+                        child: Container(
+                          padding: const EdgeInsets.all(15),
+                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                          child: const Column(mainAxisSize: MainAxisSize.min, children:[
+                            Icon(Icons.replay_10, color: Colors.white, size: 30),
+                            Text("-10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // ✨ SKIP FORWARD ANIMATION UI ✨
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 40),
+                      child: AnimatedOpacity(
+                        opacity: _forwardOpacity,
+                        duration: const Duration(milliseconds: 300),
+                        child: Container(
+                          padding: const EdgeInsets.all(15),
+                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                          child: const Column(mainAxisSize: MainAxisSize.min, children:[
+                            Icon(Icons.forward_10, color: Colors.white, size: 30),
+                            Text("+10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   if (_showControls) 
                     GestureDetector(
                       onTap: _toggleControls, 
@@ -956,13 +850,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                               children:[
-                                IconButton(
-                                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), 
-                                  onPressed: () {
-                                    _updateContinueWatching(); // Save on back button press
-                                    Navigator.pop(context);
-                                  }
-                                ), 
+                                IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)), 
                                 Row(
                                   children:[
                                     IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}), 
@@ -974,15 +862,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                               children:[
-                                IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position - const Duration(seconds: 10))), 
+                                IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward), 
                                 IconButton(
                                   icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), 
-                                  onPressed: () {
-                                    setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play());
-                                    _updateContinueWatching(); // Save on Pause
-                                  }
+                                  onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play())
                                 ), 
-                                IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position + const Duration(seconds: 10)))
+                                IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: _skipForward)
                               ]
                             ), 
                             Padding(
@@ -1011,15 +896,59 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 ]
               )
             ), 
-            Padding(
-              padding: const EdgeInsets.all(16.0), 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
-                children:[
-                  Text("Episode ${widget.episodeIndex + 1}", style: const TextStyle(color: primaryColor, fontSize: 16, fontWeight: FontWeight.bold)), 
-                  const SizedBox(height: 8), 
-                  Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold))
-                ]
+            
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start, 
+                  children:[
+                    Text("Episode ${widget.episodeIndex + 1}", style: const TextStyle(color: primaryColor, fontSize: 16, fontWeight: FontWeight.bold)), 
+                    const SizedBox(height: 8), 
+                    Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 30),
+                    
+                    // ✨ NEW: UP NEXT EPISODE CARD ✨
+                    if (widget.episodeIndex < 3) ...[ // Shows if there is a next episode (assuming 4 eps max)
+                      const Text("Up Next", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      GestureDetector(
+                        onTap: () {
+                          // REPLACES current video page with the next episode's page
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, episodeIndex: widget.episodeIndex + 1)));
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1A1A1A),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white12)
+                          ),
+                          child: Row(
+                            children:[
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(widget.anime.image, width: 120, height: 70, fit: BoxFit.cover, alignment: Alignment.topCenter)
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children:[
+                                    Text("Episode ${widget.episodeIndex + 2}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                    const SizedBox(height: 4),
+                                    const Text("24 min", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                  ]
+                                )
+                              ),
+                              const Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
+                            ]
+                          )
+                        ),
+                      )
+                    ]
+                  ]
+                )
               )
             )
           ]
@@ -1030,14 +959,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// BROWSE SCREEN & DUBS SCREEN
+// BROWSE SCREEN 
 // ==========================================
 class BrowseScreen extends StatelessWidget {
   const BrowseScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0F0F0F),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
@@ -1168,6 +1097,9 @@ class BrowseScreen extends StatelessWidget {
   }
 }
 
+// ==========================================
+// DUBS SCREEN
+// ==========================================
 class DubsScreen extends StatelessWidget {
   const DubsScreen({super.key});
   @override
@@ -1175,9 +1107,9 @@ class DubsScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF0F0F0F),
         appBar: AppBar(
-          backgroundColor: Colors.black,
+          backgroundColor: const Color(0xFF0F0F0F),
           elevation: 0,
           toolbarHeight: 10,
           bottom: const TabBar(
@@ -1202,7 +1134,7 @@ class DubsScreen extends StatelessWidget {
               itemCount: animeData.length,
               itemBuilder: (context, index) => GridAnimeCard(anime: animeData[index])
             ),
-          ]
+          ],
         ),
       ),
     );
@@ -1497,7 +1429,7 @@ class PremiumPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
         title: const Text("Go Premium", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: Colors.black,
@@ -1515,7 +1447,7 @@ class PremiumPage extends StatelessWidget {
             const SizedBox(height: 15),
             _buildPlanCard(context, "🥇 Gold Plan", "Full HD (1080p) • Low Ads", "₹160", true),
             const SizedBox(height: 15),
-            _buildPlanCard(context, "💎 Diamond Plan", "Ultra HD (4K) • Ad-Free", "₹299", false)
+            _buildPlanCard(context, "💎 Diamond Plan", "Ultra HD (4K) • Ad-Free", "₹299", false),
           ]
         )
       )
@@ -1555,7 +1487,7 @@ class PremiumPage extends StatelessWidget {
                     textBaseline: TextBaseline.alphabetic,
                     children:[
                       Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12))
+                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12)),
                     ]
                   ),
                   const SizedBox(height: 10),
@@ -1608,8 +1540,12 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text("Verify Payment", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: AppBar(
+        title: const Text("Verify Payment", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -1622,9 +1558,9 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 children:[
                   Icon(Icons.info_outline, color: Colors.blue),
                   SizedBox(width: 10),
-                  Expanded(child: Text("Verify your payment to activate plan instantly.", style: TextStyle(color: Colors.blue)))
-                ]
-              )
+                  Expanded(child: Text("Verify your payment to activate plan instantly.", style: TextStyle(color: Colors.blue))),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
             const Text("Select Amount Paid", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
@@ -1633,7 +1569,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
               dropdownColor: const Color(0xFF1A1A1A),
               decoration: InputDecoration(
                 filled: true, fillColor: const Color(0xFF1A1A1A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               ),
               style: const TextStyle(color: Colors.white, fontSize: 16),
               value: _selectedAmount,
@@ -1662,7 +1598,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1A1A1A),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.orange.withOpacity(0.5), style: BorderStyle.solid, width: 2)
+                  border: Border.all(color: Colors.orange.withOpacity(0.5), style: BorderStyle.solid, width: 2),
                 ),
                 child: _imageFile != null
                     ? ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.file(_imageFile!, fit: BoxFit.cover))
@@ -1672,10 +1608,10 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                           Icon(Icons.cloud_upload_outlined, color: Colors.orange, size: 50),
                           SizedBox(height: 10),
                           Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          Text("Supports JPG, PNG", style: TextStyle(color: Colors.white54, fontSize: 12))
-                        ]
-                      )
-              )
+                          Text("Supports JPG, PNG", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        ],
+                      ),
+              ),
             ),
             const SizedBox(height: 24),
             const Text("Transaction ID / UTR", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
@@ -1683,17 +1619,22 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             TextFormField(
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: "e.g. 3089XXXXXXX", hintStyle: const TextStyle(color: Colors.white38),
-                filled: true, fillColor: const Color(0xFF1A1A1A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)
-              )
+                hintText: "e.g. 3089XXXXXXX",
+                hintStyle: const TextStyle(color: Colors.white38),
+                filled: true,
+                fillColor: const Color(0xFF1A1A1A),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+              ),
             ),
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
                 onPressed: () {
                   setState(() {
                     userOrders.insert(0, OrderItem(planName: _selectedPlan, amount: "₹$_selectedAmount", status: "Pending", date: "Today"));
@@ -1701,23 +1642,22 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted Successfully!")));
                   Future.delayed(const Duration(seconds: 1), () => Navigator.pop(context));
                 },
-                child: const Text("Submit & Verify", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
-              )
-            )
-          ]
-        )
-      )
+                child: const Text("Submit & Verify", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0F0F0F),
       appBar: AppBar(
         title: const Text("Help Center", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.black,
@@ -1732,7 +1672,7 @@ class SupportPage extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(colors: [Colors.orangeAccent, Colors.deepOrange])
+                gradient: const LinearGradient(colors:[Colors.orangeAccent, Colors.deepOrange])
               ),
               child: Row(
                 children:[
@@ -1824,11 +1764,11 @@ class _ActivityPageState extends State<ActivityPage> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A1A),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border(left: BorderSide(color: order.status == "Pending" ? Colors.orange : Colors.green, width: 4))
+                    border: Border(left: BorderSide(color: order.status == "Pending" ? Colors.orange : Colors.green, width: 4)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                    children:[
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children:[
@@ -1841,14 +1781,14 @@ class _ActivityPageState extends State<ActivityPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: order.status == "Pending" ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20)
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           order.status,
                           style: TextStyle(
                             color: order.status == "Pending" ? Colors.orange : Colors.green,
                             fontSize: 12,
-                            fontWeight: FontWeight.bold
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       )
