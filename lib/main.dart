@@ -11,13 +11,13 @@ void main() {
     systemNavigationBarColor: Colors.black,
     systemNavigationBarIconBrightness: Brightness.light,
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.dark,
+    statusBarIconBrightness: Brightness.light, // 🔥 ISKO WAPAS LIGHT KIYA TAAKI DARK HEADER PE DIKHE
   ));
   runApp(const AnimeMX());
 }
 
 // ==========================================
-// DATA MODELS
+// DATA MODELS & DUMMY DATA
 // ==========================================
 class Anime {
   final String title, image, rating, dubStatus, season, status, views, videoUrl;
@@ -158,7 +158,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
-// HOME SCREEN
+// 🔥 HOME SCREEN (UPDATED CLEAN UI & FIXED DARK HEADER) 🔥
 // ==========================================
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -170,59 +170,41 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children:[
-            // FIXED HEADER (Does not scroll)
+            // 1. FIXED HEADER (Does not scroll, Dark Theme, No Search Bar)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(color: Colors.white),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children:[
-                      const Text(
-                        "AnimeMX",
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF6A5AE0), letterSpacing: -0.5),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(Icons.notifications_none_rounded, color: Colors.black87),
-                      ),
-                    ],
+              decoration: const BoxDecoration(color: Color(0xFF0F0F0F)), // Dark Theme Background
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children:[
+                  const Text(
+                    "AnimeMX",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF6A5AE0), letterSpacing: -0.5),
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                    decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(12)),
-                    child: Row(
-                      children:[
-                        Icon(Icons.search, color: Colors.grey[600]),
-                        const SizedBox(width: 10),
-                        Text(
-                          "Search anime, movies, series...",
-                          style: TextStyle(color: Colors.grey[500], fontSize: 14, fontWeight: FontWeight.w500),
-                        ),
-                      ],
-                    ),
+                  IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), // White Icon
                   ),
                 ],
               ),
             ),
             
-            // SCROLLABLE CONTENT
+            // 2. SCROLLABLE CONTENT (Slider & Cards)
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children:[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 10),
+                    // AUTO SLIDE BAR
                     CarouselSlider.builder(
                       itemCount: animeData.length,
                       options: CarouselOptions(height: 180, autoPlay: true, enlargeCenterPage: true, viewportFraction: 0.9),
                       itemBuilder: (ctx, i, real) => Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+                          boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
@@ -366,8 +348,7 @@ class _ThumbnailAnimeCardState extends State<ThumbnailAnimeCard> {
                   children:[
                     Image.network(widget.anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
                     Positioned(
-                      bottom: 6,
-                      right: 6,
+                      bottom: 6, right: 6,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)),
@@ -434,8 +415,7 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
                     gradient: LinearGradient(
                       colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
                       stops: const[0.0, 0.45, 1.0],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
+                      begin: Alignment.bottomCenter, end: Alignment.topCenter,
                     ),
                   ),
                 ),
@@ -543,7 +523,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [darkBg, darkBg.withOpacity(0.5), Colors.transparent],
+                        colors:[darkBg, darkBg.withOpacity(0.5), Colors.transparent],
                         stops: const[0.0, 0.4, 1.0],
                         begin: Alignment.bottomCenter,
                         end: Alignment.topCenter,
@@ -773,10 +753,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children:[
                                 IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position - const Duration(seconds: 10))),
-                                IconButton(
-                                  icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60),
-                                  onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play()),
-                                ),
+                                IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), onPressed: () => setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play())),
                                 IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: () => _controller.seekTo(_controller.value.position + const Duration(seconds: 10))),
                               ],
                             ),
@@ -1050,7 +1027,7 @@ class _GridAnimeCardState extends State<GridAnimeCard> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
-                      stops: const [0.0, 0.45, 1.0],
+                      stops: const[0.0, 0.45, 1.0],
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                     ),
@@ -1125,7 +1102,7 @@ class _GridAnimeCardState extends State<GridAnimeCard> {
 }
 
 // ==========================================
-// PROFILE & PAYMENT PAGES
+// PROFILE SCREEN & SUB PAGES
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -1167,7 +1144,7 @@ class ProfileScreen extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children:[
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children:[
@@ -1252,8 +1229,6 @@ class ProfileScreen extends StatelessWidget {
               _buildMenuItem(context, Icons.receipt_long, "Activity & Orders", const ActivityPage()),
               _buildMenuItem(context, Icons.payment, "Payment Proof", const PaymentProofPage()),
               _buildMenuItem(context, Icons.headset_mic, "Support", const SupportPage()),
-              _buildMenuItem(context, Icons.info_outline, "About Us", const Scaffold(backgroundColor: Color(0xFF0F0F0F), body: Center(child: Text("About Us", style: TextStyle(color: Colors.white))))),
-              _buildMenuItem(context, Icons.privacy_tip_outlined, "Privacy Policy", const Scaffold(backgroundColor: Color(0xFF0F0F0F), body: Center(child: Text("Privacy Policy", style: TextStyle(color: Colors.white))))),
             ],
           ),
         ),
@@ -1662,7 +1637,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                    children:[
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children:[
