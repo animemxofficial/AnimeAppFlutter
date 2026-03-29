@@ -294,7 +294,9 @@ class _MainScreenState extends State<MainScreen> {
     const HomeScreen(),
     const BrowseScreen(),
     const DubsScreen(),
-    const Center(child: Text("My List Page")),
+    const Center(
+      child: Text("My List Page"),
+    ),
     const ProfileScreen()
   ];
 
@@ -303,47 +305,55 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       extendBody: true,
       body: _pages[_index],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF121212),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
-        unselectedItemColor: Colors.grey[500],
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 11,
+      // YAHAN NAVIGATION BAR KA ANIMATION SIMPLE KIYA HAI (No scale, No splash)
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
         ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 10,
+        child: BottomNavigationBar(
+          backgroundColor: const Color(0xFF121212),
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Colors.orange,
+          unselectedItemColor: Colors.grey[500],
+          // Font size same rakhne se text jump/scale nahi hoga
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold, 
+            fontSize: 11,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w600, 
+            fontSize: 11,
+          ),
+          currentIndex: _index,
+          onTap: (i) {
+            setState(() {
+              _index = i;
+            });
+          },
+          items: const[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled), 
+              label: "Home",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.search), 
+              label: "Search",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.headphones), 
+              label: "Dub",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.list_alt), 
+              label: "My List",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person), 
+              label: "Account",
+            ),
+          ],
         ),
-        currentIndex: _index,
-        onTap: (i) {
-          setState(() {
-            _index = i;
-          });
-        },
-        items: const[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: "Home",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: "Search",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.headphones),
-            label: "Dub",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: "My List",
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: "Account",
-          ),
-        ],
       ),
     );
   }
@@ -407,7 +417,10 @@ class HomeScreen extends StatelessWidget {
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors:[Colors.black.withOpacity(0.9), Colors.transparent],
+                          colors:[
+                            Colors.black.withOpacity(0.9), 
+                            Colors.transparent
+                          ],
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                         ),
@@ -425,7 +438,7 @@ class HomeScreen extends StatelessWidget {
                         child: Text(
                           "${i + 1}/4",
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.white, 
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -456,8 +469,8 @@ class HomeScreen extends StatelessWidget {
                             child: const Text(
                               "TRENDING",
                               style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
+                                color: Colors.white, 
+                                fontSize: 10, 
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -499,8 +512,8 @@ class HomeScreen extends StatelessWidget {
                       const Text(
                         "Top Picks for You",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                          color: Colors.white, 
+                          fontSize: 16, 
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -508,7 +521,7 @@ class HomeScreen extends StatelessWidget {
                       Text(
                         "New episodes available now!",
                         style: TextStyle(
-                          color: Colors.grey[400],
+                          color: Colors.grey[400], 
                           fontSize: 12,
                         ),
                       ),
@@ -525,9 +538,7 @@ class HomeScreen extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => DetailsPage(anime: animeData[0]),
-                        ),
+                        MaterialPageRoute(builder: (_) => DetailsPage(anime: animeData[0])),
                       );
                     },
                     child: const Text(
@@ -568,8 +579,8 @@ class HomeScreen extends StatelessWidget {
                   label: const Text(
                     "Explore All Anime",
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+                      color: Colors.white, 
+                      fontSize: 16, 
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -582,7 +593,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 1. PORTRAIT CARD SECTION
+  // PORTRAIT CARD SECTION
   Widget _buildPortraitSection(String title, IconData? icon, Color? iconColor, List<Anime> list) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -596,11 +607,7 @@ class HomeScreen extends StatelessWidget {
                 children:[
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
                   ),
                   if (icon != null) ...[
                     const SizedBox(width: 6),
@@ -610,11 +617,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const Text(
                 "See All",
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ],
           ),
@@ -635,7 +638,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 2. POPULAR OVERLAY SECTION
+  // POPULAR OVERLAY SECTION
   Widget _buildPopularSection(String title, IconData icon, Color iconColor, List<Anime> list) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,16 +647,12 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+            children:[
               Row(
                 children:[
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
                   ),
                   const SizedBox(width: 6),
                   Icon(icon, color: iconColor, size: 20),
@@ -661,11 +660,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const Text(
                 "See All",
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ],
           ),
@@ -686,10 +681,10 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // 3. THUMBNAIL SECTION
+  // THUMBNAIL SECTION
   Widget _buildThumbnailSection(String title, IconData? icon, Color? iconColor, bool isCW, {List<CWItem>? cwList, List<Anime>? animeList}) {
     int itemCount = isCW ? cwList!.length : animeList!.length;
-
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children:[
@@ -702,11 +697,7 @@ class HomeScreen extends StatelessWidget {
                 children:[
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
                   ),
                   if (icon != null) ...[
                     const SizedBox(width: 6),
@@ -716,11 +707,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const Text(
                 "See All",
-                style: TextStyle(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ],
           ),
@@ -747,9 +734,10 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ==========================================
-// HOME CARD WIDGETS
+// NEW HOME CARD WIDGETS
 // ==========================================
 
+// PORTRAIT CARD
 class PortraitTextBelowCard extends StatelessWidget {
   final Anime anime;
   const PortraitTextBelowCard({super.key, required this.anime});
@@ -759,7 +747,7 @@ class PortraitTextBelowCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Navigator.push(
-          context,
+          context, 
           MaterialPageRoute(builder: (_) => DetailsPage(anime: anime)),
         );
       },
@@ -773,8 +761,8 @@ class PortraitTextBelowCard extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  anime.image,
-                  fit: BoxFit.cover,
+                  anime.image, 
+                  fit: BoxFit.cover, 
                   width: double.infinity,
                 ),
               ),
@@ -783,8 +771,8 @@ class PortraitTextBelowCard extends StatelessWidget {
             Text(
               anime.title,
               style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+                color: Colors.white, 
+                fontWeight: FontWeight.bold, 
                 fontSize: 13,
               ),
               maxLines: 1,
@@ -792,7 +780,10 @@ class PortraitTextBelowCard extends StatelessWidget {
             ),
             Text(
               anime.genre,
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: const TextStyle(
+                color: Colors.grey, 
+                fontSize: 11,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -803,6 +794,7 @@ class PortraitTextBelowCard extends StatelessWidget {
   }
 }
 
+// OVERLAY POPULAR CARD
 class OverlayPopularCard extends StatelessWidget {
   final Anime anime;
   const OverlayPopularCard({super.key, required this.anime});
@@ -812,7 +804,7 @@ class OverlayPopularCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Navigator.push(
-          context,
+          context, 
           MaterialPageRoute(builder: (_) => DetailsPage(anime: anime)),
         );
       },
@@ -828,9 +820,9 @@ class OverlayPopularCard extends StatelessWidget {
           child: Stack(
             children:[
               Image.network(
-                anime.image,
-                fit: BoxFit.cover,
-                width: double.infinity,
+                anime.image, 
+                fit: BoxFit.cover, 
+                width: double.infinity, 
                 height: double.infinity,
               ),
               Positioned.fill(
@@ -850,16 +842,12 @@ class OverlayPopularCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.cyan,
+                    color: Colors.cyan, 
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
-                    "ORIGINAL",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    "ORIGINAL", 
+                    style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -873,8 +861,8 @@ class OverlayPopularCard extends StatelessWidget {
                     Text(
                       anime.title,
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
+                        color: Colors.white, 
+                        fontWeight: FontWeight.w900, 
                         fontSize: 14,
                       ),
                       maxLines: 2,
@@ -885,7 +873,7 @@ class OverlayPopularCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children:[
                         Text(
-                          "${anime.season} | Ep 3",
+                          "${anime.season} | Ep 3", 
                           style: const TextStyle(color: Colors.white70, fontSize: 10),
                         ),
                         Row(
@@ -893,7 +881,7 @@ class OverlayPopularCard extends StatelessWidget {
                             const Icon(Icons.visibility, color: Colors.white70, size: 12),
                             const SizedBox(width: 4),
                             Text(
-                              anime.views,
+                              anime.views, 
                               style: const TextStyle(color: Colors.white70, fontSize: 10),
                             ),
                           ],
@@ -911,6 +899,7 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
+// THUMBNAIL LATEST CARD
 class ThumbnailLatestCard extends StatelessWidget {
   final Anime anime;
   const ThumbnailLatestCard({super.key, required this.anime});
@@ -920,7 +909,7 @@ class ThumbnailLatestCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         Navigator.push(
-          context,
+          context, 
           MaterialPageRoute(builder: (_) => DetailsPage(anime: anime)),
         );
       },
@@ -938,7 +927,7 @@ class ThumbnailLatestCard extends StatelessWidget {
                   fit: StackFit.expand,
                   children:[
                     Image.network(
-                      anime.image,
+                      anime.image, 
                       fit: BoxFit.cover,
                     ),
                     Positioned(
@@ -947,7 +936,7 @@ class ThumbnailLatestCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         decoration: BoxDecoration(
-                          color: Colors.black54,
+                          color: Colors.black54, 
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Row(
@@ -955,13 +944,9 @@ class ThumbnailLatestCard extends StatelessWidget {
                             const Icon(Icons.visibility, color: Colors.orange, size: 12),
                             const SizedBox(width: 4),
                             Text(
-                              anime.views,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
+                              anime.views, 
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
                       ),
@@ -972,16 +957,12 @@ class ThumbnailLatestCard extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.black87,
+                          color: Colors.black87, 
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
-                          "Ep 12",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          "Ep 12", 
+                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
@@ -993,8 +974,8 @@ class ThumbnailLatestCard extends StatelessWidget {
             Text(
               anime.title,
               style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+                color: Colors.white, 
+                fontWeight: FontWeight.bold, 
                 fontSize: 13,
               ),
               maxLines: 1,
@@ -1002,8 +983,11 @@ class ThumbnailLatestCard extends StatelessWidget {
             ),
             const SizedBox(height: 2),
             Text(
-              "Latest Episode",
-              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11),
+              "Latest Episode", 
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.6), 
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -1012,6 +996,7 @@ class ThumbnailLatestCard extends StatelessWidget {
   }
 }
 
+// CONTINUE WATCHING CARD
 class CWAnimeCard extends StatefulWidget {
   final CWItem item;
   const CWAnimeCard({super.key, required this.item});
@@ -1072,13 +1057,14 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
                 borderRadius: BorderRadius.circular(10),
                 child: Stack(
                   fit: StackFit.expand,
-                  children: [
+                  children:[
                     Image.network(
-                      widget.item.anime.seasonsList[widget.item.seasonIndex]
-                          .episodes[widget.item.episodeIndex].image,
+                      widget.item.anime.seasonsList[widget.item.seasonIndex].episodes[widget.item.episodeIndex].image,
                       fit: BoxFit.cover,
                     ),
-                    Container(color: Colors.black38),
+                    Container(
+                      color: Colors.black38,
+                    ),
                     const Center(
                       child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40),
                     ),
@@ -1101,8 +1087,8 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
             Text(
               widget.item.anime.title,
               style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+                color: Colors.white, 
+                fontWeight: FontWeight.bold, 
                 fontSize: 13,
               ),
               maxLines: 1,
@@ -1110,7 +1096,10 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
             ),
             Text(
               "Episode ${widget.item.episodeIndex + 1}",
-              style: const TextStyle(color: Colors.grey, fontSize: 11),
+              style: const TextStyle(
+                color: Colors.grey, 
+                fontSize: 11,
+              ),
             ),
           ],
         ),
@@ -1138,7 +1127,7 @@ class _DetailsPageState extends State<DetailsPage> {
   Widget build(BuildContext context) {
     const Color primaryColor = Colors.orange;
     const Color darkBg = Color(0xFF0F0F0F);
-
+    
     final currentSeason = widget.anime.seasonsList[_selectedSeasonIndex];
     final episodesList = currentSeason.episodes;
 
@@ -1188,8 +1177,8 @@ class _DetailsPageState extends State<DetailsPage> {
                   Text(
                     widget.anime.title,
                     style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 26, 
+                      fontWeight: FontWeight.w900, 
                       color: Colors.white,
                     ),
                   ),
@@ -1205,8 +1194,8 @@ class _DetailsPageState extends State<DetailsPage> {
                         child: Text(
                           widget.anime.rating,
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
+                            color: Colors.white, 
+                            fontSize: 11, 
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1215,13 +1204,17 @@ class _DetailsPageState extends State<DetailsPage> {
                       const Expanded(
                         child: Text(
                           "• Dub | Action, Thriller, Drama",
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.white70, 
+                            fontSize: 13,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
+                  
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
@@ -1251,19 +1244,24 @@ class _DetailsPageState extends State<DetailsPage> {
                       label: const Text(
                         "Play Season 1",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
+                          color: Colors.white, 
+                          fontSize: 16, 
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 24),
+                  
                   Text(
                     "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School, which is dedicated to fostering the best and brightest students. But he ends up in Class-D, a dumping ground for the school's worst. A cruel meritocracy awaits where he must use his dark intellect to survive in a school of ruthless competition and psychological warfare.",
                     maxLines: _isExpanded ? null : 2,
                     overflow: _isExpanded ? null : TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+                    style: const TextStyle(
+                      color: Colors.white70, 
+                      fontSize: 13, 
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   GestureDetector(
@@ -1275,16 +1273,21 @@ class _DetailsPageState extends State<DetailsPage> {
                     child: Text(
                       _isExpanded ? "Read Less" : "Read More",
                       style: const TextStyle(
-                        color: primaryColor,
-                        fontWeight: FontWeight.bold,
+                        color: primaryColor, 
+                        fontWeight: FontWeight.bold, 
                         fontSize: 13,
                       ),
                     ),
                   ),
                   const SizedBox(height: 30),
+                  
                   const Text(
-                    "Seasons",
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    "Seasons", 
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontSize: 18, 
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -1295,21 +1298,23 @@ class _DetailsPageState extends State<DetailsPage> {
                       itemBuilder: (context, index) {
                         return Padding(
                           padding: const EdgeInsets.only(right: 10),
-                          child: _buildSeasonTab(
-                            index,
-                            widget.anime.seasonsList[index].name,
-                            primaryColor,
-                          ),
+                          child: _buildSeasonTab(index, widget.anime.seasonsList[index].name, primaryColor),
                         );
                       },
                     ),
                   ),
                   const SizedBox(height: 24),
+                  
                   const Text(
-                    "Episodes",
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    "Episodes", 
+                    style: TextStyle(
+                      color: Colors.white, 
+                      fontSize: 18, 
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 12),
+                  
                   ValueListenableBuilder<List<CWItem>>(
                     valueListenable: continueWatchingNotifier,
                     builder: (context, cwList, child) {
@@ -1319,13 +1324,14 @@ class _DetailsPageState extends State<DetailsPage> {
                         itemCount: episodesList.length,
                         itemBuilder: (context, index) {
                           final ep = episodesList[index];
-
+                          
                           double progress = 0.0;
-                          final cwIndex = cwList.indexWhere((item) =>
-                              item.anime.title == widget.anime.title &&
-                              item.seasonIndex == _selectedSeasonIndex &&
-                              item.episodeIndex == index);
-
+                          final cwIndex = cwList.indexWhere((item) => 
+                            item.anime.title == widget.anime.title && 
+                            item.seasonIndex == _selectedSeasonIndex && 
+                            item.episodeIndex == index
+                          );
+                          
                           if (cwIndex != -1) {
                             final item = cwList[cwIndex];
                             if (item.totalDuration.inMilliseconds > 0) {
@@ -1370,8 +1376,8 @@ class _DetailsPageState extends State<DetailsPage> {
                                           ),
                                           if (progress > 0.0)
                                             Positioned(
-                                              bottom: 0,
-                                              left: 0,
+                                              bottom: 0, 
+                                              left: 0, 
                                               right: 0,
                                               child: LinearProgressIndicator(
                                                 value: progress,
@@ -1392,8 +1398,8 @@ class _DetailsPageState extends State<DetailsPage> {
                                         Text(
                                           "${index + 1}. ${ep.title}",
                                           style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white, 
+                                            fontWeight: FontWeight.bold, 
                                             fontSize: 15,
                                           ),
                                           maxLines: 1,
@@ -1403,15 +1409,25 @@ class _DetailsPageState extends State<DetailsPage> {
                                         Row(
                                           children:[
                                             Text(
-                                              ep.duration,
-                                              style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                              ep.duration, 
+                                              style: const TextStyle(
+                                                color: Colors.white54, 
+                                                fontSize: 12,
+                                              ),
                                             ),
                                             const SizedBox(width: 10),
-                                            const Icon(Icons.visibility, color: Colors.white54, size: 12),
+                                            const Icon(
+                                              Icons.visibility, 
+                                              color: Colors.white54, 
+                                              size: 12,
+                                            ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              ep.views,
-                                              style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                              ep.views, 
+                                              style: const TextStyle(
+                                                color: Colors.white54, 
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -1424,7 +1440,11 @@ class _DetailsPageState extends State<DetailsPage> {
                                       shape: BoxShape.circle,
                                       color: Colors.white.withOpacity(0.1),
                                     ),
-                                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                                    child: const Icon(
+                                      Icons.play_arrow_rounded, 
+                                      color: Colors.white, 
+                                      size: 24,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -1518,7 +1538,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void dispose() {
     _updateContinueWatching();
     SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitUp, 
       DeviceOrientation.portraitDown,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -1533,10 +1553,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
     if (pos > const Duration(seconds: 2)) {
       final list = List<CWItem>.from(continueWatchingNotifier.value);
-      final existingIdx = list.indexWhere((item) =>
-          item.anime.title == widget.anime.title &&
-          item.seasonIndex == widget.seasonIndex &&
-          item.episodeIndex == widget.episodeIndex);
+      final existingIdx = list.indexWhere((item) => 
+        item.anime.title == widget.anime.title && 
+        item.seasonIndex == widget.seasonIndex &&
+        item.episodeIndex == widget.episodeIndex
+      );
 
       if (existingIdx != -1) {
         list[existingIdx].position = pos;
@@ -1544,16 +1565,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         final item = list.removeAt(existingIdx);
         list.insert(0, item);
       } else {
-        list.insert(
-          0,
-          CWItem(
-            anime: widget.anime,
-            seasonIndex: widget.seasonIndex,
-            episodeIndex: widget.episodeIndex,
-            position: pos,
-            totalDuration: dur,
-          ),
-        );
+        list.insert(0, CWItem(
+          anime: widget.anime,
+          seasonIndex: widget.seasonIndex,
+          episodeIndex: widget.episodeIndex,
+          position: pos,
+          totalDuration: dur,
+        ));
       }
       continueWatchingNotifier.value = list;
     }
@@ -1571,13 +1589,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     });
     if (_isFullScreen) {
       SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeRight,
+        DeviceOrientation.landscapeRight, 
         DeviceOrientation.landscapeLeft,
       ]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     } else {
       SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitUp, 
         DeviceOrientation.portraitDown,
       ]);
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -1648,7 +1666,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         child: Container(
                           padding: const EdgeInsets.all(15),
                           decoration: const BoxDecoration(
-                            color: Colors.black54,
+                            color: Colors.black54, 
                             shape: BoxShape.circle,
                           ),
                           child: const Column(
@@ -1656,8 +1674,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             children:[
                               Icon(Icons.replay_10, color: Colors.white, size: 30),
                               Text(
-                                "-10s",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                "-10s", 
+                                style: TextStyle(
+                                  color: Colors.white, 
+                                  fontWeight: FontWeight.bold, 
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -1676,7 +1698,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         child: Container(
                           padding: const EdgeInsets.all(15),
                           decoration: const BoxDecoration(
-                            color: Colors.black54,
+                            color: Colors.black54, 
                             shape: BoxShape.circle,
                           ),
                           child: const Column(
@@ -1684,8 +1706,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             children:[
                               Icon(Icons.forward_10, color: Colors.white, size: 30),
                               Text(
-                                "+10s",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                "+10s", 
+                                style: TextStyle(
+                                  color: Colors.white, 
+                                  fontWeight: FontWeight.bold, 
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -1717,12 +1743,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                 Row(
                                   children:[
                                     IconButton(
-                                      icon: const Icon(Icons.cast, color: Colors.white),
+                                      icon: const Icon(Icons.cast, color: Colors.white), 
                                       onPressed: () {},
                                     ),
                                     IconButton(
                                       icon: Icon(
-                                        _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen,
+                                        _isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, 
                                         color: Colors.white,
                                       ),
                                       onPressed: _toggleFullScreen,
@@ -1746,7 +1772,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   ),
                                   onPressed: () {
                                     setState(() {
-                                      _controller.value.isPlaying ? _controller.pause() : _controller.play();
+                                      if (_controller.value.isPlaying) {
+                                        _controller.pause();
+                                      } else {
+                                        _controller.play();
+                                      }
                                     });
                                     _updateContinueWatching();
                                   },
@@ -1784,9 +1814,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                             activeColor: primaryColor,
                                             inactiveColor: Colors.white24,
                                             min: 0.0,
-                                            max: value.duration.inSeconds.toDouble() == 0
-                                                ? 100
-                                                : value.duration.inSeconds.toDouble(),
+                                            max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(),
                                             value: value.position.inSeconds.toDouble(),
                                             onChanged: (val) {
                                               _controller.seekTo(Duration(seconds: val.toInt()));
@@ -1831,8 +1859,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       Text(
                         "Episode ${widget.episodeIndex + 1} | ${currentEpisode.title}",
                         style: const TextStyle(
-                          color: primaryColor,
-                          fontSize: 16,
+                          color: primaryColor, 
+                          fontSize: 16, 
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1840,8 +1868,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       Text(
                         widget.anime.title,
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
+                          color: Colors.white, 
+                          fontSize: 22, 
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -1851,8 +1879,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         const Text(
                           "Up Next",
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
+                            color: Colors.white, 
+                            fontSize: 18, 
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1897,8 +1925,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                       Text(
                                         "Episode ${widget.episodeIndex + 2}",
                                         style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white, 
+                                          fontWeight: FontWeight.bold, 
                                           fontSize: 16,
                                         ),
                                       ),
@@ -1906,14 +1934,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                       Text(
                                         currentSeason.episodes[widget.episodeIndex + 1].duration,
                                         style: const TextStyle(
-                                          color: Colors.white70,
+                                          color: Colors.white70, 
                                           fontSize: 13,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
+                                const Icon(
+                                  Icons.play_circle_fill, 
+                                  color: Colors.white, 
+                                  size: 36,
+                                ),
                               ],
                             ),
                           ),
@@ -1931,66 +1963,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// NEW BROWSE SCREEN (SEARCH & CATEGORIES FUNCTIONAL)
+// BROWSE SCREEN
 // ==========================================
-class BrowseScreen extends StatefulWidget {
+class BrowseScreen extends StatelessWidget {
   const BrowseScreen({super.key});
 
   @override
-  State<BrowseScreen> createState() => _BrowseScreenState();
-}
-
-class _BrowseScreenState extends State<BrowseScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  List<String> recentSearches = ["Naruto", "One Piece"];
-  
-  // Dummy search frequency for automatic trending
-  Map<String, int> searchFrequency = {
-    "Solo Leveling": 50,
-    "Jujutsu Kaisen": 40,
-    "Chainsaw Man": 30,
-    "Tokyo Revengers": 20,
-  };
-
-  List<Anime> searchResults =[];
-  bool isSearching = false;
-
-  void _performSearch(String query) {
-    if (query.trim().isEmpty) {
-      setState(() {
-        isSearching = false;
-      });
-      return;
-    }
-
-    if (!recentSearches.contains(query)) {
-      recentSearches.insert(0, query);
-      if (recentSearches.length > 4) {
-        recentSearches.removeLast();
-      }
-    }
-
-    searchFrequency[query] = (searchFrequency[query] ?? 0) + 1;
-
-    searchResults = animeData.where((anime) {
-      return anime.title.toLowerCase().contains(query.toLowerCase());
-    }).toList();
-
-    setState(() {
-      isSearching = true;
-    });
-  }
-
-  List<String> getTrending() {
-    var sortedEntries = searchFrequency.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    return sortedEntries.take(4).map((e) => e.key).toList();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    List<String> trending = getTrending();
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       body: SafeArea(
@@ -2001,124 +1980,87 @@ class _BrowseScreenState extends State<BrowseScreen> {
             children:[
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: const Color(0xFF1A1A1A), 
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
-                  controller: _searchController,
                   style: const TextStyle(color: Colors.white),
-                  onSubmitted: (val) {
-                    _performSearch(val);
-                  },
                   decoration: InputDecoration(
                     hintText: "Search anime, movies, episodes...",
                     hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
                     prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
-                    suffixIcon: IconButton(
-                      icon: Icon(Icons.cancel, color: Colors.grey[600]),
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() {
-                          isSearching = false;
-                        });
-                      },
-                    ),
+                    suffixIcon: Icon(Icons.cancel, color: Colors.grey[600]),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-
-              if (isSearching) ...[
-                const Text(
-                  "Search Results",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              const Text(
+                "Recent Searches", 
+                style: TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 12),
-                if (searchResults.isEmpty)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: Text("No results found.", style: TextStyle(color: Colors.white54)),
+              ),
+              const SizedBox(height: 12),
+              _buildRecentItem("Naruto"),
+              _buildRecentItem("One Piece"),
+              const SizedBox(height: 24),
+              const Text(
+                "Trending Searches", 
+                style: TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      children:[
+                        _buildTrendingItem("1", "Solo Leveling"),
+                        _buildTrendingItem("3", "Chainsaw Man"),
+                      ],
                     ),
-                  )
-                else
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.65,
-                      crossAxisSpacing: 14,
-                      mainAxisSpacing: 16,
-                    ),
-                    itemCount: searchResults.length,
-                    itemBuilder: (context, index) {
-                      return AnimePosterCard(anime: searchResults[index]);
-                    },
                   ),
-              ] else ...[
-                const Text(
-                  "Recent Searches",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 12),
-                if (recentSearches.isEmpty)
-                  const Text("No recent searches.", style: TextStyle(color: Colors.white54))
-                else
-                  ...recentSearches.map((title) => _buildRecentItem(title)).toList(),
-                
-                const SizedBox(height: 24),
-                const Text(
-                  "Trending Searches",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children:[
-                          if (trending.isNotEmpty) _buildTrendingItem("1", trending[0]),
-                          if (trending.length > 2) _buildTrendingItem("3", trending[2]),
-                        ],
-                      ),
+                  Expanded(
+                    child: Column(
+                      children:[
+                        _buildTrendingItem("2", "Jujutsu Kaisen"),
+                        _buildTrendingItem("4", "Tokyo Revengers"),
+                      ],
                     ),
-                    Expanded(
-                      child: Column(
-                        children:[
-                          if (trending.length > 1) _buildTrendingItem("2", trending[1]),
-                          if (trending.length > 3) _buildTrendingItem("4", trending[3]),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                "Browse by Genre", 
+                style: TextStyle(
+                  fontSize: 18, 
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.white,
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  "Browse by Genre",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                const SizedBox(height: 12),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 2.2,
-                  children:[
-                    _buildGenreCard(context, "Action", "Action", Icons.sports_martial_arts, const Color(0xFF3A1C1C), Colors.redAccent),
-                    _buildGenreCard(context, "Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFF2D1B4E), Colors.purpleAccent),
-                    _buildGenreCard(context, "Drama", "Series", Icons.masks, const Color(0xFF162B44), Colors.blueAccent),
-                    _buildGenreCard(context, "Romance", "Love", Icons.favorite, const Color(0xFF421A28), Colors.pinkAccent),
-                    // NEW GENRES
-                    _buildGenreCard(context, "Thriller", "Suspense", Icons.warning_amber_rounded, const Color(0xFF3A2B1C), Colors.orange),
-                    _buildGenreCard(context, "Mystery", "Secrets", Icons.psychology, const Color(0xFF1C3A35), Colors.teal),
-                  ],
-                ),
-              ],
+              ),
+              const SizedBox(height: 12),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 2.2,
+                children:[
+                  _buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFF3A1C1C), Colors.redAccent),
+                  _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFF2D1B4E), Colors.purpleAccent),
+                  _buildGenreCard("Drama", "Series", Icons.masks, const Color(0xFF162B44), Colors.blueAccent),
+                  _buildGenreCard("Romance", "Love", Icons.favorite, const Color(0xFF421A28), Colors.pinkAccent),
+                ],
+              ),
             ],
           ),
         ),
@@ -2127,158 +2069,110 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 
   Widget _buildRecentItem(String title) {
-    return GestureDetector(
-      onTap: () {
-        _searchController.text = title;
-        _performSearch(title);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children:[
-            Text(
-              title,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A), 
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children:[
+          Text(
+            title, 
+            style: const TextStyle(
+              fontSize: 15, 
+              fontWeight: FontWeight.w600, 
+              color: Colors.white,
             ),
-            Row(
-              children:[
-                Icon(Icons.close, size: 18, color: Colors.grey[500]),
-                const SizedBox(width: 12),
-                Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600]),
-              ],
-            ),
-          ],
-        ),
+          ),
+          Row(
+            children:[
+              Icon(Icons.close, size: 18, color: Colors.grey[500]),
+              const SizedBox(width: 12),
+              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600]),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTrendingItem(String num, String title) {
-    return GestureDetector(
-      onTap: () {
-        _searchController.text = title;
-        _performSearch(title);
-      },
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children:[
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.amber,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Center(
-                child: Text(
-                  num,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children:[
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              color: Colors.amber, 
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Center(
+              child: Text(
+                num, 
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold, 
+                  fontSize: 12, 
+                  color: Colors.black,
                 ),
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
-                overflow: TextOverflow.ellipsis,
-              ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title, 
+              style: const TextStyle(
+                fontSize: 14, 
+                fontWeight: FontWeight.w600, 
+                color: Colors.white,
+              ), 
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildGenreCard(BuildContext context, String title, String subtitle, IconData icon, Color bgColor, Color iconColor) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => CategoryPage(categoryName: title)),
-        );
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children:[
-            Icon(icon, size: 30, color: iconColor),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children:[
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6)),
-                ),
-              ],
-            ),
-          ],
-        ),
+  Widget _buildGenreCard(String title, String subtitle, IconData icon, Color bgColor, Color iconColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor, 
+        borderRadius: BorderRadius.circular(12),
       ),
-    );
-  }
-}
-
-// NEW CATEGORY PAGE
-class CategoryPage extends StatelessWidget {
-  final String categoryName;
-
-  const CategoryPage({super.key, required this.categoryName});
-
-  @override
-  Widget build(BuildContext context) {
-    // Filter anime list based on category
-    final filteredList = animeData.where((anime) {
-      return anime.genre.toLowerCase() == categoryName.toLowerCase();
-    }).toList();
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
-      appBar: AppBar(
-        title: Text(
-          "$categoryName Anime",
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: Colors.black,
-        iconTheme: const IconThemeData(color: Colors.white),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children:[
+          Icon(icon, size: 30, color: iconColor),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children:[
+              Text(
+                title, 
+                style: const TextStyle(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.bold, 
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                subtitle, 
+                style: TextStyle(
+                  fontSize: 11, 
+                  color: Colors.white.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
-      body: filteredList.isEmpty
-          ? const Center(
-              child: Text(
-                "No anime found in this category.",
-                style: TextStyle(color: Colors.white54, fontSize: 16),
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.65,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: filteredList.length,
-              itemBuilder: (context, index) {
-                return AnimePosterCard(anime: filteredList[index]);
-              },
-            ),
     );
   }
 }
@@ -2315,24 +2209,24 @@ class DubsScreen extends StatelessWidget {
             GridView.builder(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.65,
-                crossAxisSpacing: 14,
+                crossAxisCount: 2, 
+                childAspectRatio: 0.65, 
+                crossAxisSpacing: 14, 
                 mainAxisSpacing: 16,
               ),
               itemCount: animeData.length,
-              itemBuilder: (context, index) => AnimePosterCard(anime: animeData[index]),
+              itemBuilder: (context, index) => GridAnimeCard(anime: animeData[index]),
             ),
             GridView.builder(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.65,
-                crossAxisSpacing: 14,
+                crossAxisCount: 2, 
+                childAspectRatio: 0.65, 
+                crossAxisSpacing: 14, 
                 mainAxisSpacing: 16,
               ),
               itemCount: animeData.length,
-              itemBuilder: (context, index) => AnimePosterCard(anime: animeData[index]),
+              itemBuilder: (context, index) => GridAnimeCard(anime: animeData[index]),
             ),
           ],
         ),
@@ -2342,23 +2236,17 @@ class DubsScreen extends StatelessWidget {
 }
 
 // ==========================================
-// POSTER CARD
+// GRID CARD FOR DUBS SCREEN
 // ==========================================
-class AnimePosterCard extends StatefulWidget {
+class GridAnimeCard extends StatefulWidget {
   final Anime anime;
-  final bool hasWhiteOutline;
-
-  const AnimePosterCard({
-    super.key,
-    required this.anime,
-    this.hasWhiteOutline = false,
-  });
+  const GridAnimeCard({super.key, required this.anime});
 
   @override
-  State<AnimePosterCard> createState() => _AnimePosterCardState();
+  State<GridAnimeCard> createState() => _GridAnimeCardState();
 }
 
-class _AnimePosterCardState extends State<AnimePosterCard> {
+class _GridAnimeCardState extends State<GridAnimeCard> {
   bool _isTapped = false;
 
   @override
@@ -2374,7 +2262,7 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
           _isTapped = false;
         });
         Navigator.push(
-          context,
+          context, 
           MaterialPageRoute(builder: (context) => DetailsPage(anime: widget.anime)),
         );
       },
@@ -2387,66 +2275,72 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
         transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
-        width: 160,
-        margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: widget.hasWhiteOutline ? Colors.white : Colors.white.withOpacity(0.1),
-            width: widget.hasWhiteOutline ? 2 : 1,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+          boxShadow:[
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1), 
+              blurRadius: 8, 
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(15),
           child: Stack(
             children:[
               Image.network(
-                widget.anime.image,
-                fit: BoxFit.cover,
-                width: double.infinity,
+                widget.anime.image, 
+                fit: BoxFit.cover, 
+                width: double.infinity, 
                 height: double.infinity,
               ),
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
-                      stops: const[0.0, 0.45, 1.0],
-                      begin: Alignment.bottomCenter,
+                      colors:[
+                        Colors.black.withOpacity(0.95), 
+                        Colors.black.withOpacity(0.3), 
+                        Colors.transparent
+                      ],
+                      stops: const [0.0, 0.45, 1.0],
+                      begin: Alignment.bottomCenter, 
                       end: Alignment.topCenter,
                     ),
                   ),
                 ),
               ),
               Positioned(
-                top: 10,
-                left: 10,
-                right: 10,
+                top: 8,
+                left: 8,
+                right: 8,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children:[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white, 
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        widget.anime.rating,
-                        style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold),
+                        widget.anime.rating, 
+                        style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
                       ),
                       child: Text(
-                        widget.anime.dubStatus,
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                        widget.anime.dubStatus, 
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -2454,33 +2348,41 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
               ),
               Positioned(
                 bottom: 12,
-                left: 12,
-                right: 12,
+                left: 10,
+                right: 10,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start, 
                   mainAxisSize: MainAxisSize.min,
                   children:[
                     Text(
-                      widget.anime.title,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15, height: 1.2),
-                      maxLines: 2,
+                      widget.anime.title, 
+                      style: const TextStyle(
+                        color: Colors.white, 
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 13, 
+                        height: 1.2,
+                      ), 
+                      maxLines: 2, 
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      "${widget.anime.season} • ${widget.anime.status}",
-                      style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
-                      maxLines: 1,
+                      "${widget.anime.season} • ${widget.anime.status}", 
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.75), 
+                        fontSize: 10,
+                      ), 
+                      maxLines: 1, 
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 4),
                     Row(
                       children:[
-                        Icon(Icons.remove_red_eye_outlined, color: Colors.white.withOpacity(0.75), size: 14),
+                        Icon(Icons.remove_red_eye_outlined, color: Colors.white.withOpacity(0.75), size: 12),
                         const SizedBox(width: 4),
                         Text(
-                          "${widget.anime.views} Views",
-                          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 11),
+                          "${widget.anime.views} Views", 
+                          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10),
                         ),
                       ],
                     ),
@@ -2496,7 +2398,7 @@ class _AnimePosterCardState extends State<AnimePosterCard> {
 }
 
 // ==========================================
-// PROFILE, PREMIUM, PAYMENT, ACTIVITY & SUPPORT
+// PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -2520,9 +2422,14 @@ class ProfileScreen extends StatelessWidget {
                         height: 75,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          boxShadow:[BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 15)],
+                          boxShadow:[
+                            BoxShadow(
+                              color: Colors.orange.withOpacity(0.5), 
+                              blurRadius: 15,
+                            ),
+                          ],
                           image: const DecorationImage(
-                            image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"),
+                            image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"), 
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -2533,7 +2440,7 @@ class ProfileScreen extends StatelessWidget {
                           Icon(Icons.edit, color: Colors.orange, size: 14),
                           SizedBox(width: 4),
                           Text(
-                            "Edit Profile",
+                            "Edit Profile", 
                             style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                         ],
@@ -2544,12 +2451,12 @@ class ProfileScreen extends StatelessWidget {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children:[
+                      children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children:[
                             const Text(
-                              "Flexxy xD",
+                              "Flexxy xD", 
                               style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                             ),
                             Container(
@@ -2558,17 +2465,25 @@ class ProfileScreen extends StatelessWidget {
                               decoration: const BoxDecoration(
                                 color: Colors.greenAccent,
                                 shape: BoxShape.circle,
-                                boxShadow: [BoxShadow(color: Colors.greenAccent, blurRadius: 8)],
+                                boxShadow:[
+                                  BoxShadow(color: Colors.greenAccent, blurRadius: 8),
+                                ],
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        const Text("flexxy0xd@gmail.com", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        const Text(
+                          "flexxy0xd@gmail.com", 
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
                         const SizedBox(height: 8),
                         Row(
                           children:[
-                            const Text("UID: VcXZJDac...", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            const Text(
+                              "UID: VcXZJDac...", 
+                              style: TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
                             const SizedBox(width: 8),
                             const Icon(Icons.copy_outlined, color: Colors.grey, size: 14),
                           ],
@@ -2581,7 +2496,10 @@ class ProfileScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: Colors.orangeAccent.withOpacity(0.6)),
                           ),
-                          child: const Text("BRONZE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1)),
+                          child: const Text(
+                            "BRONZE", 
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1),
+                          ),
                         ),
                       ],
                     ),
@@ -2590,15 +2508,20 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
+                onTap: () {
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (context) => const PremiumPage()),
+                  );
+                },
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 10),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     gradient: const LinearGradient(
-                      colors: [Colors.orangeAccent, Colors.deepOrange],
-                      begin: Alignment.topLeft,
+                      colors: [Colors.orangeAccent, Colors.deepOrange], 
+                      begin: Alignment.topLeft, 
                       end: Alignment.bottomRight,
                     ),
                   ),
@@ -2609,11 +2532,17 @@ class ProfileScreen extends StatelessWidget {
                         children:[
                           Icon(Icons.workspace_premium, color: Colors.white, size: 26),
                           SizedBox(width: 8),
-                          Text("Go Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text(
+                            "Go Premium", 
+                            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 6),
-                      const Text("Unlock all episodes & Remove ads", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const Text(
+                        "Unlock all episodes & Remove ads", 
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
                       const SizedBox(height: 12),
                       Row(
                         children:[
@@ -2643,10 +2572,13 @@ class ProfileScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withOpacity(0.2), 
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      child: Text(
+        price, 
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -2660,7 +2592,12 @@ class ProfileScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           splashColor: Colors.grey.withOpacity(0.3),
           highlightColor: Colors.grey.withOpacity(0.3),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)),
+          onTap: () {
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (context) => page),
+            );
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: Row(
@@ -2668,7 +2605,7 @@ class ProfileScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withOpacity(0.05), 
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(icon, color: Colors.white70, size: 20),
@@ -2676,7 +2613,7 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: Text(
-                    title,
+                    title, 
                     style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -2690,6 +2627,9 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
+// ==========================================
+// SUB-PAGES (Premium, Payment, Support, Activity)
+// ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
 
@@ -2698,7 +2638,9 @@ class PremiumPage extends StatelessWidget {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No UPI App found on this device!")),
+      );
     }
   }
 
@@ -2715,9 +2657,15 @@ class PremiumPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Column(
           children:[
-            const Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            const Text(
+              "Choose Your Plan", 
+              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 5),
-            const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+            const Text(
+              "Unlock exclusive content & an ad-free experience.", 
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
             const SizedBox(height: 30),
             _buildPlanCard(context, "🥈 Silver Plan", "HD (720p) • Medium Ads", "₹90", false),
             const SizedBox(height: 15),
@@ -2739,7 +2687,10 @@ class PremiumPage extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: const Color(0xFF1A1A1A),
-            border: Border.all(color: isGold ? Colors.amber : Colors.white24, width: isGold ? 2 : 1),
+            border: Border.all(
+              color: isGold ? Colors.amber : Colors.white24, 
+              width: isGold ? 2 : 1,
+            ),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -2749,9 +2700,15 @@ class PremiumPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children:[
-                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      title, 
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
-                    Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                    Text(
+                      subtitle, 
+                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
                   ],
                 ),
               ),
@@ -2762,18 +2719,34 @@ class PremiumPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children:[
-                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      Text(
+                        price, 
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
+                      const Text(
+                        "/mo", 
+                        style: TextStyle(color: Colors.white54, fontSize: 12),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isGold ? Colors.amber : Colors.orange,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    onPressed: () => _launchUPI(context, cleanPrice, title.split(" ")[1]),
-                    child: Text("Select", style: TextStyle(color: isGold ? Colors.black : Colors.white, fontWeight: FontWeight.bold)),
+                    onPressed: () {
+                      _launchUPI(context, cleanPrice, title.split(" ")[1]);
+                    },
+                    child: Text(
+                      "Select", 
+                      style: TextStyle(
+                        color: isGold ? Colors.black : Colors.white, 
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -2788,9 +2761,15 @@ class PremiumPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: const BoxDecoration(
                 color: Colors.amber,
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8)),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(8), 
+                  bottomRight: Radius.circular(8),
+                ),
               ),
-              child: const Text("RECOMMENDED", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "RECOMMENDED", 
+                style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
             ),
           )
       ],
@@ -2836,14 +2815,17 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
           children:[
             Container(
               padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1), 
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: const Row(
                 children:[
                   Icon(Icons.info_outline, color: Colors.blue),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      "Verify your payment to activate plan instantly.",
+                      "Verify your payment to activate plan instantly.", 
                       style: TextStyle(color: Colors.blue),
                     ),
                   ),
@@ -2851,14 +2833,20 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text("Select Amount Paid", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const Text(
+              "Select Amount Paid", 
+              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
               dropdownColor: const Color(0xFF1A1A1A),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: const Color(0xFF1A1A1A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10), 
+                  borderSide: BorderSide.none,
+                ),
               ),
               style: const TextStyle(color: Colors.white, fontSize: 16),
               value: _selectedAmount,
@@ -2877,7 +2865,10 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
               },
             ),
             const SizedBox(height: 24),
-            const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            const Text(
+              "Upload Screenshot", 
+              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: _pickImage,
@@ -2899,23 +2890,12 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                         children: const[
                           Icon(Icons.cloud_upload_outlined, color: Colors.orange, size: 50),
                           SizedBox(height: 10),
-                          Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          Text("Supports JPG, PNG", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                          Text(
+                            "Tap to upload", 
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text("Transaction ID / UTR", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            TextFormField(
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: "e.g. 3089XXXXXXX",
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: const Color(0xFF1A1A1A),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 30),
@@ -2929,12 +2909,27 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 ),
                 onPressed: () {
                   setState(() {
-                    userOrders.insert(0, OrderItem(planName: _selectedPlan, amount: "₹$_selectedAmount", status: "Pending", date: "Today"));
+                    userOrders.insert(
+                      0, 
+                      OrderItem(
+                        planName: _selectedPlan, 
+                        amount: "₹$_selectedAmount", 
+                        status: "Pending", 
+                        date: "Today",
+                      ),
+                    );
                   });
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted Successfully!")));
-                  Future.delayed(const Duration(seconds: 1), () => Navigator.pop(context));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Submitted Successfully!")),
+                  );
+                  Future.delayed(const Duration(seconds: 1), () {
+                    Navigator.pop(context);
+                  });
                 },
-                child: const Text("Submit & Verify", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "Submit & Verify", 
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -2956,79 +2951,8 @@ class SupportPage extends StatelessWidget {
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: const LinearGradient(
-                  colors:[Colors.orangeAccent, Colors.deepOrange],
-                ),
-              ),
-              child: Row(
-                children:[
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                    child: const Icon(Icons.headset_mic, color: Colors.white, size: 30),
-                  ),
-                  const SizedBox(width: 15),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children:[
-                        Text("How can we help?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text("We're here to help you with any issues.", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30),
-            const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent),
-            _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green),
-            _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSupportTile(IconData icon, String title, String sub, Color color) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        children:[
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children:[
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-              ],
-            ),
-          ),
-          const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-        ],
+      body: const Center(
+        child: Text("Support Options Here", style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -3052,7 +2976,9 @@ class _ActivityPageState extends State<ActivityPage> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: userOrders.isEmpty
-          ? const Center(child: Text("No recent orders.", style: TextStyle(color: Colors.white54)))
+          ? const Center(
+              child: Text("No recent orders.", style: TextStyle(color: Colors.white54)),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: userOrders.length,
@@ -3064,17 +2990,28 @@ class _ActivityPageState extends State<ActivityPage> {
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A1A1A),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border(left: BorderSide(color: order.status == "Pending" ? Colors.orange : Colors.green, width: 4)),
+                    border: Border(
+                      left: BorderSide(
+                        color: order.status == "Pending" ? Colors.orange : Colors.green, 
+                        width: 4,
+                      ),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                    children:[
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children:[
-                          Text(order.planName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(
+                            order.planName, 
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
                           const SizedBox(height: 4),
-                          Text("${order.amount} • ${order.date}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                          Text(
+                            "${order.amount} • ${order.date}", 
+                            style: const TextStyle(color: Colors.white54, fontSize: 12),
+                          ),
                         ],
                       ),
                       Container(
@@ -3091,7 +3028,7 @@ class _ActivityPageState extends State<ActivityPage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 );
