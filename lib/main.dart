@@ -28,8 +28,8 @@ void main() {
 // ==========================================
 
 // DEMO PREMIUM STATUS
-bool hasPremiumPlan = true; // Agar user ne plan nahi liya hai to isko false kar dena
-String planExpireDate = "Expire: 24 Dec 2024"; // Expiry date ki string
+bool hasPremiumPlan = true; 
+String planExpireDate = "Expire: 24 Dec 2024"; 
 
 class Episode {
   final String title;
@@ -259,6 +259,17 @@ final List<Anime> animeData =[
     season: "Movie",
     seasonsList: generateDummySeasons(),
   ),
+  // NEW ANIME FOR COMING SOON (0 Episodes)
+  Anime(
+    title: "Bleach: Thousand-Year Blood War - The Conflict", // Very long name to test ellipsis
+    genre: "Action",
+    image: "https://i.ibb.co/DDDJNsFX/images-3.jpg",
+    status: "Coming Soon",
+    views: "0",
+    dubColor: Colors.grey,
+    season: "S3",
+    seasonsList: [], // NO episodes
+  ),
 ];
 
 class OrderItem {
@@ -362,9 +373,17 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Define slider items with different animes and tags
+    final List<Map<String, dynamic>> sliderItems = [
+      {'anime': animeData[0], 'tag': 'TRENDING', 'color': Colors.orange},
+      {'anime': animeData[2], 'tag': 'POPULAR', 'color': Colors.redAccent},
+      {'anime': animeData[6], 'tag': 'RECOMMENDED', 'color': Colors.blueAccent},
+      {'anime': animeData[7], 'tag': 'COMING SOON', 'color': Colors.grey}, // The 0-episode anime
+    ];
+
     return Scaffold(
       backgroundColor: Colors.black,
-      // 3-LINE DRAWER ADDED HERE
+      // 3-LINE DRAWER UPDATED
       drawer: Drawer(
         backgroundColor: const Color(0xFF121212),
         child: Column(
@@ -423,18 +442,14 @@ class HomeScreen extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage()));
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.settings, color: Colors.white70),
-              title: const Text("Settings", style: TextStyle(color: Colors.white)),
-              onTap: () => Navigator.pop(context),
-            ),
+            // Settings removed as requested
             const Spacer(),
             const Divider(color: Colors.white12),
+            // Thoda Chota Log Out Option
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.redAccent),
-              title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20),
+              title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
               onTap: () {
-                // Handle Log out here
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Logged out successfully!")));
               },
@@ -477,9 +492,9 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            // SLIDER
+            // AUTOMATIC SLIDER WITH TAGS & TEXT OVERFLOW
             CarouselSlider.builder(
-              itemCount: 4,
+              itemCount: sliderItems.length,
               options: CarouselOptions(
                 height: 220,
                 autoPlay: true,
@@ -487,68 +502,95 @@ class HomeScreen extends StatelessWidget {
                 viewportFraction: 1.0,
               ),
               itemBuilder: (ctx, i, real) {
-                return Stack(
-                  fit: StackFit.expand,
-                  children:[
-                    Image.network(
-                      "https://i.ibb.co/C3rhjGv3/images-1.jpg",
-                      fit: BoxFit.cover,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.black.withOpacity(0.9), Colors.transparent],
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                        ),
+                final anime = sliderItems[i]['anime'] as Anime;
+                final tag = sliderItems[i]['tag'] as String;
+                final tagColor = sliderItems[i]['color'] as Color;
+
+                return GestureDetector(
+                  onTap: () {
+                    bool hasEpisodes = false;
+                    for (var season in anime.seasonsList) {
+                      if (season.episodes.isNotEmpty) {
+                        hasEpisodes = true;
+                        break;
+                      }
+                    }
+
+                    if (tag == "COMING SOON" && !hasEpisodes) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!")));
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: anime)));
+                    }
+                  },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children:[
+                      Image.network(
+                        anime.image,
+                        fit: BoxFit.cover,
                       ),
-                    ),
-                    Positioned(
-                      top: 15,
-                      right: 15,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      Container(
                         decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "${i + 1}/4",
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          gradient: LinearGradient(
+                            colors: [Colors.black.withOpacity(0.95), Colors.transparent],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            stops: const [0.0, 0.6]
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      bottom: 20,
-                      left: 15,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children:[
-                          const Text(
-                            "SOLO LEVELING",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                            ),
+                      Positioned(
+                        top: 15,
+                        right: 15,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(height: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.orange,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              "TRENDING",
-                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
+                          child: Text(
+                            "${i + 1}/${sliderItems.length}",
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                           ),
-                        ],
+                        ),
                       ),
-                    )
-                  ],
+                      Positioned(
+                        bottom: 20,
+                        left: 15,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children:[
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.85,
+                              child: Text(
+                                anime.title.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20, // Thoda kam size lamba text adjust karne ke liye
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: tagColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                tag,
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
                 );
               },
             ),
@@ -616,7 +658,7 @@ class HomeScreen extends StatelessWidget {
 
             _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, Colors.orange, animeData),
             _buildPopularSection(context, "Popular Anime", Icons.emoji_events, Colors.amber, animeData.reversed.toList()),
-            _buildThumbnailSection(context, "Latest Episodes", null, null, false, animeList: animeData),
+            _buildThumbnailSection(context, "Latest Episodes", null, null, false, animeList: animeData.where((a) => a.seasonsList.isNotEmpty).toList()),
             _buildPortraitSection(context, "Thriller", null, null, animeData.reversed.toList()),
             _buildPortraitSection(context, "Action", null, null, animeData),
             _buildPortraitSection(context, "Romance", null, null, animeData.reversed.toList()),
@@ -1160,6 +1202,15 @@ class _DetailsPageState extends State<DetailsPage> {
     const Color primaryColor = Colors.orange;
     const Color darkBg = Color(0xFF0F0F0F);
     
+    // Check if seasons exist
+    if (widget.anime.seasonsList.isEmpty) {
+      return Scaffold(
+        backgroundColor: darkBg,
+        appBar: AppBar(backgroundColor: Colors.black, title: Text(widget.anime.title)),
+        body: const Center(child: Text("Episodes Coming Soon!", style: TextStyle(color: Colors.white))),
+      );
+    }
+
     final currentSeason = widget.anime.seasonsList[_selectedSeasonIndex];
     final episodesList = currentSeason.episodes;
 
@@ -1907,18 +1958,26 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                       builder: (context, VideoPlayerValue value, child) {
                                         return SliderTheme(
                                           data: SliderTheme.of(context).copyWith(
-                                            trackHeight: 4.0,
-                                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
+                                            trackHeight: 3.0, // Thinner, sleeker track
+                                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0),
                                             overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
                                           ),
+                                          // IMPROVED SEEK BAR (Real-time seeking)
                                           child: Slider(
                                             activeColor: primaryColor,
                                             inactiveColor: Colors.white24,
                                             min: 0.0,
                                             max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(),
-                                            value: value.position.inSeconds.toDouble(),
+                                            value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()),
+                                            onChangeStart: (val) {
+                                              _controller.pause(); // Pause while seeking for smooth drag
+                                            },
                                             onChanged: (val) {
                                               _controller.seekTo(Duration(seconds: val.toInt()));
+                                            },
+                                            onChangeEnd: (val) {
+                                              _controller.play(); // Play when drag ends
+                                              _updateContinueWatching();
                                             },
                                           ),
                                         );
@@ -1973,40 +2032,50 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ),
                       const SizedBox(height: 20),
                       
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children:[
-                          GestureDetector(
-                            onTap: _toggleLike,
-                            child: Column(
-                              children:[
-                                Icon(isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: isLiked ? Colors.orange : Colors.white, size: 26),
-                                const SizedBox(height: 4),
-                                Text(likes.toString(), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                              ],
+                      // SLEEK ACTION BAR (LIKE, DISLIKE, SAVE)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children:[
+                            GestureDetector(
+                              onTap: _toggleLike,
+                              child: Row(
+                                children:[
+                                  Icon(isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: isLiked ? Colors.orange : Colors.white, size: 22),
+                                  const SizedBox(width: 8),
+                                  Text(likes.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
                             ),
-                          ),
-                          GestureDetector(
-                            onTap: _toggleDislike,
-                            child: Column(
-                              children:[
-                                Icon(isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: isDisliked ? Colors.orange : Colors.white, size: 26),
-                                const SizedBox(height: 4),
-                                Text(dislikes.toString(), style: const TextStyle(color: Colors.white, fontSize: 12)),
-                              ],
+                            Container(width: 1, height: 24, color: Colors.white24), // Divider
+                            GestureDetector(
+                              onTap: _toggleDislike,
+                              child: Row(
+                                children:[
+                                  Icon(isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: isDisliked ? Colors.orange : Colors.white, size: 22),
+                                  const SizedBox(width: 8),
+                                  Text(dislikes.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
                             ),
-                          ),
-                          GestureDetector(
-                            onTap: _toggleSave,
-                            child: Column(
-                              children:[
-                                Icon(_isSaved ? Icons.bookmark : Icons.bookmark_border, color: _isSaved ? Colors.orange : Colors.white, size: 26),
-                                const SizedBox(height: 4),
-                                const Text("Save", style: TextStyle(color: Colors.white, fontSize: 12)),
-                              ],
+                            Container(width: 1, height: 24, color: Colors.white24), // Divider
+                            GestureDetector(
+                              onTap: _toggleSave,
+                              child: Row(
+                                children:[
+                                  Icon(_isSaved ? Icons.bookmark : Icons.bookmark_border, color: _isSaved ? Colors.orange : Colors.white, size: 22),
+                                  const SizedBox(width: 8),
+                                  Text(_isSaved ? "Saved" : "Save", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 30),
                       
@@ -2683,7 +2752,6 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               
-              // NEW ACCOUNT MENU OPTIONS
               _buildMenuItem(context, Icons.receipt_long, "Activity & Orders", const ActivityPage()),
               _buildMenuItem(context, Icons.payment, "Payment Proof", const PaymentProofPage()),
               _buildMenuItem(context, Icons.headset_mic, "Support", const SupportPage()),
