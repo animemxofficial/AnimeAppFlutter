@@ -96,8 +96,24 @@ class CWItem {
   });
 }
 
+// SAVED EPISODES (MY LIST) STATE
+class SavedEpisode {
+  final Anime anime;
+  final int seasonIndex;
+  final int episodeIndex;
+
+  SavedEpisode({
+    required this.anime,
+    required this.seasonIndex,
+    required this.episodeIndex,
+  });
+}
+
 // Global Notifier for Continue Watching
 final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
+
+// Global Notifier for My List (Saved Episodes)
+final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 
 // DUMMY DATA GENERATOR (Standard)
 List<Season> generateDummySeasons() {
@@ -147,7 +163,6 @@ List<Season> generateClassroomOfEliteSeasons() {
           image: "https://i.ibb.co/vxJtwkcX/k.jpg",
           duration: "24m 10s",
           views: "3.8K",
-          // 🔥 YAHAN TERA DIYA HUA VIDEO LINK ADD KIYA HAI 🔥
           videoUrl: "https://animemx-proxy.onrender.com/stream/AgADXx8AAg-FSFY", 
         ),
         Episode(
@@ -192,7 +207,7 @@ final List<Anime> animeData =[
     views: "3K",
     dubColor: const Color(0xFF4DA6FF),
     season: "S3",
-    seasonsList: generateClassroomOfEliteSeasons(), // Specifically using the list with your link
+    seasonsList: generateClassroomOfEliteSeasons(),
   ),
   Anime(
     title: "One Piece",
@@ -301,7 +316,7 @@ class _MainScreenState extends State<MainScreen> {
       HomeScreen(onSearchTap: _goToSearch),
       const BrowseScreen(),
       const DubsScreen(),
-      const Center(child: Text("My List Page")),
+      const MyListScreen(),
       const ProfileScreen()
     ];
 
@@ -1358,6 +1373,126 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
+// MY LIST SCREEN
+// ==========================================
+class MyListScreen extends StatelessWidget {
+  const MyListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("My List", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: ValueListenableBuilder<List<SavedEpisode>>(
+        valueListenable: myListNotifier,
+        builder: (context, savedList, child) {
+          if (savedList.isEmpty) {
+            return const Center(
+              child: Text(
+                "Your list is empty.\nSave episodes to watch later!",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white54, fontSize: 16),
+              ),
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16).copyWith(bottom: 100),
+            itemCount: savedList.length,
+            itemBuilder: (context, index) {
+              final item = savedList[index];
+              final ep = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex];
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => VideoPlayerPage(
+                        anime: item.anime,
+                        seasonIndex: item.seasonIndex,
+                        episodeIndex: item.episodeIndex,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    children:[
+                      SizedBox(
+                        width: 140,
+                        height: 90,
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children:[
+                              Image.network(ep.image, fit: BoxFit.cover),
+                              Container(color: Colors.black38),
+                              const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 36)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children:[
+                              Text(
+                                item.anime.title,
+                                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                ep.title,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                "${item.anime.seasonsList[item.seasonIndex].name} | Episode ${item.episodeIndex + 1}",
+                                style: const TextStyle(color: Colors.white54, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.bookmark, color: Colors.orange),
+                        onPressed: () {
+                          final list = List<SavedEpisode>.from(myListNotifier.value);
+                          list.removeAt(index);
+                          myListNotifier.value = list;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ==========================================
 // VIDEO PLAYER PAGE
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
@@ -1384,6 +1519,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   bool _isFullScreen = false;
   double _forwardOpacity = 0.0;
   double _rewindOpacity = 0.0;
+
+  // DUMMY COUNTS FOR LIKE/DISLIKE
+  int likes = 12400;
+  int dislikes = 230;
+  bool isLiked = false;
+  bool isDisliked = false;
 
   @override
   void initState() {
@@ -1472,6 +1613,65 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) setState(() => _rewindOpacity = 0.0);
     });
+  }
+
+  void _toggleLike() {
+    setState(() {
+      if (isLiked) {
+        isLiked = false;
+        likes--;
+      } else {
+        isLiked = true;
+        likes++;
+        if (isDisliked) {
+          isDisliked = false;
+          dislikes--;
+        }
+      }
+    });
+  }
+
+  void _toggleDislike() {
+    setState(() {
+      if (isDisliked) {
+        isDisliked = false;
+        dislikes--;
+      } else {
+        isDisliked = true;
+        dislikes++;
+        if (isLiked) {
+          isLiked = false;
+          likes--;
+        }
+      }
+    });
+  }
+
+  bool get _isSaved {
+    return myListNotifier.value.any((item) => 
+      item.anime.title == widget.anime.title && 
+      item.seasonIndex == widget.seasonIndex && 
+      item.episodeIndex == widget.episodeIndex
+    );
+  }
+
+  void _toggleSave() {
+    final list = List<SavedEpisode>.from(myListNotifier.value);
+    if (_isSaved) {
+      list.removeWhere((item) => 
+        item.anime.title == widget.anime.title && 
+        item.seasonIndex == widget.seasonIndex && 
+        item.episodeIndex == widget.episodeIndex
+      );
+    } else {
+      list.add(SavedEpisode(
+        anime: widget.anime,
+        seasonIndex: widget.seasonIndex,
+        episodeIndex: widget.episodeIndex,
+      ));
+    }
+    myListNotifier.value = list;
+    setState(() {}); // refresh the icon
   }
 
   String _formatDuration(Duration duration) {
@@ -1668,22 +1868,64 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children:[
+                      // Season | Episode format
                       Text(
                         "${currentSeason.name} | Episode ${widget.episodeIndex + 1}",
                         style: const TextStyle(color: primaryColor, fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
+                      // Anime Name (Chota aur halka)
                       Text(
                         widget.anime.title,
                         style: const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
+                      // Episode Name (Bada)
                       Text(
                         currentEpisode.title,
                         style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                       ),
+                      const SizedBox(height: 20),
+                      
+                      // ACTION BUTTONS (LIKE, DISLIKE, SAVE)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children:[
+                          GestureDetector(
+                            onTap: _toggleLike,
+                            child: Column(
+                              children:[
+                                Icon(isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: isLiked ? Colors.orange : Colors.white, size: 26),
+                                const SizedBox(height: 4),
+                                Text(likes.toString(), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _toggleDislike,
+                            child: Column(
+                              children:[
+                                Icon(isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: isDisliked ? Colors.orange : Colors.white, size: 26),
+                                const SizedBox(height: 4),
+                                Text(dislikes.toString(), style: const TextStyle(color: Colors.white, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: _toggleSave,
+                            child: Column(
+                              children:[
+                                Icon(_isSaved ? Icons.bookmark : Icons.bookmark_border, color: _isSaved ? Colors.orange : Colors.white, size: 26),
+                                const SizedBox(height: 4),
+                                const Text("Save", style: TextStyle(color: Colors.white, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 30),
                       
+                      // UP NEXT CARD IMPROVED
                       if (hasNextEpisode) ...[
                         const Text(
                           "Up Next",
@@ -1704,42 +1946,72 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             );
                           },
                           child: Container(
-                            padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
                               color: const Color(0xFF1A1A1A),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: Colors.white12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.5),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
                             ),
                             child: Row(
                               children:[
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    currentSeason.episodes[widget.episodeIndex + 1].image,
-                                    width: 120,
-                                    height: 70,
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
+                                SizedBox(
+                                  width: 140,
+                                  height: 90,
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children:[
+                                        Image.network(
+                                          currentSeason.episodes[widget.episodeIndex + 1].image,
+                                          fit: BoxFit.cover,
+                                        ),
+                                        Container(color: Colors.black38),
+                                        const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children:[
-                                      Text(
-                                        "Episode ${widget.episodeIndex + 2}",
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        currentSeason.episodes[widget.episodeIndex + 1].duration,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                      ),
-                                    ],
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children:[
+                                        Text(
+                                          "Episode ${widget.episodeIndex + 2}",
+                                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          currentSeason.episodes[widget.episodeIndex + 1].title,
+                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Row(
+                                          children:[
+                                            const Icon(Icons.access_time, color: Colors.white54, size: 14),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              currentSeason.episodes[widget.episodeIndex + 1].duration,
+                                              style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                                const Icon(Icons.play_circle_fill, color: Colors.white, size: 36),
                               ],
                             ),
                           ),
