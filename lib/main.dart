@@ -27,6 +27,10 @@ void main() {
 // DATA MODELS & GLOBAL STATE
 // ==========================================
 
+// DEMO PREMIUM STATUS
+bool hasPremiumPlan = true; // Agar user ne plan nahi liya hai to isko false kar dena
+String planExpireDate = "Expire: 24 Dec 2024"; // Expiry date ki string
+
 class Episode {
   final String title;
   final String image;
@@ -360,12 +364,97 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // 3-LINE DRAWER ADDED HERE
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF121212),
+        child: Column(
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Colors.black,
+                border: Border(bottom: BorderSide(color: Colors.white12, width: 1))
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                        image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"),
+                        fit: BoxFit.cover
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Flexxy xD", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        const Text("flexxy0xd@gmail.com", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        if (hasPremiumPlan) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+                            child: Text(planExpireDate, style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)),
+                          )
+                        ]
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home, color: Colors.white70),
+              title: const Text("Home", style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.workspace_premium, color: Colors.amber),
+              title: const Text("Go Premium", style: TextStyle(color: Colors.amber)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings, color: Colors.white70),
+              title: const Text("Settings", style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context),
+            ),
+            const Spacer(),
+            const Divider(color: Colors.white12),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              onTap: () {
+                // Handle Log out here
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Logged out successfully!")));
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            );
+          }
         ),
         title: const Text(
           "AnimeMX",
@@ -2024,10 +2113,38 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// BROWSE SCREEN
+// FULLY WORKING BROWSE (SEARCH) SCREEN
 // ==========================================
-class BrowseScreen extends StatelessWidget {
+class BrowseScreen extends StatefulWidget {
   const BrowseScreen({super.key});
+
+  @override
+  State<BrowseScreen> createState() => _BrowseScreenState();
+}
+
+class _BrowseScreenState extends State<BrowseScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  List<Anime> _searchResults = [];
+
+  void _performSearch(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+      });
+    } else {
+      setState(() {
+        _searchResults = animeData.where((anime) {
+          return anime.title.toLowerCase().contains(query.toLowerCase()) || 
+                 anime.genre.toLowerCase().contains(query.toLowerCase());
+        }).toList();
+      });
+    }
+  }
+
+  void _setSearchQuery(String query) {
+    _searchController.text = query;
+    _performSearch(query);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2042,62 +2159,93 @@ class BrowseScreen extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)),
                 child: TextField(
+                  controller: _searchController,
+                  onChanged: _performSearch,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: "Search anime, movies, episodes...",
                     hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
                     prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
-                    suffixIcon: Icon(Icons.cancel, color: Colors.grey[600]),
+                    suffixIcon: _searchController.text.isNotEmpty 
+                      ? IconButton(
+                          icon: Icon(Icons.cancel, color: Colors.grey[600]), 
+                          onPressed: () {
+                            _searchController.clear();
+                            _performSearch("");
+                          }
+                        ) 
+                      : null,
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 12),
-              _buildRecentItem("Naruto"),
-              _buildRecentItem("One Piece"),
-              const SizedBox(height: 24),
-              const Text("Trending Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      children:[
-                        _buildTrendingItem("1", "Solo Leveling"),
-                        _buildTrendingItem("3", "Chainsaw Man"),
-                      ],
+              
+              if (_searchController.text.isNotEmpty) ...[
+                Text("Search Results for '${_searchController.text}'", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 12),
+                if (_searchResults.isEmpty)
+                  const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No anime found.", style: TextStyle(color: Colors.white54))))
+                else
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, 
+                      childAspectRatio: 0.65, 
+                      crossAxisSpacing: 14, 
+                      mainAxisSpacing: 16
                     ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      children:[
-                        _buildTrendingItem("2", "Jujutsu Kaisen"),
-                        _buildTrendingItem("4", "Tokyo Revengers"),
-                      ],
+                    itemCount: _searchResults.length,
+                    itemBuilder: (context, index) => GridAnimeCard(anime: _searchResults[index]),
+                  )
+              ] else ...[
+                const Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 12),
+                _buildRecentItem("Naruto"),
+                _buildRecentItem("One Piece"),
+                const SizedBox(height: 24),
+                const Text("Trending Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children:[
+                          _buildTrendingItem("1", "Solo Leveling"),
+                          _buildTrendingItem("3", "Chainsaw Man"),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              const Text("Browse by Genre", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 2.2,
-                children:[
-                  _buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFF3A1C1C), Colors.redAccent),
-                  _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFF2D1B4E), Colors.purpleAccent),
-                  _buildGenreCard("Drama", "Series", Icons.masks, const Color(0xFF162B44), Colors.blueAccent),
-                  _buildGenreCard("Romance", "Love", Icons.favorite, const Color(0xFF421A28), Colors.pinkAccent),
-                ],
-              ),
+                    Expanded(
+                      child: Column(
+                        children:[
+                          _buildTrendingItem("2", "Jujutsu Kaisen"),
+                          _buildTrendingItem("4", "Tokyo Revengers"),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                const Text("Browse by Genre", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 12),
+                GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 2.2,
+                  children:[
+                    _buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFF3A1C1C), Colors.redAccent),
+                    _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFF2D1B4E), Colors.purpleAccent),
+                    _buildGenreCard("Drama", "Series", Icons.masks, const Color(0xFF162B44), Colors.blueAccent),
+                    _buildGenreCard("Romance", "Love", Icons.favorite, const Color(0xFF421A28), Colors.pinkAccent),
+                  ],
+                ),
+              ]
             ],
           ),
         ),
@@ -2106,63 +2254,72 @@ class BrowseScreen extends StatelessWidget {
   }
 
   Widget _buildRecentItem(String title) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(10)),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children:[
-          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
-          Row(
-            children:[
-              Icon(Icons.close, size: 18, color: Colors.grey[500]),
-              const SizedBox(width: 12),
-              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600]),
-            ],
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => _setSearchQuery(title),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(10)),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children:[
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
+            Row(
+              children:[
+                Icon(Icons.close, size: 18, color: Colors.grey[500]),
+                const SizedBox(width: 12),
+                Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600]),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTrendingItem(String num, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children:[
-          Container(
-            width: 20,
-            height: 20,
-            decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(4)),
-            child: Center(child: Text(num, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black))),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => _setSearchQuery(title),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children:[
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(4)),
+              child: Center(child: Text(num, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black))),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildGenreCard(String title, String subtitle, IconData icon, Color bgColor, Color iconColor) {
-    return Container(
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Row(
-        children:[
-          Icon(icon, size: 30, color: iconColor),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children:[
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-              Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6))),
-            ],
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => _setSearchQuery(title),
+      child: Container(
+        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(
+          children:[
+            Icon(icon, size: 30, color: iconColor),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children:[
+                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6))),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
