@@ -364,7 +364,7 @@ class HomeScreen extends StatelessWidget {
         actions:[
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: onSearchTap, // Updated to redirect to Search Tab
+            onPressed: onSearchTap,
           )
         ],
       ),
@@ -510,7 +510,6 @@ class HomeScreen extends StatelessWidget {
             ),
             const SizedBox(height: 25),
 
-            // EXACT CATEGORY ORDER AND ICONS AS PER YOUR SCREENSHOTS
             _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, Colors.orange, animeData),
             _buildPopularSection(context, "Popular Anime", Icons.emoji_events, Colors.amber, animeData.reversed.toList()),
             _buildThumbnailSection(context, "Latest Episodes", null, null, false, animeList: animeData),
@@ -705,7 +704,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ==========================================
-// NEW "SEE ALL" CATEGORY PAGE
+// "SEE ALL" CATEGORY PAGE
 // ==========================================
 class SeeAllCategoryPage extends StatelessWidget {
   final String title;
@@ -742,7 +741,7 @@ class SeeAllCategoryPage extends StatelessWidget {
 }
 
 // ==========================================
-// NEW HOME CARD WIDGETS
+// HOME CARD WIDGETS
 // ==========================================
 
 class PortraitTextBelowCard extends StatelessWidget {
@@ -1670,12 +1669,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children:[
                       Text(
-                        "Episode ${widget.episodeIndex + 1} | ${currentEpisode.title}",
-                        style: const TextStyle(color: primaryColor, fontSize: 16, fontWeight: FontWeight.bold),
+                        "${currentSeason.name} | Episode ${widget.episodeIndex + 1}",
+                        style: const TextStyle(color: primaryColor, fontSize: 14, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Text(
                         widget.anime.title,
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        currentEpisode.title,
                         style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 30),
