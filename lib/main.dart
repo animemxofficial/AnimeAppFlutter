@@ -385,7 +385,8 @@ class HomeScreen extends StatelessWidget {
       // 3-LINE DRAWER UPDATED
       drawer: Drawer(
         backgroundColor: const Color(0xFF121212),
-        child: Column(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
               decoration: const BoxDecoration(
@@ -478,8 +479,10 @@ class HomeScreen extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsPage()));
               },
             ),
-            const Spacer(),
-            const Divider(color: Colors.white12),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Divider(color: Colors.white12, thickness: 1),
+            ),
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20),
               title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
@@ -886,12 +889,12 @@ class SeeAllCategoryPage extends StatelessWidget {
         padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2, 
-          childAspectRatio: 0.70, // Slightly adjusted to fit the Popular Card shape better
+          childAspectRatio: 0.70, 
           crossAxisSpacing: 14, 
           mainAxisSpacing: 16
         ),
         itemCount: animeList.length,
-        itemBuilder: (context, index) => GridOverlayPopularCard(anime: animeList[index]),
+        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title),
       ),
     );
   }
@@ -1023,13 +1026,27 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
-// Special Popular Card styling exactly for the GridView in "See All" Page
-class GridOverlayPopularCard extends StatelessWidget {
+// Grid Category Card logic (Handles Popular / Trending tags)
+class GridCategoryCard extends StatelessWidget {
   final Anime anime;
-  const GridOverlayPopularCard({super.key, required this.anime});
+  final String pageTitle;
+  const GridCategoryCard({super.key, required this.anime, required this.pageTitle});
 
   @override
   Widget build(BuildContext context) {
+    String? tagText;
+    Color? tagBgColor;
+    Color tagTextColor = Colors.black;
+
+    if (pageTitle == "Trending Now") {
+      tagText = "TRENDING";
+      tagBgColor = Colors.orange;
+      tagTextColor = Colors.white;
+    } else if (pageTitle == "Popular Anime") {
+      tagText = "POPULAR";
+      tagBgColor = Colors.cyan;
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: anime)));
@@ -1055,15 +1072,16 @@ class GridOverlayPopularCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(4)),
-                  child: const Text("POPULAR", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+              if (tagText != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    decoration: BoxDecoration(color: tagBgColor, borderRadius: BorderRadius.circular(4)),
+                    child: Text(tagText, style: TextStyle(color: tagTextColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
                 ),
-              ),
               Positioned(
                 bottom: 10,
                 left: 10,
@@ -1832,7 +1850,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void _skipForward() {
     _controller.seekTo(_controller.value.position + const Duration(seconds: 10));
     setState(() => _forwardOpacity = 1.0);
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) setState(() => _forwardOpacity = 0.0);
     });
   }
@@ -1840,7 +1858,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void _skipBackward() {
     _controller.seekTo(_controller.value.position - const Duration(seconds: 10));
     setState(() => _rewindOpacity = 1.0);
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) setState(() => _rewindOpacity = 0.0);
     });
   }
@@ -1916,186 +1934,199 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     final currentEpisode = currentSeason.episodes[widget.episodeIndex];
     bool hasNextEpisode = widget.episodeIndex < currentSeason.episodes.length - 1;
 
+    Widget videoContent = Stack(
+      children:[
+        _controller.value.isInitialized
+            ? Center(
+                child: AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: VideoPlayer(_controller),
+                ),
+              )
+            : const Center(child: CircularProgressIndicator(color: primaryColor)),
+        
+        // REWIND ANIMATION (NICE CIRCLE)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 40),
+            child: AnimatedOpacity(
+              opacity: _rewindOpacity,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children:[
+                    Icon(Icons.fast_rewind, color: Colors.white, size: 36),
+                    Text("-10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // FORWARD ANIMATION (NICE CIRCLE)
+        Align(
+          alignment: Alignment.centerRight,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 40),
+            child: AnimatedOpacity(
+              opacity: _forwardOpacity,
+              duration: const Duration(milliseconds: 200),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children:[
+                    Icon(Icons.fast_forward, color: Colors.white, size: 36),
+                    Text("+10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // CONTROLS OVERLAY
+        if (_showControls)
+          GestureDetector(
+            onTap: _toggleControls,
+            child: Container(
+              color: Colors.black54,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children:[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children:[
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                        onPressed: () {
+                          if (_isFullScreen) _toggleFullScreen();
+                          Navigator.pop(context);
+                        },
+                      ),
+                      Row(
+                        children:[
+                          IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}),
+                          IconButton(
+                            icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white),
+                            onPressed: _toggleFullScreen,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children:[
+                      IconButton(
+                        icon: const Icon(Icons.replay_10, color: Colors.white, size: 40),
+                        onPressed: _skipBackward,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          _controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
+                          color: Colors.white,
+                          size: 60,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _controller.value.isPlaying ? _controller.pause() : _controller.play();
+                          });
+                          _updateContinueWatching();
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.forward_10, color: Colors.white, size: 40),
+                        onPressed: _skipForward,
+                      ),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Row(
+                      children:[
+                        ValueListenableBuilder(
+                          valueListenable: _controller,
+                          builder: (context, VideoPlayerValue value, child) {
+                            return Text(
+                              _formatDuration(value.position),
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                            );
+                          },
+                        ),
+                        Expanded(
+                          child: ValueListenableBuilder(
+                            valueListenable: _controller,
+                            builder: (context, VideoPlayerValue value, child) {
+                              return SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 3.0, 
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0),
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+                                ),
+                                child: Slider(
+                                  activeColor: primaryColor,
+                                  inactiveColor: Colors.white24,
+                                  min: 0.0,
+                                  max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(),
+                                  value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()),
+                                  onChangeStart: (val) {
+                                    _controller.pause(); 
+                                  },
+                                  onChanged: (val) {
+                                    _controller.seekTo(Duration(seconds: val.toInt()));
+                                  },
+                                  onChangeEnd: (val) {
+                                    _controller.play(); 
+                                    _updateContinueWatching();
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        ValueListenableBuilder(
+                          valueListenable: _controller,
+                          builder: (context, VideoPlayerValue value, child) {
+                            return Text(
+                              _formatDuration(value.duration),
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          GestureDetector(
+            onTap: _toggleControls,
+            child: Container(color: Colors.transparent),
+          ),
+      ],
+    );
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            AspectRatio(
-              aspectRatio: _isFullScreen ? MediaQuery.of(context).size.aspectRatio : 16 / 9,
-              child: Stack(
-                children:[
-                  _controller.value.isInitialized
-                      ? Center(child: VideoPlayer(_controller))
-                      : const Center(child: CircularProgressIndicator(color: primaryColor)),
-                  
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 40),
-                      child: AnimatedOpacity(
-                        opacity: _rewindOpacity,
-                        duration: const Duration(milliseconds: 300),
-                        child: Container(
-                          padding: const EdgeInsets.all(15),
-                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children:[
-                              Icon(Icons.replay_10, color: Colors.white, size: 30),
-                              Text("-10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 40),
-                      child: AnimatedOpacity(
-                        opacity: _forwardOpacity,
-                        duration: const Duration(milliseconds: 300),
-                        child: Container(
-                          padding: const EdgeInsets.all(15),
-                          decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children:[
-                              Icon(Icons.forward_10, color: Colors.white, size: 30),
-                              Text("+10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  if (_showControls)
-                    GestureDetector(
-                      onTap: _toggleControls,
-                      child: Container(
-                        color: Colors.black54,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children:[
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children:[
-                                IconButton(
-                                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                                  onPressed: () {
-                                    if (_isFullScreen) _toggleFullScreen();
-                                    Navigator.pop(context);
-                                  },
-                                ),
-                                Row(
-                                  children:[
-                                    IconButton(icon: const Icon(Icons.cast, color: Colors.white), onPressed: () {}),
-                                    IconButton(
-                                      icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white),
-                                      onPressed: _toggleFullScreen,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children:[
-                                IconButton(
-                                  icon: const Icon(Icons.replay_10, color: Colors.white, size: 40),
-                                  onPressed: _skipBackward,
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    _controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill,
-                                    color: Colors.white,
-                                    size: 60,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _controller.value.isPlaying ? _controller.pause() : _controller.play();
-                                    });
-                                    _updateContinueWatching();
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.forward_10, color: Colors.white, size: 40),
-                                  onPressed: _skipForward,
-                                ),
-                              ],
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                              child: Row(
-                                children:[
-                                  ValueListenableBuilder(
-                                    valueListenable: _controller,
-                                    builder: (context, VideoPlayerValue value, child) {
-                                      return Text(
-                                        _formatDuration(value.position),
-                                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                                      );
-                                    },
-                                  ),
-                                  Expanded(
-                                    child: ValueListenableBuilder(
-                                      valueListenable: _controller,
-                                      builder: (context, VideoPlayerValue value, child) {
-                                        return SliderTheme(
-                                          data: SliderTheme.of(context).copyWith(
-                                            trackHeight: 3.0, 
-                                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0),
-                                            overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-                                          ),
-                                          child: Slider(
-                                            activeColor: primaryColor,
-                                            inactiveColor: Colors.white24,
-                                            min: 0.0,
-                                            max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(),
-                                            value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()),
-                                            onChangeStart: (val) {
-                                              _controller.pause(); 
-                                            },
-                                            onChanged: (val) {
-                                              _controller.seekTo(Duration(seconds: val.toInt()));
-                                            },
-                                            onChangeEnd: (val) {
-                                              _controller.play(); 
-                                              _updateContinueWatching();
-                                            },
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  ValueListenableBuilder(
-                                    valueListenable: _controller,
-                                    builder: (context, VideoPlayerValue value, child) {
-                                      return Text(
-                                        _formatDuration(value.duration),
-                                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    GestureDetector(
-                      onTap: _toggleControls,
-                      child: Container(color: Colors.transparent),
-                    ),
-                ],
-              ),
+            SizedBox(
+              width: double.infinity,
+              height: _isFullScreen ? MediaQuery.of(context).size.height : null,
+              child: _isFullScreen 
+                  ? videoContent
+                  : AspectRatio(aspectRatio: 16 / 9, child: videoContent),
             ),
             
             if (!_isFullScreen)
@@ -2356,7 +2387,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                       mainAxisSpacing: 16
                     ),
                     itemCount: _searchResults.length,
-                    itemBuilder: (context, index) => GridAnimeCard(anime: _searchResults[index]),
+                    itemBuilder: (context, index) => GridCategoryCard(anime: _searchResults[index], pageTitle: ""),
                   )
               ] else ...[
                 const Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
@@ -2516,153 +2547,15 @@ class DubsScreen extends StatelessWidget {
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16),
               itemCount: animeData.length,
-              itemBuilder: (context, index) => GridAnimeCard(anime: animeData[index]),
+              itemBuilder: (context, index) => GridCategoryCard(anime: animeData[index], pageTitle: ""),
             ),
             GridView.builder(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16),
               itemCount: animeData.length,
-              itemBuilder: (context, index) => GridAnimeCard(anime: animeData[index]),
+              itemBuilder: (context, index) => GridCategoryCard(anime: animeData[index], pageTitle: ""),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class GridAnimeCard extends StatefulWidget {
-  final Anime anime;
-  const GridAnimeCard({super.key, required this.anime});
-
-  @override
-  State<GridAnimeCard> createState() => _GridAnimeCardState();
-}
-
-class _GridAnimeCardState extends State<GridAnimeCard> {
-  bool _isTapped = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        setState(() {
-          _isTapped = true;
-        });
-      },
-      onTapUp: (_) {
-        setState(() {
-          _isTapped = false;
-        });
-        Navigator.push(context, MaterialPageRoute(builder: (context) => DetailsPage(anime: widget.anime)));
-      },
-      onTapCancel: () {
-        setState(() {
-          _isTapped = false;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOut,
-        transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
-          boxShadow:[BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
-          child: Stack(
-            children:[
-              Image.network(
-                widget.anime.image,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-              ),
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors:[Colors.black.withOpacity(0.95), Colors.black.withOpacity(0.3), Colors.transparent],
-                      stops: const [0.0, 0.45, 1.0],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: 8,
-                left: 8,
-                right: 8,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children:[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        widget.anime.rating,
-                        style: const TextStyle(color: Colors.black, fontSize: 9, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
-                      ),
-                      child: Text(
-                        widget.anime.dubStatus,
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Positioned(
-                bottom: 12,
-                left: 10,
-                right: 10,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children:[
-                    Text(
-                      widget.anime.title,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, height: 1.2),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "${widget.anime.season} • ${widget.anime.status}",
-                      style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children:[
-                        Icon(Icons.remove_red_eye_outlined, color: Colors.white.withOpacity(0.75), size: 12),
-                        const SizedBox(width: 4),
-                        Text(
-                          "${widget.anime.views} Views",
-                          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 10),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -2672,16 +2565,24 @@ class _GridAnimeCardState extends State<GridAnimeCard> {
 // ==========================================
 // PROFILE, PREMIUM, ACTIVITY & SUPPORT PAGES
 // ==========================================
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  void _showAddInfoDialog(BuildContext context) {
-    String selectedCountryCode = "+91";
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? addedMobileNumber;
+  String selectedCountryCode = "+91";
+  final TextEditingController _mobileController = TextEditingController();
+
+  void _showAddInfoDialog() {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setModalState) {
             return AlertDialog(
               backgroundColor: const Color(0xFF1A1A1A),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -2707,7 +2608,7 @@ class ProfileScreen extends StatelessWidget {
                         ],
                         onChanged: (val) {
                           if (val != null) {
-                            setState(() {
+                            setModalState(() {
                               selectedCountryCode = val;
                             });
                           }
@@ -2718,6 +2619,7 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
+                      controller: _mobileController,
                       keyboardType: TextInputType.phone,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
@@ -2733,7 +2635,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context), 
+                  onPressed: () => Navigator.pop(ctx), 
                   child: const Text("Cancel", style: TextStyle(color: Colors.grey))
                 ),
                 ElevatedButton(
@@ -2742,7 +2644,12 @@ class ProfileScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {
-                    Navigator.pop(context);
+                    if (_mobileController.text.isNotEmpty) {
+                      setState(() {
+                        addedMobileNumber = "$selectedCountryCode ${_mobileController.text}";
+                      });
+                    }
+                    Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mobile number saved!")));
                   },
                   child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -2783,7 +2690,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       GestureDetector(
-                        onTap: () => _showAddInfoDialog(context),
+                        onTap: _showAddInfoDialog,
                         child: Row(
                           children: const [
                             Icon(Icons.add_circle_outline, color: Colors.orange, size: 14),
@@ -2816,14 +2723,19 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         const Text("flexxy0xd@gmail.com", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        Row(
-                          children:[
-                            const Text("🇮🇳 +91 9876543210", style: TextStyle(color: Colors.grey, fontSize: 12)), // UID Replaced
-                            const SizedBox(width: 8),
-                            const Icon(Icons.check_circle, color: Colors.green, size: 14),
-                          ],
-                        ),
+                        
+                        // Only show if Mobile Number is added
+                        if (addedMobileNumber != null) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children:[
+                              Text(addedMobileNumber!, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                            ],
+                          ),
+                        ],
+                        
                         const SizedBox(height: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
