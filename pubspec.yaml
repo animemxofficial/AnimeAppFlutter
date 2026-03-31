@@ -42,11 +42,11 @@ dependencies:
   package_info_plus: ^5.0.1
   image_picker: ^1.1.1
   shared_preferences: ^2.2.3
-  firebase_core: ^latest_version
-  firebase_auth: ^latest_version
-  cloud_firestore: ^latest_version
-  firebase_storage: ^latest_version
-  firebase_messaging: ^latest_version
+  firebase_core: ^2.24.0   # <-- Isko '2.24.0' se badlein
+  firebase_auth: ^4.15.0   # <-- Isko '4.15.0' se badlein
+  cloud_firestore: ^4.13.0 # <-- Isko '4.13.0' se badlein
+  firebase_storage: ^11.5.0 # <-- Isko '11.5.0' se badlein
+  firebase_messaging: ^14.7.4 # <-- Isko '14.7.4' se badlein
 
 dev_dependencies:
   flutter_test:
