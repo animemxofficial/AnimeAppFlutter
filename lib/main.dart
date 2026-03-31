@@ -31,6 +31,12 @@ void main() {
 bool hasPremiumPlan = true; 
 String planExpireDate = "Expire: 24 Dec 2024"; 
 
+// ACTIVE PLAN FOR BADGE (e.g., "Lite", "Plus", "Pro", "Ultra". Keep empty "" if no plan)
+String userActivePlan = ""; 
+
+// GLOBAL RECENT SEARCHES
+List<String> globalRecentSearches = ["Naruto", "One Piece"];
+
 class Episode {
   final String title;
   final String image;
@@ -259,7 +265,6 @@ final List<Anime> animeData =[
     season: "Movie",
     seasonsList: generateDummySeasons(),
   ),
-  // COMING SOON ANIME
   Anime(
     title: "Bleach: Thousand-Year Blood War - The Conflict", 
     genre: "Action",
@@ -375,14 +380,13 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> sliderItems = [
       {'anime': animeData[0], 'tag': 'TRENDING', 'color': Colors.orange},
-      {'anime': animeData[2], 'tag': 'POPULAR', 'color': Colors.redAccent},
+      {'anime': animeData[2], 'tag': 'POPULAR', 'color': Colors.cyan},
       {'anime': animeData[6], 'tag': 'RECOMMENDED', 'color': Colors.blueAccent},
       {'anime': animeData[7], 'tag': 'COMING SOON', 'color': Colors.grey}, 
     ];
 
     return Scaffold(
       backgroundColor: Colors.black,
-      // 3-LINE DRAWER UPDATED
       drawer: Drawer(
         backgroundColor: const Color(0xFF121212),
         child: ListView(
@@ -1026,7 +1030,7 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
-// Grid Category Card logic (Handles Popular / Trending tags properly)
+// Grid Category Card logic (Handles Popular / Trending tags properly based on exact title)
 class GridCategoryCard extends StatelessWidget {
   final Anime anime;
   final String pageTitle;
@@ -1742,7 +1746,7 @@ class MyListScreen extends StatelessWidget {
 }
 
 // ==========================================
-// VIDEO PLAYER PAGE
+// FAST LOAD VIDEO PLAYER PAGE
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime;
@@ -1779,13 +1783,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void initState() {
     super.initState();
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex];
-    _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl))
-      ..initialize().then((_) {
+    // Optimized initialization for faster perceived load
+    _controller = VideoPlayerController.networkUrl(
+      Uri.parse(ep.videoUrl),
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    )..initialize().then((_) {
         if (widget.startPosition != null) {
           _controller.seekTo(widget.startPosition!);
         }
         setState(() {});
-        _controller.play();
+        _controller.play(); // Play immediately after init
       });
   }
 
@@ -1939,6 +1946,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       children:[
         _controller.value.isInitialized
             ? Center(
+                // AspectRatio fixed to avoid stretch in full screen
                 child: AspectRatio(
                   aspectRatio: _controller.value.aspectRatio,
                   child: VideoPlayer(_controller),
@@ -2336,6 +2344,15 @@ class _BrowseScreenState extends State<BrowseScreen> {
     _performSearch(query);
   }
 
+  void _submitSearch(String query) {
+    if (query.trim().isNotEmpty && !globalRecentSearches.contains(query.trim())) {
+      setState(() {
+        globalRecentSearches.insert(0, query.trim());
+      });
+    }
+    _performSearch(query);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2351,6 +2368,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                 child: TextField(
                   controller: _searchController,
                   onChanged: _performSearch,
+                  onSubmitted: _submitSearch,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: "Search anime, movies, episodes...",
@@ -2393,8 +2411,17 @@ class _BrowseScreenState extends State<BrowseScreen> {
               ] else ...[
                 const Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 12),
-                _buildRecentItem("Naruto"),
-                _buildRecentItem("One Piece"),
+                if (globalRecentSearches.isEmpty)
+                  const Text("No recent searches.", style: TextStyle(color: Colors.white54))
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: globalRecentSearches.length,
+                    itemBuilder: (context, index) {
+                      return _buildRecentItem(globalRecentSearches[index], index);
+                    },
+                  ),
               ]
             ],
           ),
@@ -2403,7 +2430,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
     );
   }
 
-  Widget _buildRecentItem(String title) {
+  Widget _buildRecentItem(String title, int index) {
     return GestureDetector(
       onTap: () => _setSearchQuery(title),
       child: Container(
@@ -2416,7 +2443,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
             Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)),
             Row(
               children:[
-                Icon(Icons.close, size: 18, color: Colors.grey[500]),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      globalRecentSearches.removeAt(index);
+                    });
+                  },
+                  child: Icon(Icons.close, size: 18, color: Colors.grey[500]),
+                ),
                 const SizedBox(width: 12),
                 Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600]),
               ],
@@ -2649,16 +2683,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                         
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF8B4513),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.orangeAccent.withOpacity(0.6)),
+                        if (userActivePlan.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orangeAccent.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.orangeAccent.withOpacity(0.6)),
+                            ),
+                            child: Text(userActivePlan.toUpperCase(), style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1)),
                           ),
-                          child: const Text("BRONZE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1)),
-                        ),
+                        ]
                       ],
                     ),
                   ),
@@ -2708,11 +2744,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               
-              _buildMenuItem(context, Icons.receipt_long, "Activity & Orders", const ActivityPage()),
-              _buildMenuItem(context, Icons.payment, "Payment Proof", const PaymentProofPage()),
-              _buildMenuItem(context, Icons.headset_mic, "Support", const SupportPage()),
-              _buildMenuItem(context, Icons.lightbulb_outline, "Suggestion", const SuggestionPage()),
-              _buildMenuItem(context, Icons.privacy_tip_outlined, "Privacy Policy", const PrivacyPolicyPage()),
+              // NEW ACCOUNT MENU OPTIONS WITH PROPER UI
+              _buildMenuItem(context, Icons.inventory_2_outlined, "Activity & Orders", const ActivityPage()),
+              _buildMenuItem(context, Icons.credit_card, "Payment Proof", const PaymentProofPage()),
+              _buildMenuItem(context, Icons.headphones, "Support", const SupportPage()),
+              _buildMenuItem(context, Icons.verified_user_outlined, "Privacy Policy", const PrivacyPolicyPage()),
               _buildMenuItem(context, Icons.info_outline, "About Us", const AboutUsPage()),
             ],
           ),
@@ -2723,9 +2759,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildPricePill(String price) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-      child: Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      child: Text(price, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
     );
   }
 
@@ -2733,7 +2769,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFF161618),
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -2747,10 +2783,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: const Color(0xFF2C2C2E),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: Colors.white70, size: 20),
+                  child: Icon(icon, color: Colors.white, size: 20),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -2772,18 +2808,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 // ==========================================
 // PLACEHOLDER PAGES FOR NEW MENU OPTIONS
 // ==========================================
-class SuggestionPage extends StatelessWidget {
-  const SuggestionPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text("Suggestion", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-      body: const Center(child: Text("Suggestion Page", style: TextStyle(color: Colors.white))),
-    );
-  }
-}
-
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
   @override
@@ -2809,7 +2833,7 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// UPDATED PREMIUM PAGE
+// UPDATED PREMIUM PAGE WITH 4 PLANS
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
@@ -2833,84 +2857,95 @@ class PremiumPage extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            const Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                  SizedBox(height: 5),
+                  Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
             
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              childAspectRatio: 0.58, 
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 16,
-              children: [
-                _buildNewPlanCard(
-                  context: context,
-                  title: "Lite Plan",
-                  price: "₹50",
-                  quality: "720p",
-                  ads: "NO",
-                  slot: "1",
-                  limit: "50 minutes",
-                  limitSub: "(0.8 hrs)",
-                  hasEarlyAccess: false,
-                  hasAllPremium: null,
-                  color: Colors.orange,
-                  icon: Icons.local_fire_department,
-                ),
-                _buildNewPlanCard(
-                  context: context,
-                  title: "Plus Plan",
-                  price: "₹100",
-                  quality: "1080p",
-                  ads: "NO",
-                  slot: "2",
-                  limit: "240 minutes",
-                  limitSub: "(4 hrs)",
-                  hasEarlyAccess: false,
-                  hasAllPremium: null,
-                  color: Colors.amber,
-                  icon: Icons.star,
-                  badgeText: "MOST POPULAR",
-                ),
-                _buildNewPlanCard(
-                  context: context,
-                  title: "Pro Plan",
-                  price: "₹150",
-                  quality: "1080p",
-                  ads: "NO",
-                  slot: "3",
-                  limit: "480 minutes",
-                  limitSub: "(8 hrs)",
-                  hasEarlyAccess: true,
-                  hasAllPremium: true,
-                  color: Colors.lightBlueAccent,
-                  icon: Icons.auto_awesome, 
-                ),
-                _buildNewPlanCard(
-                  context: context,
-                  title: "Ultra Plan",
-                  price: "₹200",
-                  quality: "1080p",
-                  ads: "NO", 
-                  slot: "4",
-                  limit: "Unlimited",
-                  limitSub: null,
-                  hasEarlyAccess: true,
-                  hasAllPremium: true,
-                  earlyAccessText: "YES", 
-                  allPremiumText: "YES",
-                  color: Colors.purpleAccent,
-                  icon: Icons.flash_on, 
-                  isGradientBtn: true,
-                ),
-              ],
+            // HORIZONTAL SCROLLING WIDE CARDS
+            SizedBox(
+              height: 480,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _buildNewPlanCard(
+                    context: context,
+                    title: "Lite Plan",
+                    price: "₹50",
+                    quality: "720p",
+                    ads: "NO",
+                    slot: "1",
+                    limit: "50 minutes",
+                    limitSub: "(0.8 hrs)",
+                    hasEarlyAccess: false,
+                    hasAllPremium: null,
+                    color: Colors.orange,
+                    icon: Icons.local_fire_department,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildNewPlanCard(
+                    context: context,
+                    title: "Plus Plan",
+                    price: "₹100",
+                    quality: "1080p",
+                    ads: "NO",
+                    slot: "2",
+                    limit: "240 minutes",
+                    limitSub: "(4 hrs)",
+                    hasEarlyAccess: false,
+                    hasAllPremium: null,
+                    color: Colors.amber,
+                    icon: Icons.star,
+                    badgeText: "MOST POPULAR",
+                  ),
+                  const SizedBox(width: 20),
+                  _buildNewPlanCard(
+                    context: context,
+                    title: "Pro Plan",
+                    price: "₹150",
+                    quality: "1080p",
+                    ads: "NO",
+                    slot: "3",
+                    limit: "480 minutes",
+                    limitSub: "(8 hrs)",
+                    hasEarlyAccess: true,
+                    hasAllPremium: true,
+                    color: Colors.lightBlueAccent,
+                    icon: Icons.auto_awesome, 
+                  ),
+                  const SizedBox(width: 20),
+                  _buildNewPlanCard(
+                    context: context,
+                    title: "Ultra Plan",
+                    price: "₹200",
+                    quality: "1080p",
+                    ads: "NO", 
+                    slot: "4",
+                    limit: "Unlimited",
+                    limitSub: null,
+                    hasEarlyAccess: true,
+                    hasAllPremium: true,
+                    earlyAccessText: "YES", 
+                    allPremiumText: "YES",
+                    color: Colors.purpleAccent,
+                    icon: Icons.flash_on, 
+                    isGradientBtn: true,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -2942,19 +2977,20 @@ class PremiumPage extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
+          width: MediaQuery.of(context).size.width * 0.85, // Wide Card
           decoration: BoxDecoration(
             color: const Color(0xFF121212),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: color.withOpacity(0.8), width: 1.5),
             boxShadow: [
               BoxShadow(
-                color: color.withOpacity(0.2),
+                color: color.withOpacity(0.15),
                 blurRadius: 15,
                 spreadRadius: 1,
               )
             ],
           ),
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2963,42 +2999,42 @@ class PremiumPage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(icon, color: color, size: 16),
-                      const SizedBox(width: 4),
-                      Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
+                      Icon(icon, color: color, size: 24),
+                      const SizedBox(width: 8),
+                      Text(title, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 9)),
+                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 14)),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               const Divider(color: Colors.white12, height: 1),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
               
               _buildGridRow("Quality", quality),
               _buildGridRow("Ads", ads),
               _buildGridRow("Device Slot", slot),
               
               Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 10))),
+                    const Expanded(child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 16))),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(limit, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        Text(limit, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                         if (limitSub != null)
-                          Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 9)),
+                          Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 12)),
                       ],
                     )
                   ],
@@ -3009,9 +3045,9 @@ class PremiumPage extends StatelessWidget {
               if (!hasEarlyAccess)
                 Row(
                   children: [
-                    const Icon(Icons.check_circle_outline, color: Colors.white38, size: 12),
-                    const SizedBox(width: 4),
-                    const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 10)),
+                    const Icon(Icons.check_circle_outline, color: Colors.white38, size: 18),
+                    const SizedBox(width: 8),
+                    const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 14)),
                   ],
                 )
               else ...[
@@ -3020,47 +3056,50 @@ class PremiumPage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 12),
-                        const SizedBox(width: 4),
-                        const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 10)),
+                        const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18),
+                        const SizedBox(width: 8),
+                        const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 14)),
                       ],
                     ),
                     if (earlyAccessText != null)
-                      Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                      Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                   ],
                 ),
                 if (hasAllPremium != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 12),
-                          const SizedBox(width: 4),
-                          const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 10)),
+                          const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18),
+                          const SizedBox(width: 8),
+                          const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 14)),
                         ],
                       ),
                       if (allPremiumText != null)
-                        Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ]
               ],
               
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               
               GestureDetector(
-                onTap: () => _launchUPI(context, cleanPrice, title.replaceAll(" ", "")),
+                onTap: () {
+                  userActivePlan = title; // Update the global plan status
+                  _launchUPI(context, cleanPrice, title.replaceAll(" ", ""));
+                },
                 child: Container(
-                  height: 36,
+                  height: 50,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isGradientBtn ? null : color,
                     gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               )
             ],
@@ -3068,19 +3107,19 @@ class PremiumPage extends StatelessWidget {
         ),
         if (badgeText != null)
           Positioned(
-            top: -10,
-            right: 10,
+            top: -15,
+            right: 20,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.amber,
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.star, color: Colors.black, size: 10),
-                  const SizedBox(width: 4),
-                  Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.bold)),
+                  const Icon(Icons.star, color: Colors.black, size: 14),
+                  const SizedBox(width: 6),
+                  Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -3091,12 +3130,12 @@ class PremiumPage extends StatelessWidget {
 
   Widget _buildGridRow(String feature, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
