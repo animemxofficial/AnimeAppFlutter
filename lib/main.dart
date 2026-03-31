@@ -259,16 +259,16 @@ final List<Anime> animeData =[
     season: "Movie",
     seasonsList: generateDummySeasons(),
   ),
-  // NEW ANIME FOR COMING SOON (0 Episodes)
+  // COMING SOON ANIME
   Anime(
-    title: "Bleach: Thousand-Year Blood War - The Conflict", // Very long name to test ellipsis
+    title: "Bleach: Thousand-Year Blood War - The Conflict", 
     genre: "Action",
     image: "https://i.ibb.co/DDDJNsFX/images-3.jpg",
     status: "Coming Soon",
     views: "0",
     dubColor: Colors.grey,
     season: "S3",
-    seasonsList: [], // NO episodes
+    seasonsList: [], 
   ),
 ];
 
@@ -373,12 +373,11 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Define slider items with different animes and tags
     final List<Map<String, dynamic>> sliderItems = [
       {'anime': animeData[0], 'tag': 'TRENDING', 'color': Colors.orange},
       {'anime': animeData[2], 'tag': 'POPULAR', 'color': Colors.redAccent},
       {'anime': animeData[6], 'tag': 'RECOMMENDED', 'color': Colors.blueAccent},
-      {'anime': animeData[7], 'tag': 'COMING SOON', 'color': Colors.grey}, // The 0-episode anime
+      {'anime': animeData[7], 'tag': 'COMING SOON', 'color': Colors.grey}, 
     ];
 
     return Scaffold(
@@ -442,10 +441,45 @@ class HomeScreen extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage()));
               },
             ),
-            // Settings removed as requested
+            ListTile(
+              leading: const Icon(Icons.language, color: Colors.white70),
+              title: const Text("Website", style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.headset_mic, color: Colors.white70),
+              title: const Text("Support", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lightbulb_outline, color: Colors.white70),
+              title: const Text("Suggestions", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SuggestionPage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined, color: Colors.white70),
+              title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()));
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.info_outline, color: Colors.white70),
+              title: const Text("About Us", style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsPage()));
+              },
+            ),
             const Spacer(),
             const Divider(color: Colors.white12),
-            // Thoda Chota Log Out Option
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20),
               title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)),
@@ -566,7 +600,7 @@ class HomeScreen extends StatelessWidget {
                                 anime.title.toUpperCase(),
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 20, // Thoda kam size lamba text adjust karne ke liye
+                                  fontSize: 20, 
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 1,
                                 ),
@@ -664,29 +698,6 @@ class HomeScreen extends StatelessWidget {
             _buildPortraitSection(context, "Romance", null, null, animeData.reversed.toList()),
             _buildPortraitSection(context, "Horror & Mystery", null, null, animeData),
             _buildPortraitSection(context, "Comedy", null, null, animeData.reversed.toList()),
-
-            // EXPLORE BUTTON
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A1A1A),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: onSearchTap,
-                  icon: const Icon(Icons.auto_awesome, color: Colors.orange),
-                  label: const Text(
-                    "Explore All Anime",
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -875,12 +886,12 @@ class SeeAllCategoryPage extends StatelessWidget {
         padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2, 
-          childAspectRatio: 0.65, 
+          childAspectRatio: 0.70, // Slightly adjusted to fit the Popular Card shape better
           crossAxisSpacing: 14, 
           mainAxisSpacing: 16
         ),
         itemCount: animeList.length,
-        itemBuilder: (context, index) => GridAnimeCard(anime: animeList[index]),
+        itemBuilder: (context, index) => GridOverlayPopularCard(anime: animeList[index]),
       ),
     );
   }
@@ -971,7 +982,86 @@ class OverlayPopularCard extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                   decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(4)),
-                  child: const Text("ORIGINAL", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                  child: const Text("POPULAR", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              Positioned(
+                bottom: 10,
+                left: 10,
+                right: 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children:[
+                    Text(
+                      anime.title,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children:[
+                        Text("${anime.season} | Ep 3", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        Row(
+                          children:[
+                            const Icon(Icons.visibility, color: Colors.white70, size: 12),
+                            const SizedBox(width: 4),
+                            Text(anime.views, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                          ],
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Special Popular Card styling exactly for the GridView in "See All" Page
+class GridOverlayPopularCard extends StatelessWidget {
+  final Anime anime;
+  const GridOverlayPopularCard({super.key, required this.anime});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: anime)));
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white, width: 1.5),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            children:[
+              Image.network(anime.image, fit: BoxFit.cover, width: double.infinity, height: double.infinity),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors:[Colors.black.withOpacity(0.9), Colors.transparent],
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.center,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.cyan, borderRadius: BorderRadius.circular(4)),
+                  child: const Text("POPULAR", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
                 ),
               ),
               Positioned(
@@ -1958,11 +2048,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                       builder: (context, VideoPlayerValue value, child) {
                                         return SliderTheme(
                                           data: SliderTheme.of(context).copyWith(
-                                            trackHeight: 3.0, // Thinner, sleeker track
+                                            trackHeight: 3.0, 
                                             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0),
                                             overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
                                           ),
-                                          // IMPROVED SEEK BAR (Real-time seeking)
                                           child: Slider(
                                             activeColor: primaryColor,
                                             inactiveColor: Colors.white24,
@@ -1970,13 +2059,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                             max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(),
                                             value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()),
                                             onChangeStart: (val) {
-                                              _controller.pause(); // Pause while seeking for smooth drag
+                                              _controller.pause(); 
                                             },
                                             onChanged: (val) {
                                               _controller.seekTo(Duration(seconds: val.toInt()));
                                             },
                                             onChangeEnd: (val) {
-                                              _controller.play(); // Play when drag ends
+                                              _controller.play(); 
                                               _updateContinueWatching();
                                             },
                                           ),
@@ -2052,7 +2141,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                 ],
                               ),
                             ),
-                            Container(width: 1, height: 24, color: Colors.white24), // Divider
+                            Container(width: 1, height: 24, color: Colors.white24), 
                             GestureDetector(
                               onTap: _toggleDislike,
                               child: Row(
@@ -2063,7 +2152,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                 ],
                               ),
                             ),
-                            Container(width: 1, height: 24, color: Colors.white24), // Divider
+                            Container(width: 1, height: 24, color: Colors.white24), 
                             GestureDetector(
                               onTap: _toggleSave,
                               child: Row(
@@ -2416,7 +2505,7 @@ class DubsScreen extends StatelessWidget {
             labelColor: Colors.orange,
             unselectedLabelColor: Colors.white70,
             tabs:[
-              Tab(text: "ADR DUBBED"),
+              Tab(text: "DUBBED"),
               Tab(text: "ORIGINAL"),
             ],
           ),
@@ -2587,42 +2676,80 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   void _showAddInfoDialog(BuildContext context) {
+    String selectedCountryCode = "+91";
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text("Add Mobile Number", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          content: TextField(
-            keyboardType: TextInputType.phone,
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: "Enter Mobile Number",
-              hintStyle: const TextStyle(color: Colors.white38),
-              filled: true,
-              fillColor: Colors.black,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-              prefixIcon: const Icon(Icons.phone, color: Colors.orange),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context), 
-              child: const Text("Cancel", style: TextStyle(color: Colors.grey))
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1A1A1A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text("Add Mobile Number", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              content: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        dropdownColor: Colors.black,
+                        value: selectedCountryCode,
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
+                        items: const [
+                          DropdownMenuItem(value: "+91", child: Text("🇮🇳 +91", style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: "+1", child: Text("🇺🇸 +1", style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: "+44", child: Text("🇬🇧 +44", style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: "+81", child: Text("🇯🇵 +81", style: TextStyle(color: Colors.white))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() {
+                              selectedCountryCode = val;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: "Mobile Number",
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true,
+                        fillColor: Colors.black,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mobile number saved!")));
-              },
-              child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context), 
+                  child: const Text("Cancel", style: TextStyle(color: Colors.grey))
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mobile number saved!")));
+                  },
+                  child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          }
         );
       }
     );
@@ -2692,9 +2819,9 @@ class ProfileScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         Row(
                           children:[
-                            const Text("UID: VcXZJDac...", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                            const Text("🇮🇳 +91 9876543210", style: TextStyle(color: Colors.grey, fontSize: 12)), // UID Replaced
                             const SizedBox(width: 8),
-                            const Icon(Icons.copy_outlined, color: Colors.grey, size: 14),
+                            const Icon(Icons.check_circle, color: Colors.green, size: 14),
                           ],
                         ),
                         const SizedBox(height: 12),
