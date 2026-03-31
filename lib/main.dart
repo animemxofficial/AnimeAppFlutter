@@ -443,7 +443,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Go Premium", style: TextStyle(color: Colors.amber)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => PremiumPage())); // Removed const
               },
             ),
             ListTile(
@@ -456,7 +456,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Support", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SupportPage())); // Removed const
               },
             ),
             ListTile(
@@ -464,7 +464,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Suggestions", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SuggestionPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SuggestionPage())); // Removed const
               },
             ),
             ListTile(
@@ -472,7 +472,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyPage())); // Removed const
               },
             ),
             ListTile(
@@ -480,7 +480,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("About Us", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AboutUsPage())); // Removed const
               },
             ),
             const Padding(
@@ -2702,7 +2702,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PremiumPage())),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 10),
                   padding: const EdgeInsets.all(16),
@@ -2745,11 +2745,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
               
               // NEW ACCOUNT MENU OPTIONS WITH PROPER UI
-              _buildMenuItem(context, Icons.inventory_2_outlined, "Activity & Orders", const ActivityPage()),
-              _buildMenuItem(context, Icons.credit_card, "Payment Proof", const PaymentProofPage()),
-              _buildMenuItem(context, Icons.headphones, "Support", const SupportPage()),
-              _buildMenuItem(context, Icons.verified_user_outlined, "Privacy Policy", const PrivacyPolicyPage()),
-              _buildMenuItem(context, Icons.info_outline, "About Us", const AboutUsPage()),
+              _buildMenuItem(context, Icons.inventory_2_outlined, "Activity & Orders", ActivityPage()),
+              _buildMenuItem(context, Icons.credit_card, "Payment Proof", PaymentProofPage()),
+              _buildMenuItem(context, Icons.headphones, "Support", SupportPage()),
+              _buildMenuItem(context, Icons.verified_user_outlined, "Privacy Policy", PrivacyPolicyPage()),
+              _buildMenuItem(context, Icons.info_outline, "About Us", AboutUsPage()),
             ],
           ),
         ),
@@ -2828,6 +2828,18 @@ class AboutUsPage extends StatelessWidget {
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("About Us", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
       body: const Center(child: Text("About Us Page", style: TextStyle(color: Colors.white))),
+    );
+  }
+}
+
+class SuggestionPage extends StatelessWidget {
+  const SuggestionPage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(title: const Text("Suggestion", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
+      body: const Center(child: Text("Suggestion Page", style: TextStyle(color: Colors.white))),
     );
   }
 }
@@ -2977,7 +2989,7 @@ class PremiumPage extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
-          width: MediaQuery.of(context).size.width * 0.85, // Wide Card
+          width: MediaQuery.of(context).size.width * 0.85, 
           decoration: BoxDecoration(
             color: const Color(0xFF121212),
             borderRadius: BorderRadius.circular(16),
@@ -3088,7 +3100,7 @@ class PremiumPage extends StatelessWidget {
               
               GestureDetector(
                 onTap: () {
-                  userActivePlan = title; // Update the global plan status
+                  userActivePlan = title; 
                   _launchUPI(context, cleanPrice, title.replaceAll(" ", ""));
                 },
                 child: Container(
