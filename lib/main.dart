@@ -1,12 +1,14 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -34,8 +36,8 @@ String planExpireDate = "Expire: 24 Dec 2024";
 // ACTIVE PLAN FOR BADGE (e.g., "Lite", "Plus", "Pro", "Ultra". Keep empty "" if no plan)
 String userActivePlan = ""; 
 
-// GLOBAL RECENT SEARCHES
-List<String> globalRecentSearches = ["Naruto", "One Piece"];
+// GLOBAL RECENT SEARCHES (Will be loaded from phone storage)
+List<String> globalRecentSearches = [];
 
 class Episode {
   final String title;
@@ -124,6 +126,60 @@ final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 
 // Global Notifier for My List (Saved Episodes)
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
+
+// ==========================================
+// LOCAL STORAGE FUNCTIONS (SAVE TO PHONE)
+// ==========================================
+
+Future<void> loadLocalData() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  
+  // Load Recent Searches
+  globalRecentSearches = prefs.getStringList('recent_searches') ?? [];
+  
+  // Load Continue Watching Data
+  String? cwJson = prefs.getString('cw_list');
+  if (cwJson != null) {
+    try {
+      List<dynamic> decoded = jsonDecode(cwJson);
+      List<CWItem> loadedList = [];
+      for (var item in decoded) {
+        // Find matching anime from our local data
+        var matchingAnime = animeData.where((a) => a.title == item['title']);
+        if (matchingAnime.isNotEmpty) {
+          loadedList.add(CWItem(
+            anime: matchingAnime.first,
+            seasonIndex: item['sIdx'],
+            episodeIndex: item['eIdx'],
+            position: Duration(seconds: item['pos']),
+            totalDuration: Duration(seconds: item['dur']),
+          ));
+        }
+      }
+      continueWatchingNotifier.value = loadedList;
+    } catch (e) {
+      // Ignore if parsing fails
+    }
+  }
+}
+
+Future<void> saveRecentSearches() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  prefs.setStringList('recent_searches', globalRecentSearches);
+}
+
+Future<void> saveContinueWatching() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  List<Map<String, dynamic>> encodedList = continueWatchingNotifier.value.map((item) => {
+    'title': item.anime.title,
+    'sIdx': item.seasonIndex,
+    'eIdx': item.episodeIndex,
+    'pos': item.position.inSeconds,
+    'dur': item.totalDuration.inSeconds,
+  }).toList();
+  prefs.setString('cw_list', jsonEncode(encodedList));
+}
+
 
 // DUMMY DATA GENERATOR (Standard)
 List<Season> generateDummySeasons() {
@@ -324,6 +380,15 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // Load Saved local data when app starts
+    loadLocalData().then((_) {
+      setState(() {});
+    });
+  }
+
   void _goToSearch() {
     setState(() {
       _index = 1;
@@ -443,7 +508,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Go Premium", style: TextStyle(color: Colors.amber)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PremiumPage())); // Removed const
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage()));
               },
             ),
             ListTile(
@@ -456,7 +521,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Support", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => SupportPage())); // Removed const
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()));
               },
             ),
             ListTile(
@@ -464,7 +529,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Suggestions", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => SuggestionPage())); // Removed const
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Website link coming soon!")));
               },
             ),
             ListTile(
@@ -472,7 +537,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyPage())); // Removed const
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()));
               },
             ),
             ListTile(
@@ -480,7 +545,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("About Us", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AboutUsPage())); // Removed const
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsPage()));
               },
             ),
             const Padding(
@@ -1030,7 +1095,6 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
-// Grid Category Card logic (Handles Popular / Trending tags properly based on exact title)
 class GridCategoryCard extends StatelessWidget {
   final Anime anime;
   final String pageTitle;
@@ -1315,7 +1379,6 @@ class _DetailsPageState extends State<DetailsPage> {
     const Color primaryColor = Colors.orange;
     const Color darkBg = Color(0xFF0F0F0F);
     
-    // Check if seasons exist
     if (widget.anime.seasonsList.isEmpty) {
       return Scaffold(
         backgroundColor: darkBg,
@@ -1773,7 +1836,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _forwardOpacity = 0.0;
   double _rewindOpacity = 0.0;
 
-  // DUMMY COUNTS FOR LIKE/DISLIKE
   int likes = 12400;
   int dislikes = 230;
   bool isLiked = false;
@@ -1783,7 +1845,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   void initState() {
     super.initState();
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex];
-    // Optimized initialization for faster perceived load
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(ep.videoUrl),
       videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
@@ -1792,7 +1853,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           _controller.seekTo(widget.startPosition!);
         }
         setState(() {});
-        _controller.play(); // Play immediately after init
+        _controller.play(); 
       });
   }
 
@@ -1833,6 +1894,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ));
       }
       continueWatchingNotifier.value = list;
+      saveContinueWatching(); // Save to phone storage
     }
   }
 
@@ -1946,7 +2008,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       children:[
         _controller.value.isInitialized
             ? Center(
-                // AspectRatio fixed to avoid stretch in full screen
                 child: AspectRatio(
                   aspectRatio: _controller.value.aspectRatio,
                   child: VideoPlayer(_controller),
@@ -1954,7 +2015,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               )
             : const Center(child: CircularProgressIndicator(color: primaryColor)),
         
-        // REWIND ANIMATION (NICE CIRCLE)
+        // REWIND ANIMATION
         Align(
           alignment: Alignment.centerLeft,
           child: Padding(
@@ -1977,7 +2038,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           ),
         ),
 
-        // FORWARD ANIMATION (NICE CIRCLE)
+        // FORWARD ANIMATION
         Align(
           alignment: Alignment.centerRight,
           child: Padding(
@@ -2349,6 +2410,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
       setState(() {
         globalRecentSearches.insert(0, query.trim());
       });
+      saveRecentSearches(); // Save to phone storage
     }
     _performSearch(query);
   }
@@ -2448,6 +2510,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     setState(() {
                       globalRecentSearches.removeAt(index);
                     });
+                    saveRecentSearches(); // Update phone storage
                   },
                   child: Icon(Icons.close, size: 18, color: Colors.grey[500]),
                 ),
@@ -2815,7 +2878,13 @@ class PrivacyPolicyPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-      body: const Center(child: Text("Privacy Policy Page", style: TextStyle(color: Colors.white))),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: const Text(
+          "Privacy Policy\n\nWelcome to AnimeMX. At AnimeMX, we value your privacy. This Privacy Policy outlines how we collect, use, and protect your data.\n\nWe do not sell your personal data to third parties. All user preferences, including recent searches and saved episodes, are stored locally on your device unless connected via cloud synchronization. For more details, please contact our support team.", 
+          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
+        )
+      ),
     );
   }
 }
@@ -2827,19 +2896,24 @@ class AboutUsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("About Us", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-      body: const Center(child: Text("About Us Page", style: TextStyle(color: Colors.white))),
-    );
-  }
-}
-
-class SuggestionPage extends StatelessWidget {
-  const SuggestionPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text("Suggestion", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, iconTheme: const IconThemeData(color: Colors.white)),
-      body: const Center(child: Text("Suggestion Page", style: TextStyle(color: Colors.white))),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text("About AnimeMX", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(height: 12),
+            Text(
+              "Welcome to AnimeMX, your ultimate destination for streaming the best and latest anime! Our mission is to provide an ad-free, high-quality, and seamless viewing experience for anime lovers around the world.\n\nEnjoy HD & 4K quality, dubbed & subbed versions, and lightning-fast streaming anywhere, anytime.", 
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
+            ),
+            SizedBox(height: 30),
+            Text("Contact Us", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(height: 12),
+            Text("Email: animemx.official@gmail.com", style: TextStyle(color: Colors.orange, fontSize: 14, fontWeight: FontWeight.bold)),
+          ],
+        )
+      ),
     );
   }
 }
