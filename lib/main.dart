@@ -1026,7 +1026,7 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
-// Grid Category Card logic (Handles Popular / Trending tags)
+// Grid Category Card logic (Handles Popular / Trending tags properly)
 class GridCategoryCard extends StatelessWidget {
   final Anime anime;
   final String pageTitle;
@@ -1038,6 +1038,7 @@ class GridCategoryCard extends StatelessWidget {
     Color? tagBgColor;
     Color tagTextColor = Colors.black;
 
+    // Only apply tags if viewing "Trending Now" or "Popular Anime" See All pages
     if (pageTitle == "Trending Now") {
       tagText = "TRENDING";
       tagBgColor = Colors.orange;
@@ -2394,46 +2395,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
                 const SizedBox(height: 12),
                 _buildRecentItem("Naruto"),
                 _buildRecentItem("One Piece"),
-                const SizedBox(height: 24),
-                const Text("Trending Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children:[
-                          _buildTrendingItem("1", "Solo Leveling"),
-                          _buildTrendingItem("3", "Chainsaw Man"),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        children:[
-                          _buildTrendingItem("2", "Jujutsu Kaisen"),
-                          _buildTrendingItem("4", "Tokyo Revengers"),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                const Text("Browse by Genre", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 12),
-                GridView.count(
-                  crossAxisCount: 2,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 2.2,
-                  children:[
-                    _buildGenreCard("Action", "Action", Icons.sports_martial_arts, const Color(0xFF3A1C1C), Colors.redAccent),
-                    _buildGenreCard("Comedy", "Hilarity", Icons.sentiment_very_satisfied, const Color(0xFF2D1B4E), Colors.purpleAccent),
-                    _buildGenreCard("Drama", "Series", Icons.masks, const Color(0xFF162B44), Colors.blueAccent),
-                    _buildGenreCard("Romance", "Love", Icons.favorite, const Color(0xFF421A28), Colors.pinkAccent),
-                  ],
-                ),
               ]
             ],
           ),
@@ -2458,53 +2419,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
                 Icon(Icons.close, size: 18, color: Colors.grey[500]),
                 const SizedBox(width: 12),
                 Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600]),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTrendingItem(String num, String title) {
-    return GestureDetector(
-      onTap: () => _setSearchQuery(title),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children:[
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(4)),
-              child: Center(child: Text(num, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black))),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGenreCard(String title, String subtitle, IconData icon, Color bgColor, Color iconColor) {
-    return GestureDetector(
-      onTap: () => _setSearchQuery(title),
-      child: Container(
-        decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
-          children:[
-            Icon(icon, size: 30, color: iconColor),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children:[
-                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.6))),
               ],
             ),
           ],
@@ -2724,7 +2638,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 4),
                         const Text("flexxy0xd@gmail.com", style: TextStyle(color: Colors.white70, fontSize: 14)),
                         
-                        // Only show if Mobile Number is added
                         if (addedMobileNumber != null) ...[
                           const SizedBox(height: 8),
                           Row(
@@ -2780,9 +2693,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 12),
                       Row(
                         children:[
-                          _buildPricePill("₹55"),
+                          _buildPricePill("₹50"),
                           const SizedBox(width: 8),
                           _buildPricePill("₹100"),
+                          const SizedBox(width: 8),
+                          _buildPricePill("₹150"),
+                          const SizedBox(width: 8),
+                          _buildPricePill("₹200"),
                         ],
                       ),
                     ],
@@ -2916,39 +2833,84 @@ class PremiumPage extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
             const Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 5),
             const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 30),
-            
-            // BASIC PLAN
-            _buildDetailedPlanCard(
-              context, 
-              "Basic Plan", 
-              "₹55", 
-              "720p", 
-              "NO", 
-              "1", 
-              "50 minutes",
-              false
-            ),
-            
             const SizedBox(height: 20),
             
-            // STANDARD PLAN
-            _buildDetailedPlanCard(
-              context, 
-              "Standard Plan", 
-              "₹100", 
-              "1080p", 
-              "NO", 
-              "3", 
-              "240 minutes",
-              true
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 0.58, 
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 16,
+              children: [
+                _buildNewPlanCard(
+                  context: context,
+                  title: "Lite Plan",
+                  price: "₹50",
+                  quality: "720p",
+                  ads: "NO",
+                  slot: "1",
+                  limit: "50 minutes",
+                  limitSub: "(0.8 hrs)",
+                  hasEarlyAccess: false,
+                  hasAllPremium: null,
+                  color: Colors.orange,
+                  icon: Icons.local_fire_department,
+                ),
+                _buildNewPlanCard(
+                  context: context,
+                  title: "Plus Plan",
+                  price: "₹100",
+                  quality: "1080p",
+                  ads: "NO",
+                  slot: "2",
+                  limit: "240 minutes",
+                  limitSub: "(4 hrs)",
+                  hasEarlyAccess: false,
+                  hasAllPremium: null,
+                  color: Colors.amber,
+                  icon: Icons.star,
+                  badgeText: "MOST POPULAR",
+                ),
+                _buildNewPlanCard(
+                  context: context,
+                  title: "Pro Plan",
+                  price: "₹150",
+                  quality: "1080p",
+                  ads: "NO",
+                  slot: "3",
+                  limit: "480 minutes",
+                  limitSub: "(8 hrs)",
+                  hasEarlyAccess: true,
+                  hasAllPremium: true,
+                  color: Colors.lightBlueAccent,
+                  icon: Icons.auto_awesome, 
+                ),
+                _buildNewPlanCard(
+                  context: context,
+                  title: "Ultra Plan",
+                  price: "₹200",
+                  quality: "1080p",
+                  ads: "NO", 
+                  slot: "4",
+                  limit: "Unlimited",
+                  limitSub: null,
+                  hasEarlyAccess: true,
+                  hasAllPremium: true,
+                  earlyAccessText: "YES", 
+                  allPremiumText: "YES",
+                  color: Colors.purpleAccent,
+                  icon: Icons.flash_on, 
+                  isGradientBtn: true,
+                ),
+              ],
             ),
           ],
         ),
@@ -2956,73 +2918,185 @@ class PremiumPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailedPlanCard(BuildContext context, String title, String price, String quality, String ads, String slot, String limit, bool isStandard) {
+  Widget _buildNewPlanCard({
+    required BuildContext context,
+    required String title,
+    required String price,
+    required String quality,
+    required String ads,
+    required String slot,
+    required String limit,
+    String? limitSub,
+    required bool hasEarlyAccess,
+    bool? hasAllPremium,
+    required Color color,
+    required IconData icon,
+    String? badgeText,
+    String? earlyAccessText,
+    String? allPremiumText,
+    bool isGradientBtn = false,
+  }) {
     String cleanPrice = price.replaceAll("₹", "");
-    Color accentColor = isStandard ? Colors.amber : Colors.orange;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isStandard ? Colors.amber : Colors.white24, width: isStandard ? 2 : 1),
-        boxShadow: isStandard ? [BoxShadow(color: Colors.amber.withOpacity(0.1), blurRadius: 10, spreadRadius: 2)] : [],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: TextStyle(color: accentColor, fontSize: 22, fontWeight: FontWeight.bold)),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children:[
-                  Text(price, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                  const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 14)),
-                ],
-              ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF121212),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withOpacity(0.8), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.2),
+                blurRadius: 15,
+                spreadRadius: 1,
+              )
             ],
           ),
-          const SizedBox(height: 15),
-          const Divider(color: Colors.white12, thickness: 1),
-          const SizedBox(height: 15),
-          
-          _buildFeatureRow("Quality", quality),
-          _buildFeatureRow("Ads", ads),
-          _buildFeatureRow("Device Slot", slot),
-          _buildFeatureRow("Daily Watching limit", limit),
-          
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, color: color, size: 16),
+                      const SizedBox(width: 4),
+                      Text(title, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 9)),
+                    ],
+                  ),
+                ],
               ),
-              onPressed: () => _launchUPI(context, cleanPrice, title.replaceAll(" ", "")),
-              child: Text(
-                "Select Plan", 
-                style: TextStyle(color: isStandard ? Colors.black : Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+              const SizedBox(height: 12),
+              const Divider(color: Colors.white12, height: 1),
+              const SizedBox(height: 12),
+              
+              _buildGridRow("Quality", quality),
+              _buildGridRow("Ads", ads),
+              _buildGridRow("Device Slot", slot),
+              
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 10))),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(limit, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        if (limitSub != null)
+                          Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 9)),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+              const Spacer(),
+              
+              if (!hasEarlyAccess)
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Colors.white38, size: 12),
+                    const SizedBox(width: 4),
+                    const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 10)),
+                  ],
+                )
+              else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 12),
+                        const SizedBox(width: 4),
+                        const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 10)),
+                      ],
+                    ),
+                    if (earlyAccessText != null)
+                      Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                if (hasAllPremium != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 12),
+                          const SizedBox(width: 4),
+                          const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 10)),
+                        ],
+                      ),
+                      if (allPremiumText != null)
+                        Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ]
+              ],
+              
+              const SizedBox(height: 12),
+              
+              GestureDetector(
+                onTap: () => _launchUPI(context, cleanPrice, title.replaceAll(" ", "")),
+                child: Container(
+                  height: 36,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isGradientBtn ? null : color,
+                    gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              )
+            ],
+          ),
+        ),
+        if (badgeText != null)
+          Positioned(
+            top: -10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.amber,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.black, size: 10),
+                  const SizedBox(width: 4),
+                  Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 8, fontWeight: FontWeight.bold)),
+                ],
               ),
             ),
-          )
-        ],
-      ),
+          ),
+      ],
     );
   }
 
-  Widget _buildFeatureRow(String feature, String value) {
+  Widget _buildGridRow(String feature, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -3038,8 +3112,8 @@ class PaymentProofPage extends StatefulWidget {
 
 class _PaymentProofPageState extends State<PaymentProofPage> {
   File? _imageFile;
-  String _selectedAmount = "55";
-  String _selectedPlan = "Basic Plan";
+  String _selectedAmount = "50";
+  String _selectedPlan = "Lite Plan";
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -3094,14 +3168,18 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
               style: const TextStyle(color: Colors.white, fontSize: 16),
               value: _selectedAmount,
               items: const[
-                DropdownMenuItem(value: "55", child: Text("₹55 (Basic Plan)")),
-                DropdownMenuItem(value: "100", child: Text("₹100 (Standard Plan)")),
+                DropdownMenuItem(value: "50", child: Text("₹50 (Lite Plan)")),
+                DropdownMenuItem(value: "100", child: Text("₹100 (Plus Plan)")),
+                DropdownMenuItem(value: "150", child: Text("₹150 (Pro Plan)")),
+                DropdownMenuItem(value: "200", child: Text("₹200 (Ultra Plan)")),
               ],
               onChanged: (val) {
                 setState(() {
                   _selectedAmount = val!;
-                  if (val == "55") _selectedPlan = "Basic Plan";
-                  if (val == "100") _selectedPlan = "Standard Plan";
+                  if (val == "50") _selectedPlan = "Lite Plan";
+                  if (val == "100") _selectedPlan = "Plus Plan";
+                  if (val == "150") _selectedPlan = "Pro Plan";
+                  if (val == "200") _selectedPlan = "Ultra Plan";
                 });
               },
             ),
