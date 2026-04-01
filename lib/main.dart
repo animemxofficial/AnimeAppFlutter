@@ -1,10 +1,10 @@
 // main.dart file for Admin Panel App
 
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
+// import 'package:firebase_core/firebase_core.dart'; // Uncomment this after manual connection
+// import 'package:firebase_auth/firebase_auth.dart'; // Uncomment this after manual connection
+// import 'package:cloud_firestore/cloud_firestore.dart'; // Uncomment this after manual connection
 
 // --- Global Variables (for Admin Settings) ---
 // Note: These should ideally be read from Firestore in production app
@@ -12,7 +12,9 @@ bool hasPremiumPlan = true;
 String planExpireDate = "Expire: 24 Dec 2024"; 
 String userActivePlan = ""; 
 List<String> globalRecentSearches = [];
-List<String> adminEmails = ["animemx.admin@gmail.com", "your.second.admin@gmail.com"]; // Admin's email list
+
+// Admin's email list for login authentication (for demo, you can replace with real check later)
+List<String> adminEmails = ["animemx.admin@gmail.com", "your.second.admin@gmail.com"];
 
 // --- Dummy Data Models (for demo purposes) ---
 class OrderItem {
@@ -126,7 +128,7 @@ class AdminLoginScreen extends StatelessWidget {
                 ),
                 onPressed: () => _handleGoogleSignIn(context),
                 icon: Image.network(
-                  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png",
+                  "https://upload.wikimedia.com/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png",
                   height: 24,
                 ),
                 label: const Text(
@@ -143,7 +145,7 @@ class AdminLoginScreen extends StatelessWidget {
 }
 
 // ==========================================
-// ADMIN DASHBOARD & NAVIGATION
+// ADMIN DASHBOARD & NAVIGATION (Mobile Layout)
 // ==========================================
 
 class AdminDashboard extends StatefulWidget {
@@ -167,52 +169,61 @@ class _AdminDashboardState extends State<AdminDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
-        children: [
-          // SIDEBAR NAVIGATION FOR ADMIN
-          Container(
-            width: 250,
-            color: Colors.black,
-            child: Column(
-              children: [
-                const SizedBox(height: 50),
-                const Text(
-                  "AnimeMX",
-                  style: TextStyle(color: Colors.orange, fontSize: 26, fontWeight: FontWeight.w900),
-                ),
-                const Text(
-                  "ADMIN PANEL",
-                  style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 2),
-                ),
-                const SizedBox(height: 40),
-                _buildNavItem(Icons.dashboard, "Dashboard", 0),
-                _buildNavItem(Icons.verified_user, "Plan Approvals", 1),
-                _buildNavItem(Icons.cloud_upload, "Upload Content", 2),
-                _buildNavItem(Icons.settings_applications, "App Settings (OTA)", 3),
-                _buildNavItem(Icons.notifications_active, "Notify & Feedback", 4),
-                const Spacer(),
-                const Divider(color: Colors.white12),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.redAccent),
-                  title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Admin Logged Out")));
-                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminLoginScreen()));
-                  },
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-          // MAIN CONTENT AREA
-          Expanded(
-            child: Container(
-              color: const Color(0xFF0F0F0F),
-              child: _pages[_selectedIndex],
-            ),
-          ),
-        ],
+      backgroundColor: const Color(0xFF0F0F0F),
+      // --- AppBar (3-line menu icon) ---
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Text(
+          _getPageTitle(_selectedIndex),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
+      // --- Drawer (Sidebar navigation) ---
+      drawer: Drawer(
+        backgroundColor: Colors.black,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(
+                color: Colors.black,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    "AnimeMX",
+                    style: TextStyle(color: Colors.orange, fontSize: 26, fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    "ADMIN PANEL",
+                    style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 2),
+                  ),
+                ],
+              ),
+            ),
+            _buildNavItem(Icons.dashboard, "Dashboard", 0),
+            _buildNavItem(Icons.verified_user, "Plan Approvals", 1),
+            _buildNavItem(Icons.cloud_upload, "Upload Content", 2),
+            _buildNavItem(Icons.settings_applications, "App Settings (OTA)", 3),
+            _buildNavItem(Icons.notifications_active, "Notify & Feedback", 4),
+            const Divider(color: Colors.white12),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.redAccent),
+              title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Admin Logged Out")));
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminLoginScreen()));
+              },
+            ),
+          ],
+        ),
+      ),
+      // --- Main content area based on selection ---
+      body: _pages[_selectedIndex],
     );
   }
 
@@ -223,6 +234,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         setState(() {
           _selectedIndex = index;
         });
+        Navigator.pop(context); // Close drawer after selection
       },
       child: Container(
         color: isSelected ? Colors.orange.withOpacity(0.1) : Colors.transparent,
@@ -244,6 +256,23 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     );
   }
+
+  String _getPageTitle(int index) {
+    switch (index) {
+      case 0:
+        return "Dashboard Overview";
+      case 1:
+        return "Plan Approvals";
+      case 2:
+        return "Upload Content";
+      case 3:
+        return "App Settings";
+      case 4:
+        return "Notify & Feedback";
+      default:
+        return "Admin Panel";
+    }
+  }
 }
 
 // ==========================================
@@ -259,14 +288,18 @@ class DashboardOverview extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Live Dashboard", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+          const Text("Live Statistics", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
           Row(
             children: [
               _buildStatCard("Total Users", "15,240", Icons.people, Colors.blue),
               const SizedBox(width: 16),
               _buildStatCard("Active Now (Online)", "1,043", Icons.wifi_tethering, Colors.green),
-              const SizedBox(width: 16),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
               _buildStatCard("Daily Active (DAU)", "8,450", Icons.trending_up, Colors.orange),
               const SizedBox(width: 16),
               _buildStatCard("Pending Approvals", "24", Icons.pending_actions, Colors.redAccent),
