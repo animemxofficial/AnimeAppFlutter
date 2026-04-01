@@ -1,8 +1,11 @@
+// main.dart file for User Panel App
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart'; // Add webview package for in-app form
 
 // Import Firebase packages (Assuming these are in pubspec.yaml)
 // import 'package:firebase_core/firebase_core.dart'; // Uncomment this after manual connection
@@ -113,6 +116,7 @@ final List<Anime> animeData =[
   Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "2M", dubColor: const Color(0xFFFF4D4D), season: "Movie", seasonsList: generateDummySeasons()),
   Anime(title: "Bleach: Thousand-Year Blood War - The Conflict", genre: "Action", image: "https://i.ibb.co/DDDJNsFX/images-3.jpg", status: "Coming Soon", views: "0", dubColor: Colors.grey, season: "S3", seasonsList: []),
 ];
+
 class OrderItem {
   final String planName;
   final String amount;
@@ -3011,11 +3015,14 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   String _selectedAmount = "50";
   String _selectedPlan = "Lite Plan";
 
-  // Google Forms Link
-  final String googleFormLink = "YOUR_GOOGLE_FORM_LINK"; // Replace with your actual Google Form link
+  // --- Google Forms Link ---
+  // Replace this link with your actual Google Form link created in Step 1.
+  final String googleFormLink = "YOUR_GOOGLE_FORM_LINK"; 
 
   void _submitRequest() {
-    // Show confirmation message immediately after user clicks "Submit Request"
+    // --- Firestore Logic Here ---
+    // In a real app, we would save a flag to Firestore here, informing the admin that a payment request has been submitted.
+    // Since we are using Google Forms, we simply show a confirmation message to the user.
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Request Sent!")));
   }
 
