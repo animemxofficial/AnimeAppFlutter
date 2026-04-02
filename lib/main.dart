@@ -1,10 +1,10 @@
 // main.dart file for Admin Panel App
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 // import 'package:firebase_core/firebase_core.dart'; // Uncomment this after manual connection
 // import 'package:firebase_auth/firebase_auth.dart'; // Uncomment this after manual connection
 // import 'package:cloud_firestore/cloud_firestore.dart'; // Uncomment this after manual connection
-import 'package:flutter/services.dart';
 
 // --- Global Variables (for Admin Settings) ---
 // Note: These should ideally be read from Firestore in production app
@@ -28,7 +28,7 @@ List<OrderItem> userOrders =[];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Firebase (This assumes manual configuration aage hogi)
+  // --- Firebase Initialization ---
   // await Firebase.initializeApp(); // Uncomment this line after Firebase connection steps
 
   SystemChrome.setSystemUIOverlayStyle(
