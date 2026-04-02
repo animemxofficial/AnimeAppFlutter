@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "31235406529",
+    "project_id": "animemx-1e4b0",
+    "storage_bucket": "animemx-1e4b0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:31235406529:android:8b84ea98ab23993c823240",
+        "android_client_info": {
+          "package_name": "com.example.animeappflutter"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "31235406529-gsbcpj0tgdmfkudbhqhh20funi2a6lrv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3OEqxhVo_8yncV4b-6-J5QKDrk3JLHto"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "31235406529-gsbcpj0tgdmfkudbhqhh20funi2a6lrv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
