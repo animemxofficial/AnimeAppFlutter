@@ -126,7 +126,7 @@ class AdminLoginScreen extends StatelessWidget {
                 ),
                 onPressed: () => _handleGoogleSignIn(context),
                 icon: Image.network(
-                  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png",
+                  "https://upload.wikimedia.com/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png",
                   height: 24,
                 ),
                 label: const Text(
