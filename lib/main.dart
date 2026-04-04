@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:webview_flutter/webview_flutter.dart'; 
 
 // Import Firebase packages (Assuming these are in pubspec.yaml)
 // import 'package:firebase_core/firebase_core.dart'; // Uncomment this after manual connection
