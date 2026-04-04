@@ -2,9 +2,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import 'package:firebase_core/firebase_core.dart'; // Uncomment this after manual connection
-// import 'package:firebase_auth/firebase_auth.dart'; // Uncomment this after manual connection
-// import 'package:cloud_firestore/cloud_firestore.dart'; // Uncomment this after manual connection
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:video_player/video_player.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+// Import Firebase packages
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 // --- Global Variables (for Admin Settings) ---
 // Note: These should ideally be read from Firestore in production app
@@ -12,7 +17,9 @@ bool hasPremiumPlan = true;
 String planExpireDate = "Expire: 24 Dec 2024"; 
 String userActivePlan = ""; 
 List<String> globalRecentSearches = [];
-List<String> adminEmails = ["animemx.admin@gmail.com", "your.second.admin@gmail.com"]; // Admin's email list
+// --- ADMIN EMAIL WHITELIST ---
+// Only emails present in this list will be allowed to log in to the admin panel.
+List<String> adminEmails = ["animemx.admin@gmail.com", "your.second.admin@gmail.com"]; 
 
 // --- Dummy Data Models (for demo purposes) ---
 class OrderItem {
@@ -29,7 +36,8 @@ List<OrderItem> userOrders =[];
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // --- Firebase Initialization ---
-  // await Firebase.initializeApp(); // Uncomment this line after Firebase connection steps
+  // AAB. ye lines uncomment karni hain (agar aapke project me firebase_options.dart file ban gayi hai)
+  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); 
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -72,25 +80,56 @@ class AnimeMXAdmin extends StatelessWidget {
 class AdminLoginScreen extends StatelessWidget {
   const AdminLoginScreen({super.key});
 
-  // Dummy Google Sign-in functionality (for demo without full Firebase setup)
   Future<void> _handleGoogleSignIn(BuildContext context) async {
-    // Replace this with real Google Sign-in logic after full Firebase setup
-    // For now, simulate a successful login and check if it's an admin email
-    
-    // Simulating login process:
-    await Future.delayed(const Duration(seconds: 1)); 
+    // Check if Firebase is initialized. If not, show error.
+    try {
+      // Create a new GoogleSignIn instance
+      // final GoogleSignIn googleSignIn = GoogleSignIn();
+      // final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
-    String dummyLoggedInEmail = "animemx.admin@gmail.com"; // Change this for testing non-admin login
+      // if (googleUser == null) {
+      //   // User cancelled the sign-in process
+      //   return;
+      // }
 
-    // Check if the logged-in user is an admin
-    if (adminEmails.contains(dummyLoggedInEmail)) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const AdminDashboard()),
-      );
-    } else {
+      // Get Google credentials
+      // final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      // final AuthCredential credential = GoogleAuthProvider.credential(
+      //   accessToken: googleAuth.accessToken,
+      //   idToken: googleAuth.idToken,
+      // );
+
+      // Sign in to Firebase with Google credentials
+      // final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      // final User? user = userCredential.user;
+
+      // --- Admin Whitelist Check ---
+      // For this check, we will use a hardcoded email for demo purposes,
+      // as a real Google sign-in implementation requires a correctly configured 'google_sign_in' package.
+      // We are simulating a login for a specific admin user:
+      // In a real scenario, 'user.email' would be checked against 'adminEmails'.
+
+      // --- Simulating a successful login with dummy data (replace with real Firebase logic) ---
+      String loggedInEmail = "animemx.admin@gmail.com"; // Replace with real user.email after setup
+
+      if (adminEmails.contains(loggedInEmail)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Welcome, Admin! Logging in...")),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminDashboard()),
+        );
+      } else {
+        // If user is not in adminEmails list, log them out (in real scenario) and deny access.
+        // await FirebaseAuth.instance.signOut(); // Uncomment when using real Firebase Auth
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Access Denied: You are not an Admin.")),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Access Denied: You are not an Admin.")),
+        SnackBar(content: Text("Login Failed. Error: $e")),
       );
     }
   }
@@ -126,7 +165,7 @@ class AdminLoginScreen extends StatelessWidget {
                 ),
                 onPressed: () => _handleGoogleSignIn(context),
                 icon: Image.network(
-                  "https://upload.wikimedia.com/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png",
+                  "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png",
                   height: 24,
                 ),
                 label: const Text(
@@ -196,6 +235,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   leading: const Icon(Icons.logout, color: Colors.redAccent),
                   title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                   onTap: () {
+                    // Sign out logic here
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Admin Logged Out")));
                     Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminLoginScreen()));
                   },
