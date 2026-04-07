@@ -2727,7 +2727,7 @@ class PremiumPage extends StatelessWidget {
             
             // HORIZONTAL SCROLLING WIDE CARDS
             SizedBox(
-              height: 480,
+              height: 340, // Height reduced
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -2746,7 +2746,7 @@ class PremiumPage extends StatelessWidget {
                     color: Colors.orange,
                     icon: Icons.local_fire_department,
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
                   _buildNewPlanCard(
                     context: context,
                     title: "Plus Plan",
@@ -2762,7 +2762,7 @@ class PremiumPage extends StatelessWidget {
                     icon: Icons.star,
                     badgeText: "MOST POPULAR",
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
                   _buildNewPlanCard(
                     context: context,
                     title: "Pro Plan",
@@ -2777,7 +2777,7 @@ class PremiumPage extends StatelessWidget {
                     color: Colors.lightBlueAccent,
                     icon: Icons.auto_awesome, 
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
                   _buildNewPlanCard(
                     context: context,
                     title: "Ultra Plan",
@@ -2804,192 +2804,40 @@ class PremiumPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNewPlanCard({
-    required BuildContext context,
-    required String title,
-    required String price,
-    required String quality,
-    required String ads,
-    required String slot,
-    required String limit,
-    String? limitSub,
-    required bool hasEarlyAccess,
-    bool? hasAllPremium,
-    required Color color,
-    required IconData icon,
-    String? badgeText,
-    String? earlyAccessText,
-    String? allPremiumText,
-    bool isGradientBtn = false,
-  }) {
+  Widget _buildNewPlanCard({required BuildContext context, required String title, required String price, required String quality, required String ads, required String slot, required String limit, String? limitSub, required bool hasEarlyAccess, bool? hasAllPremium, required Color color, required IconData icon, String? badgeText, String? earlyAccessText, String? allPremiumText, bool isGradientBtn = false}) {
     String cleanPrice = price.replaceAll("₹", "");
-
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          width: MediaQuery.of(context).size.width * 0.85, 
-          decoration: BoxDecoration(
-            color: const Color(0xFF121212),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: color.withOpacity(0.8), width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.15),
-                blurRadius: 15,
-                spreadRadius: 1,
-              )
-            ],
-          ),
-          padding: const EdgeInsets.all(24),
+          width: MediaQuery.of(context).size.width * 0.75, // Smaller width
+          decoration: BoxDecoration(color: const Color(0xFF121212), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.8), width: 1.5), boxShadow: [BoxShadow(color: color.withOpacity(0.15), blurRadius: 15, spreadRadius: 1)]),
+          padding: const EdgeInsets.all(16), // Reduced padding
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(icon, color: color, size: 24),
-                      const SizedBox(width: 8),
-                      Text(title, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 14)),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 8), Text(title, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold)),],),Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12)),],),],),
+              const SizedBox(height: 12),
               const Divider(color: Colors.white12, height: 1),
-              const SizedBox(height: 20),
-              
+              const SizedBox(height: 12),
               _buildGridRow("Quality", quality),
               _buildGridRow("Ads", ads),
               _buildGridRow("Device Slot", slot),
-              
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 16))),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(limit, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        if (limitSub != null)
-                          Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                      ],
-                    )
-                  ],
-                ),
-              ),
+              Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Expanded(child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 13))), Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(limit, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)), if (limitSub != null) Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 10)),],)],)),
               const Spacer(),
-              
-              if (!hasEarlyAccess)
-                Row(
-                  children: [
-                    const Icon(Icons.check_circle_outline, color: Colors.white38, size: 18),
-                    const SizedBox(width: 8),
-                    const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 14)),
-                  ],
-                )
-              else ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18),
-                        const SizedBox(width: 8),
-                        const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                      ],
-                    ),
-                    if (earlyAccessText != null)
-                      Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                if (hasAllPremium != null) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18),
-                          const SizedBox(width: 8),
-                          const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                        ],
-                      ),
-                      if (allPremiumText != null)
-                        Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ]
-              ],
-              
-              const SizedBox(height: 24),
-              
-              GestureDetector(
-                onTap: () {
-                  userActivePlan = title; 
-                  _launchUPI(context, cleanPrice, title.replaceAll(" ", ""));
-                },
-                child: Container(
-                  height: 50,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: isGradientBtn ? null : color,
-                    gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                ),
-              )
+              if (!hasEarlyAccess) Row(children: [const Icon(Icons.check_circle_outline, color: Colors.white38, size: 16), const SizedBox(width: 8), const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 12)),],) else ...[Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16), const SizedBox(width: 8), const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 12)),],), if (earlyAccessText != null) Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),],), if (hasAllPremium != null) ...[const SizedBox(height: 8), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16), const SizedBox(width: 8), const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 12)),],), if (allPremiumText != null) Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),],)]],
+              const SizedBox(height: 16),
+              GestureDetector(onTap: () { userActivePlan = title; _launchUPI(context, cleanPrice, title.replaceAll(" ", "")); }, child: Container(height: 40, alignment: Alignment.center, decoration: BoxDecoration(color: isGradientBtn ? null : color, gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null, borderRadius: BorderRadius.circular(10)), child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold))),)
             ],
           ),
         ),
-        if (badgeText != null)
-          Positioned(
-            top: -15,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.amber,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.star, color: Colors.black, size: 14),
-                  const SizedBox(width: 6),
-                  Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ),
+        if (badgeText != null) Positioned(top: -12, right: 15, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)), child: Row(children: [const Icon(Icons.star, color: Colors.black, size: 12), const SizedBox(width: 4), Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),],)),),
       ],
     );
   }
 
   Widget _buildGridRow(String feature, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 16)),
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 13)), Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),],),);
   }
 }
 
@@ -3004,7 +2852,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
 
   // --- Google Forms Link ---
   // Replace this link with your actual Google Form link created in Step 1.
-  final String googleFormLink = "YOUR_GOOGLE_FORM_LINK"; 
+  final String googleFormLink = "https://docs.google.com/forms/"; // Add your link here!
 
   void _submitRequest() {
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Request Sent!")));
