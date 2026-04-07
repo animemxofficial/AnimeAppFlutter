@@ -5,12 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart'; 
-
-// Import Firebase packages (Assuming these are in pubspec.yaml)
-// import 'package:firebase_core/firebase_core.dart'; // Uncomment this after manual connection
-// import 'package:firebase_auth/firebase_auth.dart'; // Uncomment this after manual connection
-// import 'package:cloud_firestore/cloud_firestore.dart'; // Uncomment this after manual connection
 
 // --- GLOBAL STATE ---
 
@@ -130,8 +124,6 @@ List<OrderItem> userOrders =[];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // --- Firebase Initialization ---
-  // await Firebase.initializeApp(); // Uncomment this line after Firebase connection steps
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -298,7 +290,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Go Premium", style: TextStyle(color: Colors.amber)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => PremiumPage()));
               },
             ),
             ListTile(
@@ -311,7 +303,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Support", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => SupportPage()));
               },
             ),
             ListTile(
@@ -319,7 +311,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyPage()));
               },
             ),
             ListTile(
@@ -327,7 +319,7 @@ class HomeScreen extends StatelessWidget {
               title: const Text("About Us", style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsPage()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => AboutUsPage()));
               },
             ),
             const Padding(
@@ -2542,7 +2534,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PremiumPage())),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 10),
                   padding: const EdgeInsets.all(16),
@@ -2584,11 +2576,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               
-              _buildMenuItem(context, Icons.inventory_2_outlined, "Activity & Orders", const ActivityPage()),
-              _buildMenuItem(context, Icons.credit_card, "Payment Proof", const PaymentProofPage()),
-              _buildMenuItem(context, Icons.headphones, "Support", const SupportPage()),
-              _buildMenuItem(context, Icons.verified_user_outlined, "Privacy Policy", const PrivacyPolicyPage()),
-              _buildMenuItem(context, Icons.info_outline, "About Us", const AboutUsPage()),
+              // NEW ACCOUNT MENU OPTIONS WITH PROPER UI
+              _buildMenuItem(context, Icons.inventory_2_outlined, "Activity & Orders", ActivityPage()),
+              _buildMenuItem(context, Icons.credit_card, "Payment Proof", PaymentProofPage()),
+              _buildMenuItem(context, Icons.headphones, "Support", SupportPage()),
+              _buildMenuItem(context, Icons.verified_user_outlined, "Privacy Policy", PrivacyPolicyPage()),
+              _buildMenuItem(context, Icons.info_outline, "About Us", AboutUsPage()),
             ],
           ),
         ),
@@ -2648,7 +2641,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 // PLACEHOLDER PAGES FOR NEW MENU OPTIONS
 // ==========================================
 class PrivacyPolicyPage extends StatelessWidget {
-  const PrivacyPolicyPage({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2666,7 +2658,6 @@ class PrivacyPolicyPage extends StatelessWidget {
 }
 
 class AboutUsPage extends StatelessWidget {
-  const AboutUsPage({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2698,8 +2689,6 @@ class AboutUsPage extends StatelessWidget {
 // UPDATED PREMIUM PAGE WITH 4 PLANS
 // ==========================================
 class PremiumPage extends StatelessWidget {
-  const PremiumPage({super.key});
-
   void _launchUPI(BuildContext context, String amount, String plan) async {
     final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan");
     if (await canLaunchUrl(uri)) {
@@ -2856,27 +2845,441 @@ class PremiumPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Icon(icon, color: color, size: 24), const SizedBox(width: 8), Text(title, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),],),Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [Text(price, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)), const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 14)),],),],),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, color: color, size: 24),
+                      const SizedBox(width: 8),
+                      Text(title, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 14)),
+                    ],
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               const Divider(color: Colors.white12, height: 1),
               const SizedBox(height: 20),
+              
               _buildGridRow("Quality", quality),
               _buildGridRow("Ads", ads),
               _buildGridRow("Device Slot", slot),
-              Padding(padding: const EdgeInsets.only(bottom: 16), child: Row(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Expanded(child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 16))), Column(crossAxisAlignment: CrossAxisAlignment.end, children: [Text(limit, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), if (limitSub != null) Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 12)),],)],)),
+              
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 16))),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(limit, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        if (limitSub != null)
+                          Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                      ],
+                    )
+                  ],
+                ),
+              ),
               const Spacer(),
-              if (!hasEarlyAccess) Row(children: [const Icon(Icons.check_circle_outline, color: Colors.white38, size: 18), const SizedBox(width: 8), const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 14)),],) else ...[Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18), const SizedBox(width: 8), const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 14)),],), if (earlyAccessText != null) Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),],), if (hasAllPremium != null) ...[const SizedBox(height: 12), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18), const SizedBox(width: 8), const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 14)),],), if (allPremiumText != null) Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),],)]],
+              
+              if (!hasEarlyAccess)
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Colors.white38, size: 18),
+                    const SizedBox(width: 8),
+                    const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 14)),
+                  ],
+                )
+              else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18),
+                        const SizedBox(width: 8),
+                        const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                      ],
+                    ),
+                    if (earlyAccessText != null)
+                      Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                if (hasAllPremium != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 18),
+                          const SizedBox(width: 8),
+                          const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        ],
+                      ),
+                      if (allPremiumText != null)
+                        Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ]
+              ],
+              
               const SizedBox(height: 24),
-              GestureDetector(onTap: () { userActivePlan = title; _launchUPI(context, cleanPrice, title.replaceAll(" ", "")); }, child: Container(height: 50, alignment: Alignment.center, decoration: BoxDecoration(color: isGradientBtn ? null : color, gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null, borderRadius: BorderRadius.circular(12)), child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),)
+              
+              GestureDetector(
+                onTap: () {
+                  userActivePlan = title; 
+                  _launchUPI(context, cleanPrice, title.replaceAll(" ", ""));
+                },
+                child: Container(
+                  height: 50,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isGradientBtn ? null : color,
+                    gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
+              )
             ],
           ),
         ),
-        if (badgeText != null) Positioned(top: -15, right: 20, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)), child: Row(children: [const Icon(Icons.star, color: Colors.black, size: 14), const SizedBox(width: 6), Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),],)),),
+        if (badgeText != null)
+          Positioned(
+            top: -15,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.black, size: 14),
+                  const SizedBox(width: 6),
+                  Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ),
       ],
     );
   }
 
   Widget _buildGridRow(String feature, String value) {
-    return Padding(padding: const EdgeInsets.only(bottom: 16), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 16)), Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),],),);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class PaymentProofPage extends StatefulWidget {
+  @override
+  State<PaymentProofPage> createState() => _PaymentProofPageState();
+}
+
+class _PaymentProofPageState extends State<PaymentProofPage> {
+  String _selectedAmount = "50";
+  String _selectedPlan = "Lite Plan";
+
+  // --- Google Forms Link ---
+  // Replace this link with your actual Google Form link created in Step 1.
+  final String googleFormLink = "YOUR_GOOGLE_FORM_LINK"; 
+
+  void _submitRequest() {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Request Sent!")));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: AppBar(
+        title: const Text("Verify Payment", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: const Row(
+                children:[
+                  Icon(Icons.info_outline, color: Colors.blue),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Verify your payment to activate plan instantly.",
+                      style: TextStyle(color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Google Form Integration Section
+            const Text("Step 1: Make Payment", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Pay to this UPI ID: wicvlox.i@oksbi", style: TextStyle(color: Colors.white, fontSize: 15)),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () {
+                      _launchUPI(context, _selectedAmount, _selectedPlan);
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.credit_card, color: Colors.orange),
+                        SizedBox(width: 8),
+                        Text("Pay via UPI App", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+            const Text("Step 2: Submit Proof", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+
+            // Google Form button (Replaces file upload)
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () async {
+                  // Launch Google Form in external browser
+                  if (await canLaunchUrl(Uri.parse(googleFormLink))) {
+                    await launchUrl(Uri.parse(googleFormLink), mode: LaunchMode.externalApplication);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not open payment form.")));
+                  }
+                },
+                icon: const Icon(Icons.description, color: Colors.white),
+                label: const Text("Fill & Submit Google Form", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+            const Text("Step 3: Confirm Submission", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A1A1A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: const BorderSide(color: Colors.white12)
+                ),
+                onPressed: _submitRequest,
+                icon: const Icon(Icons.send, color: Colors.white),
+                label: const Text("Request Send", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _launchUPI(BuildContext context, String amount, String plan) async {
+    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!")));
+    }
+  }
+}
+
+class SupportPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: AppBar(
+        title: const Text("Help Center", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: const LinearGradient(
+                  colors:[Colors.orangeAccent, Colors.deepOrange],
+                ),
+              ),
+              child: Row(
+                children:[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                    child: const Icon(Icons.headset_mic, color: Colors.white, size: 30),
+                  ),
+                  const SizedBox(width: 15),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:[
+                        Text("How can we help?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text("We're here to help you with any issues.", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+            const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent),
+            _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green),
+            _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSupportTile(IconData icon, String title, String sub, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        children:[
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children:[
+                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class ActivityPage extends StatefulWidget {
+  @override
+  State<ActivityPage> createState() => _ActivityPageState();
+}
+
+class _ActivityPageState extends State<ActivityPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Activity & Orders", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: userOrders.isEmpty
+          ? const Center(child: Text("No recent orders.", style: TextStyle(color: Colors.white54)))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: userOrders.length,
+              itemBuilder: (ctx, i) {
+                final order = userOrders[i];
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border(left: BorderSide(color: order.status == "Pending" ? Colors.orange : Colors.green, width: 4)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children:[
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children:[
+                          Text(order.planName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 4),
+                          Text("${order.amount} • ${order.date}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: order.status == "Pending" ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          order.status,
+                          style: TextStyle(
+                            color: order.status == "Pending" ? Colors.orange : Colors.green,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                );
+              },
+            ),
+    );
   }
 }
