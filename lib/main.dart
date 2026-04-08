@@ -1,13 +1,17 @@
 // main.dart file for User Panel App
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart'; // Uncomment this after running 'flutter pub add supabase_flutter'
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Local storage for recent searches
 
-// --- GLOBAL STATE ---
+// ==========================================
+// DATA MODELS & GLOBAL STATE
+// ==========================================
 
 // User details (will be loaded after login)
 String currentUserName = "Guest User";
@@ -115,6 +119,37 @@ class OrderItem {
 }
 List<OrderItem> userOrders =[];
 
+// ==========================================
+// LOCAL STORAGE FUNCTIONS (SAVE TO PHONE)
+// ==========================================
+
+Future<void> loadLocalData() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  
+  // Load Recent Searches
+  // globalRecentSearches = prefs.getStringList('recent_searches') ?? []; // Uncomment after flutter pub add shared_preferences
+  
+  // Load Continue Watching Data
+  // String? cwJson = prefs.getString('cw_list'); // Uncomment after flutter pub add shared_preferences
+}
+
+Future<void> saveRecentSearches() async {
+  // SharedPreferences prefs = await SharedPreferences.getInstance(); // Uncomment after flutter pub add shared_preferences
+  // prefs.setStringList('recent_searches', globalRecentSearches); // Uncomment after flutter pub add shared_preferences
+}
+
+Future<void> saveContinueWatching() async {
+  // SharedPreferences prefs = await SharedPreferences.getInstance(); // Uncomment after flutter pub add shared_preferences
+  // List<Map<String, dynamic>> encodedList = continueWatchingNotifier.value.map((item) => { // Uncomment after flutter pub add shared_preferences
+  //   'title': item.anime.title,
+  //   'sIdx': item.seasonIndex,
+  //   'eIdx': item.episodeIndex,
+  //   'pos': item.position.inSeconds,
+  //   'dur': item.totalDuration.inSeconds,
+  // }).toList();
+  // prefs.setString('cw_list', jsonEncode(encodedList)); // Uncomment after flutter pub add shared_preferences
+}
+
 // --- Main App Entry Point ---
 
 void main() async {
@@ -158,7 +193,7 @@ class AnimeMX extends StatelessWidget {
         useMaterial3: true,
       ),
       // AuthGate check karega user logged in hai ya nahi
-      home: const AuthGate(), 
+      home: AuthGate(), 
     );
   }
 }
@@ -177,7 +212,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-    // _checkAuth(); // Uncomment this after Supabase keys are set
+    _checkAuth();
   }
 
   void _checkAuth() {
@@ -186,7 +221,7 @@ class _AuthGateState extends State<AuthGate> {
     //   if (session != null) {
     //     currentUserEmail = session.user.email ?? "";
     //     if (mounted) {
-    //       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+    //       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MainScreen()));
     //     }
     //   }
     // });
@@ -195,7 +230,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     // Dummy Login Screen (Will be replaced by real login after Supabase connection)
-    return const LoginScreen(); 
+    return LoginScreen(); 
   }
 }
 
@@ -209,7 +244,7 @@ class LoginScreen extends StatelessWidget {
     // --- Dummy Login Logic ---
     // Simulating login and updating global state
     currentUserEmail = "testuser@example.com";
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => MainScreen()));
   }
 
   @override
@@ -344,7 +379,7 @@ class HomeScreen extends StatelessWidget {
             ListTile(leading: const Icon(Icons.privacy_tip_outlined, color: Colors.white70), title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage())); }),
             ListTile(leading: const Icon(Icons.info_outline, color: Colors.white70), title: const Text("About Us", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsPage())); }),
             const Padding(padding: EdgeInsets.symmetric(vertical: 8.0), child: Divider(color: Colors.white12, thickness: 1)),
-            ListTile(leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20), title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)), onTap: () { Navigator.pop(context); Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); }),
+            ListTile(leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20), title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)), onTap: () { Navigator.pop(context); Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => AuthGate())); }),
             const SizedBox(height: 20),
           ],
         ),
