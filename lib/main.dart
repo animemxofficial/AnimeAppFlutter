@@ -8,13 +8,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 // --- GLOBAL STATE ---
 
-// User details (will be loaded after login)
+// User details
 String currentUserName = "Guest User";
 String currentUserEmail = "guest@example.com";
-String userMobileNumber = ""; // Will be updated via Add Info screen
-String userActivePlan = ""; // Will be updated after Admin approval
+String userMobileNumber = ""; 
+String userActivePlan = ""; 
 
-// For demo purposes (will be removed when connecting to Firebase)
+// Recent Searches List
 List<String> globalRecentSearches = [];
 
 // Continue Watching Data Model
@@ -121,10 +121,8 @@ class OrderItem {
 List<OrderItem> userOrders =[];
 
 // --- Main App Entry Point ---
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       systemNavigationBarColor: Colors.black,

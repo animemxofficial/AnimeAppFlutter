@@ -41,11 +41,9 @@ dependencies:
   url_launcher: ^6.2.5
   package_info_plus: ^5.0.1
   image_picker: ^1.1.1
-  firebase_core: ^2.24.0   # <-- Isko '2.24.0' se badlein
-  firebase_auth: ^4.15.0   # <-- Isko '4.15.0' se badlein
-  cloud_firestore: ^4.13.0 # <-- Isko '4.13.0' se badlein
-  firebase_storage: ^11.5.0 # <-- Isko '11.5.0' se badlein
-  firebase_messaging: ^14.7.4 # <-- Isko '14.7.4' se badlein
+  
+  # === SUPABASE ADD KAR DIYA HAI ===
+  supabase_flutter: ^2.5.4
   
 dev_dependencies:
   flutter_test:
