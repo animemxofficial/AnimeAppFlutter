@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart'; // Uncomment this after running 'flutter pub add supabase_flutter'
+import 'package:supabase_flutter/supabase_flutter.dart'; // Uncommented for Supabase
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -185,10 +185,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // --- Supabase Initialization ---
-  // await Supabase.initialize(
-  //   url: 'YOUR_SUPABASE_URL',          
-  //   anonKey: 'YOUR_SUPABASE_ANON_KEY', 
-  // );
+  await Supabase.initialize(
+    url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
+    anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
+  );
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -338,7 +338,7 @@ class _MainScreenState extends State<MainScreen> {
       HomeScreen(onSearchTap: _goToSearch),
       const BrowseScreen(),
       const DubsScreen(),
-      const MyListScreen(),
+      const MyListScreen(), // Added MyListScreen
       const ProfileScreen()
     ];
 
@@ -2294,6 +2294,54 @@ class DubsScreen extends StatelessWidget {
         )
       )
     ); 
+  }
+}
+
+// ==========================================
+// MY LIST SCREEN (ADDED)
+// ==========================================
+class MyListScreen extends StatelessWidget {
+  const MyListScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: AppBar(
+        title: const Text("My List", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+        backgroundColor: Colors.black,
+        elevation: 0,
+      ),
+      body: ValueListenableBuilder<List<SavedEpisode>>(
+        valueListenable: myListNotifier,
+        builder: (context, savedList, child) {
+          if (savedList.isEmpty) {
+            return const Center(
+              child: Text(
+                "Your watch list is empty.", 
+                style: TextStyle(color: Colors.white54, fontSize: 16)
+              ),
+            );
+          }
+          return GridView.builder(
+            padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, 
+              childAspectRatio: 0.65, 
+              crossAxisSpacing: 14, 
+              mainAxisSpacing: 16
+            ),
+            itemCount: savedList.length,
+            itemBuilder: (context, index) {
+              return GridCategoryCard(
+                anime: savedList[index].anime, 
+                pageTitle: ""
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }
 
