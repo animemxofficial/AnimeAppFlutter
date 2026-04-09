@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Uncommented for Supabase
+import 'package:supabase_flutter/supabase_flutter.dart'; 
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -228,44 +228,96 @@ class AnimeMX extends StatelessWidget {
 }
 
 // ==========================================
-// AUTH GATE
+// AUTH GATE (SUPABASE)
 // ==========================================
-class AuthGate extends StatefulWidget {
+class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
   @override
-  State<AuthGate> createState() => _AuthGateState();
-}
-
-class _AuthGateState extends State<AuthGate> {
-  @override
-  void initState() {
-    super.initState();
-    // _checkAuth(); 
-  }
-
-  void _checkAuth() {
-    // Supabase Auth Logic here
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return const LoginScreen(); 
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(child: CircularProgressIndicator(color: Colors.orange)),
+          );
+        }
+        final session = snapshot.data?.session;
+        if (session != null) {
+          // User is logged in
+          currentUserEmail = session.user.email ?? "User";
+          return const MainScreen();
+        }
+        // User is not logged in
+        return const LoginScreen();
+      },
+    );
   }
 }
 
 // ==========================================
-// LOGIN SCREEN
+// LOGIN SCREEN (REAL EMAIL/PASSWORD)
 // ==========================================
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
-  void _handleLogin(BuildContext context) {
-    currentUserEmail = "testuser@example.com";
-    Navigator.pushReplacement(
-      context, 
-      MaterialPageRoute(builder: (_) => const MainScreen())
-    );
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _signIn() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signUp() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.")));
+    } on AuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -273,40 +325,89 @@ class LoginScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.play_circle_fill, color: Colors.orange, size: 80),
-            const SizedBox(height: 10),
-            const Text(
-              "AnimeMX", 
-              style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              "Login to continue", 
-              style: TextStyle(color: Colors.white54, fontSize: 16)
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: 250,
-              height: 50,
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.play_circle_fill, color: Colors.orange, size: 80),
+              const SizedBox(height: 10),
+              const Text(
+                "AnimeMX", 
+                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)
+              ),
+              const SizedBox(height: 40),
+              
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "Email",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.email, color: Colors.orange),
+                  filled: true,
+                  fillColor: const Color(0xFF1A1A1A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                onPressed: () => _handleLogin(context),
-                icon: const Icon(Icons.email, color: Colors.white),
-                label: const Text(
-                  "Dummy Login",
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: "Password",
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.lock, color: Colors.orange),
+                  filled: true,
+                  fillColor: const Color(0xFF1A1A1A),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 30),
+              
+              if (_isLoading)
+                const CircularProgressIndicator(color: Colors.orange)
+              else
+                Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: _signIn,
+                        child: const Text("Log In", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.orange),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: _signUp,
+                        child: const Text("Sign Up", style: TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -338,7 +439,7 @@ class _MainScreenState extends State<MainScreen> {
       HomeScreen(onSearchTap: _goToSearch),
       const BrowseScreen(),
       const DubsScreen(),
-      const MyListScreen(), // Added MyListScreen
+      const MyListScreen(), 
       const ProfileScreen()
     ];
 
@@ -494,12 +595,13 @@ class HomeScreen extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 8.0), 
               child: Divider(color: Colors.white12, thickness: 1)
             ),
+            // REAL LOGOUT ACTION
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20), 
               title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)), 
-              onTap: () { 
-                Navigator.pop(context); 
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
+              onTap: () async { 
+                Navigator.pop(context); // Close Drawer
+                await Supabase.instance.client.auth.signOut(); // REAL LOGOUT
               }
             ),
             const SizedBox(height: 20),
