@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -3173,7 +3172,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFF1E1E1E), // Dark background matching screenshot
+          backgroundColor: const Color(0xFF1E1E1E), 
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
@@ -3183,7 +3182,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF2ECA71), // Exact green color
+                    color: Color(0xFF2ECA71), 
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check, color: Colors.black, size: 40, weight: 700),
@@ -3205,11 +3204,11 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // close dialog
-                      Navigator.pop(context); // close payment page
+                      Navigator.pop(context); 
+                      Navigator.pop(context); 
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF07E2B), // Exact orange color
+                      backgroundColor: const Color(0xFFF07E2B), 
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text(
@@ -3243,40 +3242,62 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     setState(() => _isSubmitting = true);
 
     try {
-      // NOTE FOR DEV: You need to create a table named "payment_requests" in your Supabase project
-      // with columns: id, email, plan, transaction_id, image_path, created_at.
+      String imageUrl = "No URL (RLS issue)";
       
-      // We will save only details into the table for now. 
-      // If you want to upload the image to a storage bucket, create a bucket named "payment_proofs".
-      
-      String imagePath = "offline_image_${DateTime.now().millisecondsSinceEpoch}.png";
-      
-      // Try uploading image if bucket exists (Optional logic)
+      // 1. Upload to Storage (Make sure RLS for storage is configured correctly)
       try {
         final ext = _imageFile!.path.split('.').last;
         final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-        await Supabase.instance.client.storage.from('payment_proofs').upload(fileName, _imageFile!);
-        imagePath = fileName;
+        
+        await Supabase.instance.client.storage
+            .from('payment_proofs')
+            .upload(fileName, _imageFile!);
+            
+        imageUrl = Supabase.instance.client.storage
+            .from('payment_proofs')
+            .getPublicUrl(fileName);
+            
       } catch (e) {
-        print("Storage upload skipped or failed (create 'payment_proofs' bucket if needed): $e");
+        throw Exception("Storage Upload Error: $e \n(Did you disable RLS for storage?)");
       }
 
-      // Save request details to Supabase Database
-      await Supabase.instance.client.from('payment_requests').insert({
-        'email': currentUserEmail,
-        'plan': _selectedPlan,
-        'transaction_id': _trxController.text.trim(),
-        'image_path': imagePath,
-      });
+      // 2. Insert into Database (Make sure RLS for table is configured correctly)
+      try {
+        await Supabase.instance.client.from('payment_requests').insert({
+          'email': currentUserEmail,
+          'plan': _selectedPlan,
+          'transaction_id': _trxController.text.trim(),
+          'image_path': imageUrl,
+          'status': 'Pending',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      } catch (e) {
+        throw Exception("Database Insert Error: $e \n(Did you disable RLS for table?)");
+      }
 
+      // 3. Add to Local Activity Page list
       if (mounted) {
+        String planNameOnly = _selectedPlan!.split(' - ')[0];
+        String priceOnly = _selectedPlan!.split(' - ')[1];
+        
+        setState(() {
+          userOrders.insert(0, OrderItem(
+            planName: planNameOnly,
+            amount: priceOnly,
+            status: "Pending",
+            date: "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
+          ));
+        });
+        
         _showSuccessDialog();
       }
+      
     } catch (e) {
-      print("Supabase error: $e");
-      // Fallback: Still show success dialog even if table doesn't exist yet so you can see the UI working
       if (mounted) {
-        _showSuccessDialog();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString()),
+          duration: const Duration(seconds: 5),
+        ));
       }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -3303,7 +3324,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            // INFO BANNER
             Container(
               padding: const EdgeInsets.all(15), 
               decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.orange.withOpacity(0.3))), 
@@ -3319,7 +3339,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             ),
             const SizedBox(height: 30), 
             
-            // PLAN SELECTION
             const Text("Select Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             Container(
@@ -3353,7 +3372,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             ),
             const SizedBox(height: 24),
 
-            // UPLOAD SCREENSHOT
             const Text("Payment Screenshot", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             GestureDetector(
@@ -3385,7 +3403,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             ),
             const SizedBox(height: 24),
 
-            // TRANSACTION ID
             const Text("Transaction ID (UTR)", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             TextField(
@@ -3413,7 +3430,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             ),
             const SizedBox(height: 40),
 
-            // SUBMIT BUTTON
             SizedBox(
               width: double.infinity, 
               height: 50, 
