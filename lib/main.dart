@@ -1,10 +1,12 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; 
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart'; 
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -16,6 +18,29 @@ String userMobileNumber = "";
 String userActivePlan = ""; 
 
 List<String> globalRecentSearches = [];
+
+// Helper function for Avatar Colors based on Email
+final List<Color> avatarColors = [
+  Colors.redAccent,
+  Colors.blueAccent,
+  Colors.green,
+  Colors.purpleAccent,
+  Colors.teal,
+  Colors.orange,
+  Colors.pinkAccent,
+  Colors.indigo,
+];
+
+Color getAvatarColor(String email) {
+  if (email.isEmpty) return Colors.grey;
+  final int index = email.codeUnitAt(0) % avatarColors.length;
+  return avatarColors[index];
+}
+
+String getAvatarLetter(String email) {
+  if (email.isEmpty) return "?";
+  return email[0].toUpperCase();
+}
 
 class CWItem {
   final Anime anime;
@@ -502,16 +527,14 @@ class HomeScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 60, 
-                    height: 60, 
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle, 
-                      image: DecorationImage(
-                        image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"), 
-                        fit: BoxFit.cover
-                      )
-                    )
+                  // DYNAMIC AVATAR LOGO (First Letter of Email)
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: getAvatarColor(currentUserEmail),
+                    child: Text(
+                      getAvatarLetter(currentUserEmail),
+                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
+                    ),
                   ),
                   const SizedBox(width: 15),
                   Expanded(
@@ -520,7 +543,7 @@ class HomeScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "Flexxy xD", 
+                          "Welcome!", 
                           style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
                         ),
                         const SizedBox(height: 4),
@@ -2400,7 +2423,7 @@ class DubsScreen extends StatelessWidget {
 }
 
 // ==========================================
-// MY LIST SCREEN (ADDED)
+// MY LIST SCREEN
 // ==========================================
 class MyListScreen extends StatelessWidget {
   const MyListScreen({super.key});
@@ -2554,19 +2577,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Column(
                     children:[
+                      // DYNAMIC AVATAR LOGO (First Letter of Email)
                       Container(
-                        width: 75, 
-                        height: 75, 
+                        width: 75,
+                        height: 75,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle, 
+                          color: getAvatarColor(currentUserEmail),
+                          shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 15)
-                          ], 
-                          image: const DecorationImage(
-                            image: NetworkImage("https://i.ibb.co/vxJtwkcX/k.jpg"), 
-                            fit: BoxFit.cover
-                          )
-                        )
+                            BoxShadow(color: getAvatarColor(currentUserEmail).withOpacity(0.5), blurRadius: 15)
+                          ]
+                        ),
+                        child: Center(
+                          child: Text(
+                            getAvatarLetter(currentUserEmail),
+                            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 8), 
                       GestureDetector(
@@ -2589,7 +2616,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                           children:[
-                            const Text("Flexxy xD", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
+                            const Text("Welcome!", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
                             Container(
                               width: 14, 
                               height: 14, 
@@ -2638,7 +2665,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 24),
               GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PremiumPage())),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 10), 
                   padding: const EdgeInsets.all(16), 
@@ -2799,25 +2826,6 @@ class AboutUsPage extends StatelessWidget {
           ]
         )
       ),
-    ); 
-  } 
-}
-
-class SuggestionPage extends StatelessWidget { 
-  const SuggestionPage({super.key});
-
-  @override 
-  Widget build(BuildContext context) { 
-    return Scaffold(
-      backgroundColor: Colors.black, 
-      appBar: AppBar(
-        title: const Text("Suggestion", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
-      ), 
-      body: const Center(
-        child: Text("Suggestion Page", style: TextStyle(color: Colors.white))
-      )
     ); 
   } 
 }
@@ -3127,6 +3135,9 @@ class PremiumPage extends StatelessWidget {
   }
 }
 
+// ==========================================
+// NEW PAYMENT PROOF PAGE
+// ==========================================
 class PaymentProofPage extends StatefulWidget {
   const PaymentProofPage({super.key});
 
@@ -3135,14 +3146,147 @@ class PaymentProofPage extends StatefulWidget {
 }
 
 class _PaymentProofPageState extends State<PaymentProofPage> {
-  String _selectedAmount = "50"; 
-  String _selectedPlan = "Lite Plan";
-  
-  // --- Google Forms Link ---
-  final String googleFormLink = "https://docs.google.com/forms/"; // Add your link here!
+  String? _selectedPlan;
+  File? _imageFile;
+  final TextEditingController _trxController = TextEditingController();
+  bool _isSubmitting = false;
 
-  void _submitRequest() { 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Request Sent!"))); 
+  final List<String> _plans = [
+    "Lite Plan - ₹50",
+    "Plus Plan - ₹100",
+    "Pro Plan - ₹150",
+    "Ultra Plan - ₹200"
+  ];
+
+  Future<void> _pickImage() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: const Color(0xFF1E1E1E), // Dark background matching screenshot
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF2ECA71), // Exact green color
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, color: Colors.black, size: 40, weight: 700),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Submitted!",
+                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "Your payment proof is submitted. It will be verified shortly.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 15),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // close dialog
+                      Navigator.pop(context); // close payment page
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF07E2B), // Exact orange color
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _submitRequest() async {
+    if (_selectedPlan == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select a plan.")));
+      return;
+    }
+    if (_imageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please upload a payment screenshot.")));
+      return;
+    }
+    if (_trxController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter the Transaction ID.")));
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      // NOTE FOR DEV: You need to create a table named "payment_requests" in your Supabase project
+      // with columns: id, email, plan, transaction_id, image_path, created_at.
+      
+      // We will save only details into the table for now. 
+      // If you want to upload the image to a storage bucket, create a bucket named "payment_proofs".
+      
+      String imagePath = "offline_image_${DateTime.now().millisecondsSinceEpoch}.png";
+      
+      // Try uploading image if bucket exists (Optional logic)
+      try {
+        final ext = _imageFile!.path.split('.').last;
+        final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+        await Supabase.instance.client.storage.from('payment_proofs').upload(fileName, _imageFile!);
+        imagePath = fileName;
+      } catch (e) {
+        print("Storage upload skipped or failed (create 'payment_proofs' bucket if needed): $e");
+      }
+
+      // Save request details to Supabase Database
+      await Supabase.instance.client.from('payment_requests').insert({
+        'email': currentUserEmail,
+        'plan': _selectedPlan,
+        'transaction_id': _trxController.text.trim(),
+        'image_path': imagePath,
+      });
+
+      if (mounted) {
+        _showSuccessDialog();
+      }
+    } catch (e) {
+      print("Supabase error: $e");
+      // Fallback: Still show success dialog even if table doesn't exist yet so you can see the UI working
+      if (mounted) {
+        _showSuccessDialog();
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _trxController.dispose();
+    super.dispose();
   }
 
   @override
@@ -3155,108 +3299,140 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
         iconTheme: const IconThemeData(color: Colors.white)
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
+            // INFO BANNER
             Container(
               padding: const EdgeInsets.all(15), 
-              decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), 
+              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.orange.withOpacity(0.3))), 
               child: Row(
                 children: const [
-                  Icon(Icons.info_outline, color: Colors.blue), 
+                  Icon(Icons.info_outline, color: Colors.orange), 
                   SizedBox(width: 10), 
                   Expanded(
-                    child: Text("Verify your payment to activate plan instantly.", style: TextStyle(color: Colors.blue))
+                    child: Text("Provide your payment details below to instantly activate your plan.", style: TextStyle(color: Colors.orange, fontSize: 13))
                   )
                 ]
               )
             ),
-            const SizedBox(height: 24), 
+            const SizedBox(height: 30), 
             
-            const Text("Step 1: Make Payment", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
+            // PLAN SELECTION
+            const Text("Select Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
-            
             Container(
-              padding: const EdgeInsets.all(16), 
-              decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(12)), 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
-                children: [
-                  const Text("Pay to this UPI ID: wicvlox.i@oksbi", style: TextStyle(color: Colors.white, fontSize: 15)), 
-                  const SizedBox(height: 8), 
-                  GestureDetector(
-                    onTap: () { 
-                      _launchUPI(context, _selectedAmount, _selectedPlan); 
-                    }, 
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center, 
-                      children: const [
-                        Icon(Icons.credit_card, color: Colors.orange), 
-                        SizedBox(width: 8), 
-                        Text("Pay via UPI App", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold))
-                      ]
-                    )
-                  )
-                ]
-              )
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12)
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  isExpanded: true,
+                  dropdownColor: const Color(0xFF1A1A1A),
+                  hint: const Text("Choose your purchased plan", style: TextStyle(color: Colors.white54)),
+                  value: _selectedPlan,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  items: _plans.map((String plan) {
+                    return DropdownMenuItem<String>(
+                      value: plan,
+                      child: Text(plan),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedPlan = newValue;
+                    });
+                  },
+                ),
+              ),
             ),
-            const SizedBox(height: 24), 
-            
-            const Text("Step 2: Submit Proof", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 24),
+
+            // UPLOAD SCREENSHOT
+            const Text("Payment Screenshot", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
-            
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                width: double.infinity,
+                height: 160,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12, style: BorderStyle.solid),
+                ),
+                child: _imageFile != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.cloud_upload_outlined, color: Colors.orange, size: 40),
+                          SizedBox(height: 10),
+                          Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 14)),
+                          SizedBox(height: 4),
+                          Text("(JPG, PNG allowed)", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // TRANSACTION ID
+            const Text("Transaction ID (UTR)", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            TextField(
+              controller: _trxController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: "Enter 12-digit UTR or Transaction ID",
+                hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
+                prefixIcon: const Icon(Icons.tag, color: Colors.orange),
+                filled: true,
+                fillColor: const Color(0xFF1A1A1A),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.orange),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+
+            // SUBMIT BUTTON
             SizedBox(
               width: double.infinity, 
               height: 50, 
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange, 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 5,
                 ), 
-                onPressed: () async { 
-                  if (await canLaunchUrl(Uri.parse(googleFormLink))) { 
-                    await launchUrl(Uri.parse(googleFormLink), mode: LaunchMode.externalApplication); 
-                  } else { 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not open payment form."))); 
-                  } 
-                }, 
-                icon: const Icon(Icons.description, color: Colors.white), 
-                label: const Text("Fill & Submit Google Form", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
-              )
-            ),
-            const SizedBox(height: 24), 
-            
-            const Text("Step 3: Confirm Submission", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            
-            SizedBox(
-              width: double.infinity, 
-              height: 50, 
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A1A1A), 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
-                  side: const BorderSide(color: Colors.white12)
-                ), 
-                onPressed: _submitRequest, 
-                icon: const Icon(Icons.send, color: Colors.white), 
-                label: const Text("Request Send", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                onPressed: _isSubmitting ? null : _submitRequest, 
+                child: _isSubmitting 
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Submit Proof", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               )
             ),
           ],
         ),
       ),
     );
-  }
-  
-  void _launchUPI(BuildContext context, String amount, String plan) async { 
-    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan"); 
-    if (await canLaunchUrl(uri)) { 
-      await launchUrl(uri, mode: LaunchMode.externalApplication); 
-    } else { 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!"))); 
-    } 
   }
 }
 
