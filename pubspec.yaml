@@ -41,7 +41,7 @@ dependencies:
   url_launcher: ^6.2.5
   package_info_plus: ^5.0.1
   image_picker: ^1.1.1
-  supabase_flutter: ^2.5.4
+  supabase_flutter: ^2.5.0
   webview_flutter: ^4.4.2
   
 dev_dependencies:
