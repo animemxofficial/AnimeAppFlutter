@@ -6,8 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Local storage for recent searches
+import 'package:supabase_flutter/supabase_flutter.dart'; // Supabase package import
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -118,63 +117,6 @@ class OrderItem {
   OrderItem({required this.planName, required this.amount, required this.status, required this.date});
 }
 List<OrderItem> userOrders =[];
-
-// ==========================================
-// LOCAL STORAGE FUNCTIONS (SAVE TO PHONE)
-// ==========================================
-
-Future<void> loadLocalData() async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  
-  // Load Recent Searches
-  // globalRecentSearches = prefs.getStringList('recent_searches') ?? []; // Uncomment after flutter pub add shared_preferences
-  
-  // Load Continue Watching Data
-  // String? cwJson = prefs.getString('cw_list'); // Uncomment after flutter pub add shared_preferences
-}
-
-Future<void> saveRecentSearches() async {
-  // SharedPreferences prefs = await SharedPreferences.getInstance(); // Uncomment after flutter pub add shared_preferences
-  // prefs.setStringList('recent_searches', globalRecentSearches); // Uncomment after flutter pub add shared_preferences
-}
-
-Future<void> saveContinueWatching() async {
-  // SharedPreferences prefs = await SharedPreferences.getInstance(); // Uncomment after flutter pub add shared_preferences
-  // List<Map<String, dynamic>> encodedList = continueWatchingNotifier.value.map((item) => { // Uncomment after flutter pub add shared_preferences
-  //   'title': item.anime.title,
-  //   'sIdx': item.seasonIndex,
-  //   'eIdx': item.episodeIndex,
-  //   'pos': item.position.inSeconds,
-  //   'dur': item.totalDuration.inSeconds,
-  // }).toList();
-  // prefs.setString('cw_list', jsonEncode(encodedList)); // Uncomment after flutter pub add shared_preferences
-}
-
-// --- Main App Entry Point ---
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // --- Supabase Initialization (Replace with your keys) ---
-  // await Supabase.initialize(
-  //   url: 'YOUR_SUPABASE_URL',          // Supabase Project URL here
-  //   anonKey: 'YOUR_SUPABASE_ANON_KEY', // Supabase Anon Key here
-  // );
-
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      systemNavigationBarColor: Colors.black,
-      systemNavigationBarIconBrightness: Brightness.light,
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-    ),
-  );
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  runApp(const AnimeMX());
-}
 
 // ==========================================
 // MAIN APP & NAVIGATION
