@@ -12,7 +12,7 @@ import 'package:image_picker/image_picker.dart';
 // DATA MODELS & GLOBAL STATE
 // ==========================================
 
-String currentUserName = "Guest User";
+String currentUserName = "Guest User"; // Updated to fetch from Supabase on login
 String currentUserEmail = "";
 String userMobileNumber = ""; 
 String userActivePlan = ""; 
@@ -31,15 +31,15 @@ final List<Color> avatarColors = [
   Colors.indigo,
 ];
 
-Color getAvatarColor(String email) {
-  if (email.isEmpty) return Colors.grey;
-  final int index = email.codeUnitAt(0) % avatarColors.length;
+Color getAvatarColor(String inputString) {
+  if (inputString.isEmpty) return Colors.grey;
+  final int index = inputString.codeUnitAt(0) % avatarColors.length;
   return avatarColors[index];
 }
 
-String getAvatarLetter(String email) {
-  if (email.isEmpty) return "?";
-  return email[0].toUpperCase();
+String getAvatarLetter(String inputString) {
+  if (inputString.isEmpty) return "?";
+  return inputString[0].toUpperCase();
 }
 
 class CWItem {
@@ -111,6 +111,7 @@ class Anime {
   final String views;
   final Color dubColor;
   final List<Season> seasonsList;
+  final bool isNew; // Added new property
 
   Anime({
     required this.title, 
@@ -122,7 +123,8 @@ class Anime {
     this.status = "Ongoing", 
     this.views = "1.1M", 
     this.dubColor = const Color(0xFFFF4D4D), 
-    required this.seasonsList
+    required this.seasonsList,
+    this.isNew = false, // Default to false
   });
 }
 
@@ -176,14 +178,14 @@ List<Season> generateClassroomOfEliteSeasons() {
 }
 
 final List<Anime> animeData = [
-  Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "38K", dubColor: const Color(0xFFFF4D4D), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", status: "Completed", views: "3K", dubColor: const Color(0xFF4DA6FF), season: "S3", seasonsList: generateClassroomOfEliteSeasons()),
-  Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", views: "8.1K", dubColor: const Color(0xFF4DA6FF), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "4.5K", dubColor: const Color(0xFFFF9F43), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "38K", dubStatus: "DUB", dubColor: const Color(0xFFFF4D4D), season: "S1", seasonsList: generateDummySeasons(), isNew: true),
+  Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", status: "Completed", views: "3K", dubStatus: "MIX", dubColor: const Color(0xFF4DA6FF), season: "S3", seasonsList: generateClassroomOfEliteSeasons()),
+  Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", views: "8.1K", dubStatus: "DUB", dubColor: const Color(0xFF4DA6FF), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "4.5K", dubStatus: "ORIGINAL", dubColor: const Color(0xFFFF9F43), season: "S1", seasonsList: generateDummySeasons()),
   Anime(title: "Demon Slayer", genre: "Action", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "3.1K", dubStatus: "MIX", dubColor: const Color(0xFF00C853), season: "S2", seasonsList: generateDummySeasons()),
-  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "9M", dubColor: const Color(0xFF7A5CFF), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "2M", dubColor: const Color(0xFFFF4D4D), season: "Movie", seasonsList: generateDummySeasons()),
-  Anime(title: "Bleach: Thousand-Year Blood War", genre: "Action", image: "https://i.ibb.co/DDDJNsFX/images-3.jpg", status: "Coming Soon", views: "0", dubColor: Colors.grey, season: "S3", seasonsList: []),
+  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "9M", dubStatus: "DUB", dubColor: const Color(0xFF7A5CFF), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "2M", dubStatus: "MIX", dubColor: const Color(0xFFFF4D4D), season: "Movie", seasonsList: generateDummySeasons()),
+  Anime(title: "Bleach: Thousand-Year Blood War", genre: "Action", image: "https://i.ibb.co/DDDJNsFX/images-3.jpg", status: "Coming Soon", views: "0", dubStatus: "ORIGINAL", dubColor: Colors.grey, season: "S3", seasonsList: []),
 ];
 
 class OrderItem {
@@ -234,6 +236,40 @@ void main() async {
 }
 
 // ==========================================
+// UTILITY FUNCTIONS for Links and Contacts
+// ==========================================
+Future<void> launchInBrowser(String url) async {
+  final Uri uri = Uri.parse(url);
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    throw Exception('Could not launch $uri');
+  }
+}
+
+Future<void> launchWhatsApp(String number) async {
+  final Uri uri = Uri.parse("whatsapp://send?phone=$number");
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } else {
+    print("WhatsApp not installed");
+  }
+}
+
+Future<void> launchTelegram(String username) async {
+  final Uri uri = Uri.parse("tg://resolve?domain=$username");
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  } else {
+    // Fallback to web link
+    final webUri = Uri.parse("https://t.me/$username");
+    if (await canLaunchUrl(webUri)) {
+      await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    } else {
+      print("Telegram not installed");
+    }
+  }
+}
+
+// ==========================================
 // ROOT APP
 // ==========================================
 class AnimeMX extends StatelessWidget {
@@ -273,8 +309,10 @@ class AuthGate extends StatelessWidget {
         }
         final session = snapshot.data?.session;
         if (session != null) {
-          // User is logged in
+          // User is logged in, fetch user data.
           currentUserEmail = session.user.email ?? "User";
+          // We need to fetch user name from user_profiles table if it exists
+          _fetchUserData(session.user.id);
           return const MainScreen();
         }
         // User is not logged in
@@ -282,10 +320,33 @@ class AuthGate extends StatelessWidget {
       },
     );
   }
+  
+  // Fetch user details from user_profiles table
+  Future<void> _fetchUserData(String userId) async {
+    try {
+      final response = await Supabase.instance.client
+          .from('user_profiles')
+          .select('first_name, last_name')
+          .eq('id', userId)
+          .single();
+
+      if (response != null) {
+        currentUserName = "${response['first_name'] ?? ''} ${response['last_name'] ?? ''}";
+        if (currentUserName.trim().isEmpty) {
+          currentUserName = currentUserEmail.split('@')[0]; // Fallback to email prefix if name is empty
+        }
+      } else {
+        currentUserName = currentUserEmail.split('@')[0]; // Fallback if no profile exists
+      }
+    } catch (e) {
+      print("Error fetching user profile: $e");
+      currentUserName = currentUserEmail.split('@')[0]; // Fallback on error
+    }
+  }
 }
 
 // ==========================================
-// LOGIN SCREEN (REAL EMAIL/PASSWORD)
+// LOGIN SCREEN (REAL EMAIL/PASSWORD) - UPDATED UI/UX
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -297,8 +358,12 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
   bool _isLoading = false;
+  bool _isLoginMode = true; // State to toggle between Login and Signup
 
+  // Supabase Login Function
   Future<void> _signIn() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
@@ -311,30 +376,43 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // Supabase Sign Up Function
   Future<void> _signUp() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty || _firstNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
       return;
     }
     setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.auth.signUp(
+      final response = await Supabase.instance.client.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.")));
+      
+      // Save First Name and Last Name to user_profiles table
+      if (response.user != null) {
+        await Supabase.instance.client.from('user_profiles').insert({
+          'id': response.user!.id,
+          'first_name': _firstNameController.text.trim(),
+          'last_name': _lastNameController.text.trim(),
+          'email': _emailController.text.trim(),
+        });
+      }
+
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.")));
+      setState(() => _isLoginMode = true); // Switch back to login after signup
     } on AuthException catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -344,6 +422,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     super.dispose();
   }
 
@@ -364,40 +444,46 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)
               ),
               const SizedBox(height: 40),
+
+              if (!_isLoginMode) ...[
+                // Signup Fields (First Name, Last Name)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _firstNameController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDecoration(context, "First Name", Icons.person_outline),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextField(
+                        controller: _lastNameController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDecoration(context, "Last Name", Icons.person_outline),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
               
+              // Email Field
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: "Email",
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.email, color: Colors.orange),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A1A),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
+                decoration: _inputDecoration(context, "Email", Icons.email),
               ),
               const SizedBox(height: 16),
               
+              // Password Field
               TextField(
                 controller: _passwordController,
                 obscureText: true,
                 style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: "Password",
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.lock, color: Colors.orange),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A1A),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
+                decoration: _inputDecoration(context, "Password", Icons.lock),
               ),
               const SizedBox(height: 30),
               
@@ -406,6 +492,7 @@ class _LoginScreenState extends State<LoginScreen> {
               else
                 Column(
                   children: [
+                    // Primary Action Button (Login or Signup based on mode)
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -414,21 +501,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           backgroundColor: Colors.orange,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                        onPressed: _signIn,
-                        child: const Text("Log In", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        onPressed: _isLoginMode ? _signIn : _signUp,
+                        child: Text(_isLoginMode ? "Log In" : "Sign Up", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.orange),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onPressed: _signUp,
-                        child: const Text("Sign Up", style: TextStyle(color: Colors.orange, fontSize: 16, fontWeight: FontWeight.bold)),
+                    // Toggle Button
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _isLoginMode = !_isLoginMode;
+                        });
+                      },
+                      child: Text(
+                        _isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In",
+                        style: const TextStyle(color: Colors.white70, decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
@@ -436,6 +523,24 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+  
+  InputDecoration _inputDecoration(BuildContext context, String hint, IconData icon) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white54),
+      prefixIcon: Icon(icon, color: Colors.orange),
+      filled: true,
+      fillColor: const Color(0xFF1A1A1A),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Colors.orange, width: 2),
       ),
     );
   }
@@ -529,12 +634,12 @@ class HomeScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // DYNAMIC AVATAR LOGO (First Letter of Email)
+                  // DYNAMIC AVATAR LOGO (First Letter of User Name)
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: getAvatarColor(currentUserEmail),
+                    backgroundColor: getAvatarColor(currentUserName),
                     child: Text(
-                      getAvatarLetter(currentUserEmail),
+                      getAvatarLetter(currentUserName),
                       style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -544,9 +649,10 @@ class HomeScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center, 
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Welcome!", 
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                        Text(
+                          currentUserName.isNotEmpty ? currentUserName : "Welcome!", 
+                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -1105,31 +1211,51 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
-class GridCategoryCard extends StatelessWidget {
+class GridCategoryCard extends StatefulWidget {
   final Anime anime; 
   final String pageTitle; 
   
   const GridCategoryCard({super.key, required this.anime, required this.pageTitle});
-  
+
+  @override
+  State<GridCategoryCard> createState() => _GridCategoryCardState();
+}
+
+class _GridCategoryCardState extends State<GridCategoryCard> {
   @override
   Widget build(BuildContext context) {
     String? tagText; 
     Color? tagBgColor; 
     Color tagTextColor = Colors.black;
     
-    if (pageTitle == "Trending Now") { 
+    // Logic for tags based on section (Task 8 & 9)
+    if (widget.pageTitle == "Trending Now") { 
       tagText = "TRENDING"; 
       tagBgColor = Colors.orange; 
       tagTextColor = Colors.white; 
-    } else if (pageTitle == "Popular Anime") { 
+    } else if (widget.pageTitle == "Popular Anime") { 
       tagText = "POPULAR"; 
       tagBgColor = Colors.cyan; 
+    } else if (widget.pageTitle == "DUBBED" || widget.pageTitle == "ORIGINAL") {
+      tagText = widget.anime.dubStatus;
+      tagBgColor = widget.anime.dubColor;
+      tagTextColor = Colors.white;
     }
+    
+    // New tag for "Latest Episodes" see all page (Task 8)
+    if (widget.pageTitle == "Latest Episodes" && widget.anime.isNew) {
+      tagText = "NEW";
+      tagBgColor = Colors.green;
+      tagTextColor = Colors.white;
+    }
+
+    // MyList save icon logic (Task 10)
+    final bool isSaved = myListNotifier.value.any((item) => item.anime.title == widget.anime.title);
     
     return GestureDetector(
       onTap: () => Navigator.push(
         context, 
-        MaterialPageRoute(builder: (_) => DetailsPage(anime: anime))
+        MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime))
       ), 
       child: Container(
         decoration: BoxDecoration(
@@ -1141,7 +1267,7 @@ class GridCategoryCard extends StatelessWidget {
           child: Stack(
             children:[
               Image.network(
-                anime.image, 
+                widget.anime.image, 
                 fit: BoxFit.cover, 
                 width: double.infinity, 
                 height: double.infinity
@@ -1181,7 +1307,7 @@ class GridCategoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start, 
                   children:[
                     Text(
-                      anime.title, 
+                      widget.anime.title, 
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14), 
                       maxLines: 2, 
                       overflow: TextOverflow.ellipsis
@@ -1191,7 +1317,7 @@ class GridCategoryCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                       children:[
                         Text(
-                          "${anime.season} | Ep 3", 
+                          "${widget.anime.season} | Ep 3", 
                           style: const TextStyle(color: Colors.white70, fontSize: 10)
                         ), 
                         Row(
@@ -1199,7 +1325,7 @@ class GridCategoryCard extends StatelessWidget {
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
                             Text(
-                              anime.views, 
+                              widget.anime.views, 
                               style: const TextStyle(color: Colors.white70, fontSize: 10)
                             )
                           ]
@@ -1208,6 +1334,28 @@ class GridCategoryCard extends StatelessWidget {
                     )
                   ]
                 )
+              ),
+              // My List Save Icon (Task 10)
+              Positioned(
+                bottom: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: () {
+                    final list = List<SavedEpisode>.from(myListNotifier.value);
+                    if (isSaved) {
+                      list.removeWhere((item) => item.anime.title == widget.anime.title);
+                    } else {
+                      list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); // Add to list (default season/episode)
+                    }
+                    myListNotifier.value = list;
+                    setState(() {}); // Update UI
+                  },
+                  child: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: Colors.orange,
+                    size: 24,
+                  ),
+                ),
               )
             ]
           )
@@ -2212,7 +2360,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// FULLY WORKING BROWSE (SEARCH) SCREEN
+// FULLY WORKING BROWSE (SEARCH) SCREEN - UPDATED PERSISTENCE
 // ==========================================
 class BrowseScreen extends StatefulWidget {
   const BrowseScreen({super.key}); 
@@ -2223,6 +2371,51 @@ class BrowseScreen extends StatefulWidget {
 class _BrowseScreenState extends State<BrowseScreen> {
   final TextEditingController _searchController = TextEditingController(); 
   List<Anime> _searchResults = [];
+  bool _isLoadingSearches = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRecentSearches(); // Fetch on load
+  }
+
+  Future<void> _fetchRecentSearches() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('user_preferences')
+          .select('recent_searches')
+          .eq('email', currentUserEmail)
+          .single();
+
+      if (response != null && response['recent_searches'] != null) {
+        setState(() {
+          globalRecentSearches = List<String>.from(response['recent_searches']);
+          _isLoadingSearches = false;
+        });
+      } else {
+        setState(() => _isLoadingSearches = false);
+      }
+    } catch (e) {
+      print("Error fetching recent searches: $e");
+      setState(() => _isLoadingSearches = false);
+    }
+  }
+
+  Future<void> _updateRecentSearchesInDb(String query) async {
+    final newSearches = [...globalRecentSearches];
+    if (newSearches.length > 5) newSearches.removeLast(); // Keep list short
+    if (!newSearches.contains(query)) newSearches.insert(0, query);
+    
+    // Update Supabase with new list
+    try {
+      await Supabase.instance.client.from('user_preferences').upsert(
+        {'email': currentUserEmail, 'recent_searches': newSearches},
+        onConflict: 'email',
+      );
+    } catch (e) {
+      print("Error saving recent searches: $e");
+    }
+  }
 
   void _performSearch(String query) { 
     if (query.isEmpty) { 
@@ -2241,6 +2434,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
   void _setSearchQuery(String query) { 
     _searchController.text = query; 
     _performSearch(query); 
+    _updateRecentSearchesInDb(query); // Save to DB when selected from recents
   }
 
   void _submitSearch(String query) { 
@@ -2248,8 +2442,16 @@ class _BrowseScreenState extends State<BrowseScreen> {
       setState(() {
         globalRecentSearches.insert(0, query.trim());
       }); 
+      _updateRecentSearchesInDb(query); // Save to DB when new search submitted
     } 
     _performSearch(query); 
+  }
+
+  void _removeRecentSearch(int index) {
+    setState(() {
+      globalRecentSearches.removeAt(index);
+    });
+    _updateRecentSearchesInDb(globalRecentSearches.join(',')); // Update DB after removal
   }
 
   @override
@@ -2324,17 +2526,18 @@ class _BrowseScreenState extends State<BrowseScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
                 ), 
                 const SizedBox(height: 12), 
-                if (globalRecentSearches.isEmpty) 
-                  const Text("No recent searches.", style: TextStyle(color: Colors.white54)) 
-                else 
-                  ListView.builder(
-                    shrinkWrap: true, 
-                    physics: const NeverScrollableScrollPhysics(), 
-                    itemCount: globalRecentSearches.length, 
-                    itemBuilder: (context, index) { 
-                      return _buildRecentItem(globalRecentSearches[index], index); 
-                    }
-                  )
+                _isLoadingSearches
+                    ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+                    : (globalRecentSearches.isEmpty) 
+                        ? const Text("No recent searches.", style: TextStyle(color: Colors.white54)) 
+                        : ListView.builder(
+                            shrinkWrap: true, 
+                            physics: const NeverScrollableScrollPhysics(), 
+                            itemCount: globalRecentSearches.length, 
+                            itemBuilder: (context, index) { 
+                              return _buildRecentItem(globalRecentSearches[index], index); 
+                            }
+                          )
               ]
             ],
           ),
@@ -2360,9 +2563,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
             Row(
               children:[
                 GestureDetector(
-                  onTap: () { 
-                    setState(() => globalRecentSearches.removeAt(index)); 
-                  }, 
+                  onTap: () => _removeRecentSearch(index), 
                   child: Icon(Icons.close, size: 18, color: Colors.grey[500])
                 ), 
                 const SizedBox(width: 12), 
@@ -2377,7 +2578,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
 }
 
 // ==========================================
-// DUBS SCREEN
+// DUBS SCREEN - UPDATED TAGS
 // ==========================================
 class DubsScreen extends StatelessWidget {
   const DubsScreen({super.key}); 
@@ -2405,17 +2606,31 @@ class DubsScreen extends StatelessWidget {
         ), 
         body: TabBarView(
           children:[
+            // Dubbed Section (show DUB and MIX tags)
             GridView.builder(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), 
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16), 
               itemCount: animeData.length, 
-              itemBuilder: (context, index) => GridCategoryCard(anime: animeData[index], pageTitle: "")
+              itemBuilder: (context, index) {
+                final anime = animeData[index];
+                if (anime.dubStatus == "DUB" || anime.dubStatus == "MIX") {
+                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing dubStatus as pageTitle for tag logic
+                }
+                return const SizedBox.shrink();
+              }
             ), 
+            // Original Section (show ORIGINAL and MIX tags)
             GridView.builder(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), 
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16), 
               itemCount: animeData.length, 
-              itemBuilder: (context, index) => GridCategoryCard(anime: animeData[index], pageTitle: "")
+              itemBuilder: (context, index) {
+                final anime = animeData[index];
+                if (anime.dubStatus == "ORIGINAL" || anime.dubStatus == "MIX") {
+                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing dubStatus as pageTitle for tag logic
+                }
+                return const SizedBox.shrink();
+              }
             )
           ]
         )
@@ -2579,35 +2794,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Column(
                     children:[
-                      // DYNAMIC AVATAR LOGO (First Letter of Email)
+                      // DYNAMIC AVATAR LOGO (First Letter of User Name)
                       Container(
                         width: 75,
                         height: 75,
                         decoration: BoxDecoration(
-                          color: getAvatarColor(currentUserEmail),
+                          color: getAvatarColor(currentUserName),
                           shape: BoxShape.circle,
                           boxShadow: [
-                            BoxShadow(color: getAvatarColor(currentUserEmail).withOpacity(0.5), blurRadius: 15)
+                            BoxShadow(color: getAvatarColor(currentUserName).withOpacity(0.5), blurRadius: 15)
                           ]
                         ),
                         child: Center(
                           child: Text(
-                            getAvatarLetter(currentUserEmail),
+                            getAvatarLetter(currentUserName),
                             style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
                       const SizedBox(height: 8), 
-                      GestureDetector(
-                        onTap: _showAddInfoDialog, 
-                        child: Row(
-                          children: const [
-                            Icon(Icons.add_circle_outline, color: Colors.orange, size: 14), 
-                            SizedBox(width: 4), 
-                            Text("Add Info", style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 12))
-                          ]
-                        )
-                      ),
+                      // Removed "Add Info" button as per user request (Task 5)
                     ],
                   ),
                   const SizedBox(width: 20),
@@ -2618,7 +2824,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                           children:[
-                            const Text("Welcome!", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
+                            Text(currentUserName.isNotEmpty ? currentUserName : "Welcome!", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
                             Container(
                               width: 14, 
                               height: 14, 
@@ -2776,7 +2982,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 // ==========================================
-// PLACEHOLDER PAGES FOR MENU OPTIONS
+// PLACEHOLDER PAGES FOR MENU OPTIONS - UPDATED
 // ==========================================
 class PrivacyPolicyPage extends StatelessWidget { 
   const PrivacyPolicyPage({super.key});
@@ -2820,7 +3026,10 @@ class AboutUsPage extends StatelessWidget {
           children: const [
             Text("About AnimeMX", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
             SizedBox(height: 12), 
-            Text("Welcome to AnimeMX, your ultimate destination for streaming the best and latest anime! Our mission is to provide an ad-free, high-quality, and seamless viewing experience for anime lovers around the world.\n\nEnjoy HD & 4K quality, dubbed & subbed versions, and lightning-fast streaming anywhere, anytime.", style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)), 
+            Text(
+              "Welcome to AnimeMX, your ultimate destination for streaming the best and latest anime! Our mission is to provide an ad-free, high-quality, and seamless viewing experience for anime lovers around the world.\n\nWe offer dubbed anime in Hindi, English, and Japanese languages. Enjoy HD & 4K quality, dubbed & subbed versions, and lightning-fast streaming anywhere, anytime.", 
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
+            ), 
             SizedBox(height: 30), 
             Text("Contact Us", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
             SizedBox(height: 12), 
@@ -3169,7 +3378,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     }
   }
 
-  // DIALOG IMPROVEMENT: Adjusted padding and layout for smaller size
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -3179,7 +3387,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
           backgroundColor: const Color(0xFF1E1E1E), 
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0), // Reduced vertical padding
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0), 
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -3191,33 +3399,33 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                   ),
                   child: const Icon(Icons.check, color: Colors.black, size: 40, weight: 700),
                 ),
-                const SizedBox(height: 16), // Reduced space
+                const SizedBox(height: 16), 
                 const Text(
                   "Submitted!",
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), // Reduced font size slightly
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), 
                 ),
-                const SizedBox(height: 8), // Reduced space
+                const SizedBox(height: 8), 
                 const Text(
                   "Your payment proof is submitted. It will be verified shortly.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 14), // Reduced font size slightly
+                  style: TextStyle(color: Colors.white70, fontSize: 14), 
                 ),
-                const SizedBox(height: 20), // Reduced space
+                const SizedBox(height: 20), 
                 SizedBox(
                   width: double.infinity,
-                  height: 45, // Reduced button height slightly
+                  height: 45, 
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // close dialog
-                      Navigator.pop(context); // close payment page
+                      Navigator.pop(context); 
+                      Navigator.pop(context); 
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF07E2B), 
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), // Reduced border radius slightly
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), 
                     ),
                     child: const Text(
                       "OK",
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), // Reduced font size slightly
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
                     ),
                   ),
                 )
@@ -3288,18 +3496,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
         return;
       }
 
-      // Local update for immediate display in ActivityPage (for better UX)
       if (mounted) {
-        String planNameOnly = _selectedPlan!.split(' - ')[0];
-        String priceOnly = _selectedPlan!.split(' - ')[1];
-        
-        userOrders.insert(0, OrderItem(
-          planName: planNameOnly,
-          amount: priceOnly,
-          status: "Pending",
-          date: "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
-        ));
-        
         _showSuccessDialog();
       }
       
@@ -3510,44 +3707,102 @@ class SupportPage extends StatelessWidget {
             const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 16), 
             
-            _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent), 
-            _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green), 
-            _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent)
+            // Task 6: Add Contact Links (WhatsApp, Telegram, Email)
+            _buildSupportTile(
+              Icons.telegram, 
+              "Telegram", 
+              "Instant Chat Support", 
+              Colors.blueAccent, 
+              onTap: () => launchTelegram("your_telegram_username_here"), // Replace with actual username
+            ), 
+            _buildSupportTile(
+              Icons.chat, 
+              "WhatsApp", 
+              "Chat Support", 
+              Colors.green, 
+              onTap: () => launchWhatsApp("918987927874"), // Indian number provided by user
+            ), 
+            _buildSupportTile(
+              Icons.email, 
+              "Email", 
+              "24-hour Response", 
+              Colors.orangeAccent, 
+              onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), // Email link provided by user
+            ),
+            
+            const SizedBox(height: 30), 
+            const Text("Social Media", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 16), 
+
+            // Task 6: Add Social Media Links
+            _buildSupportTile(
+              Icons.ondemand_video, 
+              "YouTube", 
+              "Watch trailers and updates", 
+              Colors.red, 
+              onTap: () => launchInBrowser("https://www.youtube.com/@animemxofficial"), // Replace with actual URL
+            ),
+            _buildSupportTile(
+              Icons.camera_alt, 
+              "Instagram", 
+              "Follow for latest posts", 
+              Colors.pink, 
+              onTap: () => launchInBrowser("https://www.instagram.com/animemxofficial"), // Replace with actual URL
+            ),
+            _buildSupportTile(
+              Icons.facebook, 
+              "Facebook", 
+              "Like our page", 
+              Colors.blue, 
+              onTap: () => launchInBrowser("https://www.facebook.com/animemxofficial"), // Replace with actual URL
+            ),
+            _buildSupportTile(
+              Icons.public, 
+              "Twitter", 
+              "Latest news", 
+              Colors.lightBlue, 
+              onTap: () => launchInBrowser("https://twitter.com/animemxofficial"), // Replace with actual URL
+            ),
           ]
         )
       ), 
     ); 
   }
   
-  Widget _buildSupportTile(IconData icon, String title, String sub, Color color) { 
+  Widget _buildSupportTile(IconData icon, String title, String sub, Color color, {required VoidCallback onTap}) { 
     return Container(
       margin: const EdgeInsets.only(bottom: 12), 
-      padding: const EdgeInsets.all(12), 
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A), 
-        borderRadius: BorderRadius.circular(12), 
-        border: Border.all(color: Colors.white12)
-      ), 
-      child: Row(
-        children:[
-          Container(
-            padding: const EdgeInsets.all(10), 
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), 
-            child: Icon(icon, color: color)
-          ), 
-          const SizedBox(width: 15), 
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, 
+      child: Material(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(12), 
+            child: Row(
               children:[
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), 
-                Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12))
+                Container(
+                  padding: const EdgeInsets.all(10), 
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), 
+                  child: Icon(icon, color: color)
+                ), 
+                const SizedBox(width: 15), 
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children:[
+                      Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), 
+                      Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12))
+                    ]
+                  )
+                ), 
+                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)
               ]
-            )
-          ), 
-          const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)
-        ]
-      )
+            ),
+          ),
+        ),
+      ),
     ); 
   }
 }
@@ -3578,13 +3833,13 @@ class _ActivityPageState extends State<ActivityPage> {
       final response = await Supabase.instance.client
           .from('payment_requests')
           .select()
+          .eq('email', currentUserEmail) // Filter by current user's email (Task 1 fix)
           .order('created_at', ascending: false)
-          .limit(10); // Limit to show recent orders
+          .limit(10); 
 
       if (response != null && response.isNotEmpty) {
         final List<OrderItem> fetchedList = [];
         for (var data in response) {
-          // Extract plan name and price from a single string "Plan Name - ₹Price"
           String fullPlanName = data['plan'] ?? 'N/A';
           List<String> planParts = fullPlanName.split(' - ');
           String planNameOnly = planParts.length > 0 ? planParts[0] : fullPlanName;
@@ -3594,7 +3849,7 @@ class _ActivityPageState extends State<ActivityPage> {
             planName: planNameOnly,
             amount: priceOnly,
             status: data['status'] ?? 'Pending',
-            date: data['created_at'] != null ? data['created_at'].substring(0, 10) : 'N/A', // Format date
+            date: data['created_at'] != null ? data['created_at'].substring(0, 10) : 'N/A', 
           ));
         }
         setState(() {
