@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -199,7 +200,9 @@ class OrderItem {
   });
 }
 
-List<OrderItem> userOrders = [];
+// Global list for initial data (updated by payment submission)
+// ActivityPage now fetches from Supabase on load, but we keep this for local updates.
+List<OrderItem> userOrders = []; 
 
 // ==========================================
 // MAIN ENTRY POINT
@@ -3166,6 +3169,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     }
   }
 
+  // DIALOG IMPROVEMENT: Adjusted padding and layout for smaller size
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -3175,7 +3179,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
           backgroundColor: const Color(0xFF1E1E1E), 
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0), // Reduced vertical padding
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -3187,33 +3191,33 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                   ),
                   child: const Icon(Icons.check, color: Colors.black, size: 40, weight: 700),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16), // Reduced space
                 const Text(
                   "Submitted!",
-                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), // Reduced font size slightly
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8), // Reduced space
                 const Text(
                   "Your payment proof is submitted. It will be verified shortly.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 15),
+                  style: TextStyle(color: Colors.white70, fontSize: 14), // Reduced font size slightly
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20), // Reduced space
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 45, // Reduced button height slightly
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); 
-                      Navigator.pop(context); 
+                      Navigator.pop(context); // close dialog
+                      Navigator.pop(context); // close payment page
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF07E2B), 
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), // Reduced border radius slightly
                     ),
                     child: const Text(
                       "OK",
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), // Reduced font size slightly
                     ),
                   ),
                 )
@@ -3244,24 +3248,29 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     try {
       String imageUrl = "No URL (RLS issue)";
       
-      // 1. Upload to Storage (Make sure RLS for storage is configured correctly)
       try {
         final ext = _imageFile!.path.split('.').last;
         final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
         
+        // Upload image to Supabase Storage
         await Supabase.instance.client.storage
             .from('payment_proofs')
-            .upload(fileName, _imageFile!);
+            .upload(fileName, _imageFile!, fileOptions: const FileOptions(cacheControl: '3600', upsert: false));
             
+        // Get public URL for the image
         imageUrl = Supabase.instance.client.storage
             .from('payment_proofs')
             .getPublicUrl(fileName);
             
       } catch (e) {
-        throw Exception("Storage Upload Error: $e \n(Did you disable RLS for storage?)");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Storage Upload Error: ${e.toString()}")));
+        }
+        setState(() => _isSubmitting = false);
+        return; 
       }
 
-      // 2. Insert into Database (Make sure RLS for table is configured correctly)
+      // Insert data into Database
       try {
         await Supabase.instance.client.from('payment_requests').insert({
           'email': currentUserEmail,
@@ -3272,22 +3281,24 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
           'created_at': DateTime.now().toIso8601String(),
         });
       } catch (e) {
-        throw Exception("Database Insert Error: $e \n(Did you disable RLS for table?)");
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Database Insert Error: ${e.toString()}")));
+        }
+        setState(() => _isSubmitting = false);
+        return;
       }
 
-      // 3. Add to Local Activity Page list
+      // Local update for immediate display in ActivityPage (for better UX)
       if (mounted) {
         String planNameOnly = _selectedPlan!.split(' - ')[0];
         String priceOnly = _selectedPlan!.split(' - ')[1];
         
-        setState(() {
-          userOrders.insert(0, OrderItem(
-            planName: planNameOnly,
-            amount: priceOnly,
-            status: "Pending",
-            date: "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
-          ));
-        });
+        userOrders.insert(0, OrderItem(
+          planName: planNameOnly,
+          amount: priceOnly,
+          status: "Pending",
+          date: "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}",
+        ));
         
         _showSuccessDialog();
       }
@@ -3295,7 +3306,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(e.toString()),
+          content: Text("An unexpected error occurred: ${e.toString()}"),
           duration: const Duration(seconds: 5),
         ));
       }
@@ -3541,6 +3552,9 @@ class SupportPage extends StatelessWidget {
   }
 }
 
+// ==========================================
+// ACTIVITY PAGE (FETCHES DATA FROM SUPABASE)
+// ==========================================
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
 
@@ -3549,6 +3563,54 @@ class ActivityPage extends StatefulWidget {
 }
 
 class _ActivityPageState extends State<ActivityPage> {
+  List<OrderItem> _fetchedOrders = []; 
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  // Fetch data from Supabase on load
+  Future<void> _fetchOrders() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('payment_requests')
+          .select()
+          .order('created_at', ascending: false)
+          .limit(10); // Limit to show recent orders
+
+      if (response != null && response.isNotEmpty) {
+        final List<OrderItem> fetchedList = [];
+        for (var data in response) {
+          // Extract plan name and price from a single string "Plan Name - ₹Price"
+          String fullPlanName = data['plan'] ?? 'N/A';
+          List<String> planParts = fullPlanName.split(' - ');
+          String planNameOnly = planParts.length > 0 ? planParts[0] : fullPlanName;
+          String priceOnly = planParts.length > 1 ? planParts[1] : '₹0';
+
+          fetchedList.add(OrderItem(
+            planName: planNameOnly,
+            amount: priceOnly,
+            status: data['status'] ?? 'Pending',
+            date: data['created_at'] != null ? data['created_at'].substring(0, 10) : 'N/A', // Format date
+          ));
+        }
+        setState(() {
+          _fetchedOrders = fetchedList;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+
+    } catch (e) {
+      print("Error fetching orders: $e");
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -3558,65 +3620,67 @@ class _ActivityPageState extends State<ActivityPage> {
         backgroundColor: Colors.black, 
         iconTheme: const IconThemeData(color: Colors.white)
       ),
-      body: userOrders.isEmpty 
-          ? const Center(
-              child: Text("No recent orders.", style: TextStyle(color: Colors.white54))
-            ) 
-          : ListView.builder(
-              padding: const EdgeInsets.all(16), 
-              itemCount: userOrders.length, 
-              itemBuilder: (ctx, i) { 
-                final order = userOrders[i]; 
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12), 
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator(color: Colors.orange)) 
+          : _fetchedOrders.isEmpty 
+              ? const Center(
+                  child: Text("No recent orders found.", style: TextStyle(color: Colors.white54))
+                ) 
+              : ListView.builder(
                   padding: const EdgeInsets.all(16), 
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A), 
-                    borderRadius: BorderRadius.circular(12), 
-                    border: Border(
-                      left: BorderSide(
-                        color: order.status == "Pending" ? Colors.orange : Colors.green, 
-                        width: 4
-                      )
-                    )
-                  ), 
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                    children:[
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start, 
-                        children:[
-                          Text(
-                            order.planName, 
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
-                          ), 
-                          const SizedBox(height: 4), 
-                          Text(
-                            "${order.amount} • ${order.date}", 
-                            style: const TextStyle(color: Colors.white54, fontSize: 12)
-                          )
-                        ]
-                      ), 
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
-                        decoration: BoxDecoration(
-                          color: order.status == "Pending" ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2), 
-                          borderRadius: BorderRadius.circular(20)
-                        ), 
-                        child: Text(
-                          order.status, 
-                          style: TextStyle(
+                  itemCount: _fetchedOrders.length, 
+                  itemBuilder: (ctx, i) { 
+                    final order = _fetchedOrders[i]; 
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12), 
+                      padding: const EdgeInsets.all(16), 
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A1A), 
+                        borderRadius: BorderRadius.circular(12), 
+                        border: Border(
+                          left: BorderSide(
                             color: order.status == "Pending" ? Colors.orange : Colors.green, 
-                            fontSize: 12, 
-                            fontWeight: FontWeight.bold
+                            width: 4
                           )
                         )
-                      )
-                    ]
-                  ),
-                ); 
-              }, 
-            ),
+                      ), 
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                        children:[
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start, 
+                            children:[
+                              Text(
+                                order.planName, 
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
+                              ), 
+                              const SizedBox(height: 4), 
+                              Text(
+                                "${order.amount} • ${order.date}", 
+                                style: const TextStyle(color: Colors.white54, fontSize: 12)
+                              )
+                            ]
+                          ), 
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
+                            decoration: BoxDecoration(
+                              color: order.status == "Pending" ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2), 
+                              borderRadius: BorderRadius.circular(20)
+                            ), 
+                            child: Text(
+                              order.status, 
+                              style: TextStyle(
+                                color: order.status == "Pending" ? Colors.orange : Colors.green, 
+                                fontSize: 12, 
+                                fontWeight: FontWeight.bold
+                              )
+                            )
+                          )
+                        ]
+                      ),
+                    ); 
+                  }, 
+                ),
     );
   }
 }
