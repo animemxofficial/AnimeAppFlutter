@@ -1,4 +1,4 @@
-import 'dart:io';
+//import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart'; 
+import 'dart:convert'; // For encoding/decoding JSON
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -316,37 +317,14 @@ class AuthGate extends StatelessWidget {
         final session = snapshot.data?.session;
         if (session != null) {
           currentUserEmail = session.user.email ?? "User";
-          // We need to fetch user name from user_profiles table if it exists
-          _fetchUserData(session.user.id);
+          // Generate userName from email prefix as requested (Task 1 fix)
+          currentUserName = currentUserEmail.split('@')[0]; 
           return const MainScreen();
         }
         // User is not logged in
         return const LoginScreen();
       },
     );
-  }
-  
-  // Fetch user details from user_profiles table
-  Future<void> _fetchUserData(String userId) async {
-    try {
-      final response = await Supabase.instance.client
-          .from('user_profiles')
-          .select('first_name, last_name')
-          .eq('id', userId)
-          .single();
-
-      if (response != null) {
-        currentUserName = "${response['first_name'] ?? ''} ${response['last_name'] ?? ''}";
-        if (currentUserName.trim().isEmpty) {
-          currentUserName = currentUserEmail.split('@')[0]; // Fallback to email prefix if name is empty
-        }
-      } else {
-        currentUserName = currentUserEmail.split('@')[0]; // Fallback if no profile exists
-      }
-    } catch (e) {
-      print("Error fetching user profile: $e");
-      currentUserName = currentUserEmail.split('@')[0]; // Fallback on error
-    }
   }
 }
 
@@ -363,8 +341,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _firstNameController = TextEditingController();
-  final TextEditingController _lastNameController = TextEditingController();
   bool _isLoading = false;
   bool _isLoginMode = true; // State to toggle between Login and Signup
 
@@ -389,29 +365,18 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Supabase Sign Up Function
+  // Supabase Sign Up Function (Removed first name/last name)
   Future<void> _signUp() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty || _firstNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
       return;
     }
     setState(() => _isLoading = true);
     try {
-      final response = await Supabase.instance.client.auth.signUp(
+      await Supabase.instance.client.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      
-      // Save First Name and Last Name to user_profiles table
-      if (response.user != null) {
-        await Supabase.instance.client.from('user_profiles').insert({
-          'id': response.user!.id,
-          'first_name': _firstNameController.text.trim(),
-          'last_name': _lastNameController.text.trim(),
-          'email': _emailController.text.trim(),
-        });
-      }
-
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.")));
       setState(() => _isLoginMode = true); // Switch back to login after signup
     } on AuthException catch (e) {
@@ -427,15 +392,13 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white, // Light color background as requested
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -446,48 +409,24 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 10),
               const Text(
                 "AnimeMX", 
-                style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)
+                style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold) // Black text for light background
               ),
               const SizedBox(height: 40),
 
-              if (!_isLoginMode) ...[
-                // Signup Fields (First Name, Last Name)
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _firstNameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(context, "First Name", Icons.person_outline),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: TextField(
-                        controller: _lastNameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(context, "Last Name", Icons.person_outline),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-              ],
-              
-              // Email Field
+              // Email Field (light UI)
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.black),
                 decoration: _inputDecoration(context, "Email", Icons.email),
               ),
               const SizedBox(height: 16),
               
-              // Password Field
+              // Password Field (light UI)
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                style: const TextStyle(color: Colors.white),
+                style: const TextStyle(color: Colors.black),
                 decoration: _inputDecoration(context, "Password", Icons.lock),
               ),
               const SizedBox(height: 30),
@@ -520,7 +459,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         _isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In",
-                        style: const TextStyle(color: Colors.white70, decoration: TextDecoration.underline),
+                        style: const TextStyle(color: Colors.orange, decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
@@ -535,10 +474,10 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _inputDecoration(BuildContext context, String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white54),
+      hintStyle: const TextStyle(color: Colors.black54),
       prefixIcon: Icon(icon, color: Colors.orange),
       filled: true,
-      fillColor: const Color(0xFF1A1A1A),
+      fillColor: const Color(0xFFE0E0E0), // Soft light background color
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -2384,17 +2323,26 @@ class _BrowseScreenState extends State<BrowseScreen> {
     _fetchRecentSearches(); // Fetch on load
   }
 
+  // Fetch data from Supabase on load
   Future<void> _fetchRecentSearches() async {
     try {
       final response = await Supabase.instance.client
           .from('user_preferences')
           .select('recent_searches')
-          .eq('email', currentUserEmail)
+          .eq('email', currentUserEmail) // Filter by current user's email
           .single();
 
       if (response != null && response['recent_searches'] != null) {
         setState(() {
-          globalRecentSearches = List<String>.from(response['recent_searches']);
+          // Check if recent searches is a string or list
+          var data = response['recent_searches'];
+          if (data is String) {
+            globalRecentSearches = List<String>.from(jsonDecode(data));
+          } else if (data is List) {
+            globalRecentSearches = List<String>.from(data);
+          } else {
+            globalRecentSearches = [];
+          }
           _isLoadingSearches = false;
         });
       } else {
@@ -2406,16 +2354,19 @@ class _BrowseScreenState extends State<BrowseScreen> {
     }
   }
 
+  // Save/Update recent searches to Supabase DB
   Future<void> _updateRecentSearchesInDb(String query) async {
     final newSearches = [...globalRecentSearches];
     if (newSearches.length > 5) newSearches.removeLast(); // Keep list short
     if (!newSearches.contains(query)) newSearches.insert(0, query);
     
-    // Update Supabase with new list
+    // Convert List<String> to JSON string for jsonb type in Supabase
+    String searchesJson = jsonEncode(newSearches);
+
     try {
       await Supabase.instance.client.from('user_preferences').upsert(
-        {'email': currentUserEmail, 'recent_searches': newSearches},
-        onConflict: 'email',
+        {'email': currentUserEmail, 'id': Supabase.instance.client.auth.currentUser!.id, 'recent_searches': searchesJson},
+        onConflict: 'id',
       );
     } catch (e) {
       print("Error saving recent searches: $e");
@@ -2439,7 +2390,10 @@ class _BrowseScreenState extends State<BrowseScreen> {
   void _setSearchQuery(String query) { 
     _searchController.text = query; 
     _performSearch(query); 
-    _updateRecentSearchesInDb(query); // Save to DB when selected from recents
+    // Save to DB when selected from recents
+    if (query.isNotEmpty) {
+      _updateRecentSearchesInDb(query); 
+    }
   }
 
   void _submitSearch(String query) { 
@@ -2447,7 +2401,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
       setState(() {
         globalRecentSearches.insert(0, query.trim());
       }); 
-      _updateRecentSearchesInDb(query); // Save to DB when new search submitted
+      _updateRecentSearchesInDb(query.trim()); // Save to DB when new search submitted
     } 
     _performSearch(query); 
   }
@@ -2456,7 +2410,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
     setState(() {
       globalRecentSearches.removeAt(index);
     });
-    // Update DB after removal (Note: The updateRecentSearchesInDb function handles saving the current list state)
+    // Update DB after removal
     _updateRecentSearchesInDb(globalRecentSearches.join(',')); 
   }
 
@@ -2620,7 +2574,7 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "DUB" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: "DUB"); // Passing "DUB" as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing dubStatus as pageTitle for tag logic
                 }
                 return const SizedBox.shrink();
               }
@@ -2633,7 +2587,7 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "ORIGINAL" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: "ORIGINAL"); // Passing "ORIGINAL" as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing "ORIGINAL" as pageTitle for tag logic
                 }
                 return const SizedBox.shrink();
               }
@@ -2648,8 +2602,55 @@ class DubsScreen extends StatelessWidget {
 // ==========================================
 // MY LIST SCREEN
 // ==========================================
-class MyListScreen extends StatelessWidget {
+class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
+
+  @override
+  State<MyListScreen> createState() => _MyListScreenState();
+}
+
+class _MyListScreenState extends State<MyListScreen> {
+  bool _isLoadingSavedAnime = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSavedAnime();
+  }
+
+  // Fetch saved anime list from Supabase on load
+  Future<void> _fetchSavedAnime() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('user_preferences')
+          .select('saved_anime')
+          .eq('email', currentUserEmail)
+          .single();
+
+      if (response != null && response['saved_anime'] != null) {
+        final List<dynamic> savedData = response['saved_anime'];
+        final List<SavedEpisode> fetchedList = [];
+        for (var data in savedData) {
+          final animeTitle = data['animeTitle'];
+          final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
+          fetchedList.add(SavedEpisode(
+            anime: animeMatch,
+            seasonIndex: data['seasonIndex'] ?? 0,
+            episodeIndex: data['episodeIndex'] ?? 0,
+          ));
+        }
+        setState(() {
+          myListNotifier.value = fetchedList;
+          _isLoadingSavedAnime = false;
+        });
+      } else {
+        setState(() => _isLoadingSavedAnime = false);
+      }
+    } catch (e) {
+      print("Error fetching saved anime: $e");
+      setState(() => _isLoadingSavedAnime = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2660,35 +2661,37 @@ class MyListScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         elevation: 0,
       ),
-      body: ValueListenableBuilder<List<SavedEpisode>>(
-        valueListenable: myListNotifier,
-        builder: (context, savedList, child) {
-          if (savedList.isEmpty) {
-            return const Center(
-              child: Text(
-                "Your watch list is empty.", 
-                style: TextStyle(color: Colors.white54, fontSize: 16)
-              ),
-            );
-          }
-          return GridView.builder(
-            padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, 
-              childAspectRatio: 0.65, 
-              crossAxisSpacing: 14, 
-              mainAxisSpacing: 16
+      body: _isLoadingSavedAnime
+          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+          : ValueListenableBuilder<List<SavedEpisode>>(
+              valueListenable: myListNotifier,
+              builder: (context, savedList, child) {
+                if (savedList.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "Your watch list is empty.", 
+                      style: TextStyle(color: Colors.white54, fontSize: 16)
+                    ),
+                  );
+                }
+                return GridView.builder(
+                  padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2, 
+                    childAspectRatio: 0.65, 
+                    crossAxisSpacing: 14, 
+                    mainAxisSpacing: 16
+                  ),
+                  itemCount: savedList.length,
+                  itemBuilder: (context, index) {
+                    return GridCategoryCard(
+                      anime: savedList[index].anime, 
+                      pageTitle: ""
+                    );
+                  },
+                );
+              },
             ),
-            itemCount: savedList.length,
-            itemBuilder: (context, index) {
-              return GridCategoryCard(
-                anime: savedList[index].anime, 
-                pageTitle: ""
-              );
-            },
-          );
-        },
-      ),
     );
   }
 }
@@ -2819,7 +2822,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 8), 
-                      // Removed "Add Info" button as per user request (Task 5)
                     ],
                   ),
                   const SizedBox(width: 20),
