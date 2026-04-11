@@ -250,7 +250,13 @@ Future<void> launchWhatsApp(String number) async {
   if (await canLaunchUrl(uri)) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   } else {
-    print("WhatsApp not installed");
+    // Fallback to web link
+    final webUri = Uri.parse("https://api.whatsapp.com/send?phone=$number");
+    if (await canLaunchUrl(webUri)) {
+      await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    } else {
+      print("WhatsApp not installed");
+    }
   }
 }
 
@@ -309,7 +315,6 @@ class AuthGate extends StatelessWidget {
         }
         final session = snapshot.data?.session;
         if (session != null) {
-          // User is logged in, fetch user data.
           currentUserEmail = session.user.email ?? "User";
           // We need to fetch user name from user_profiles table if it exists
           _fetchUserData(session.user.id);
@@ -1236,8 +1241,8 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     } else if (widget.pageTitle == "Popular Anime") { 
       tagText = "POPULAR"; 
       tagBgColor = Colors.cyan; 
-    } else if (widget.pageTitle == "DUBBED" || widget.pageTitle == "ORIGINAL") {
-      tagText = widget.anime.dubStatus;
+    } else if (widget.pageTitle == "DUB" || widget.pageTitle == "ORIGINAL") { // Using "DUB" or "ORIGINAL" directly from anime.dubStatus property
+      tagText = widget.anime.dubStatus == "DUB" ? "AMX DUB" : (widget.anime.dubStatus == "ORIGINAL" ? "ORIGINAL" : "MIX O/D");
       tagBgColor = widget.anime.dubColor;
       tagTextColor = Colors.white;
     }
@@ -1335,10 +1340,10 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                   ]
                 )
               ),
-              // My List Save Icon (Task 10)
+              // My List Save Icon Position (Task 10)
               Positioned(
-                bottom: 10,
-                right: 10,
+                top: 8, // Changed position to top left
+                left: 8, // Changed position to top left
                 child: GestureDetector(
                   onTap: () {
                     final list = List<SavedEpisode>.from(myListNotifier.value);
@@ -1348,7 +1353,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                       list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); // Add to list (default season/episode)
                     }
                     myListNotifier.value = list;
-                    setState(() {}); // Update UI
+                    // setState(() {}); // No need to call setState here, valueNotifier handles update
                   },
                   child: Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -2451,7 +2456,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
     setState(() {
       globalRecentSearches.removeAt(index);
     });
-    _updateRecentSearchesInDb(globalRecentSearches.join(',')); // Update DB after removal
+    // Update DB after removal (Note: The updateRecentSearchesInDb function handles saving the current list state)
+    _updateRecentSearchesInDb(globalRecentSearches.join(',')); 
   }
 
   @override
@@ -2614,7 +2620,7 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "DUB" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing dubStatus as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: "DUB"); // Passing "DUB" as pageTitle for tag logic
                 }
                 return const SizedBox.shrink();
               }
@@ -2627,7 +2633,7 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "ORIGINAL" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing dubStatus as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: "ORIGINAL"); // Passing "ORIGINAL" as pageTitle for tag logic
                 }
                 return const SizedBox.shrink();
               }
