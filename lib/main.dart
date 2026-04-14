@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -14,7 +13,7 @@ import 'dart:convert'; // For encoding/decoding JSON
 // DATA MODELS & GLOBAL STATE
 // ==========================================
 
-String currentUserName = "Guest User"; // Updated to fetch from Supabase on login
+String currentUserName = "Guest User"; 
 String currentUserEmail = "";
 String userMobileNumber = ""; 
 String userActivePlan = ""; 
@@ -23,14 +22,8 @@ List<String> globalRecentSearches = [];
 
 // Helper function for Avatar Colors based on Email
 final List<Color> avatarColors = [
-  Colors.redAccent,
-  Colors.blueAccent,
-  Colors.green,
-  Colors.purpleAccent,
-  Colors.teal,
-  Colors.orange,
-  Colors.pinkAccent,
-  Colors.indigo,
+  Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
+  Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo,
 ];
 
 Color getAvatarColor(String inputString) {
@@ -66,16 +59,15 @@ class CWItem {
     'positionInSeconds': position.inSeconds,
     'totalDurationInSeconds': totalDuration.inSeconds,
   };
-
-  factory CWItem.fromJson(Map<String, dynamic> json) {
-    final animeTitle = json['animeTitle'] as String;
-    final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
+  
+  static CWItem fromJson(Map<String, dynamic> json) {
+    final animeMatch = animeData.firstWhere((anime) => anime.title == json['animeTitle']);
     return CWItem(
       anime: animeMatch,
-      seasonIndex: json['seasonIndex'] ?? 0,
-      episodeIndex: json['episodeIndex'] ?? 0,
-      position: Duration(seconds: json['positionInSeconds'] ?? 0),
-      totalDuration: Duration(seconds: json['totalDurationInSeconds'] ?? 0),
+      seasonIndex: json['seasonIndex'],
+      episodeIndex: json['episodeIndex'],
+      position: Duration(seconds: json['positionInSeconds']),
+      totalDuration: Duration(seconds: json['totalDurationInSeconds']),
     );
   }
 }
@@ -98,16 +90,6 @@ class SavedEpisode {
     'seasonIndex': seasonIndex,
     'episodeIndex': episodeIndex,
   };
-
-  factory SavedEpisode.fromJson(Map<String, dynamic> json) {
-    final animeTitle = json['animeTitle'] as String;
-    final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
-    return SavedEpisode(
-      anime: animeMatch,
-      seasonIndex: json['seasonIndex'] ?? 0,
-      episodeIndex: json['episodeIndex'] ?? 0,
-    );
-  }
 }
 
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
@@ -449,7 +431,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold) // Black text for light background
               ),
               const SizedBox(height: 40),
-
+              
               // Email Field (light UI)
               TextField(
                 controller: _emailController,
@@ -1203,8 +1185,8 @@ class GridCategoryCard extends StatefulWidget {
 }
 
 class _GridCategoryCardState extends State<GridCategoryCard> {
-  // Save/Unsave logic (Task 10)
-  void _toggleSave() {
+  // Save/Unsave logic function (local update, save to Supabase will be implemented in future steps)
+  void _toggleSaveAnime() {
     final list = List<SavedEpisode>.from(myListNotifier.value);
     final isSaved = list.any((item) => item.anime.title == widget.anime.title);
 
@@ -1214,21 +1196,20 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0));
     }
     myListNotifier.value = list;
-    
-    // Save to Supabase (Task 2)
+    // Notify the UI to rebuild (handled by ValueListenableBuilder in MyListScreen)
+    // Save to Supabase (Task 10)
     _saveMyListToSupabase();
   }
 
-  // Save updated myList to Supabase database
-  void _saveMyListToSupabase() async {
-    final List<Map<String, dynamic>> savedData = myListNotifier.value.map((e) => e.toJson()).toList();
+  Future<void> _saveMyListToSupabase() async {
+    final savedData = myListNotifier.value.map((item) => item.toJson()).toList();
     try {
       await Supabase.instance.client.from('user_preferences').upsert(
         {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'saved_anime': savedData},
         onConflict: 'id',
       );
     } catch (e) {
-      print("Error saving MyList: $e");
+      print("Error saving saved anime list: $e");
     }
   }
 
@@ -1246,15 +1227,9 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     } else if (widget.pageTitle == "Popular Anime") { 
       tagText = "POPULAR"; 
       tagBgColor = Colors.cyan; 
-      tagTextColor = Colors.white; 
-    } else if (widget.pageTitle == "DUB" || widget.pageTitle == "ORIGINAL") { // Using "DUB" or "ORIGINAL" directly from anime.dubStatus property
-      if (widget.anime.dubStatus == "DUB") {
-        tagText = "AMX DUB";
-      } else if (widget.anime.dubStatus == "ORIGINAL") {
-        tagText = "ORIGINAL";
-      } else {
-        tagText = "MIX O/D";
-      }
+      tagTextColor = Colors.black; 
+    } else if (widget.pageTitle == "DUB" || widget.pageTitle == "ORIGINAL") { 
+      tagText = widget.anime.dubStatus == "DUB" ? "AMX DUB" : (widget.anime.dubStatus == "ORIGINAL" ? "ORIGINAL" : "MIX O/D");
       tagBgColor = widget.anime.dubColor;
       tagTextColor = Colors.white;
     }
@@ -1352,15 +1327,13 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                   ]
                 )
               ),
-              // My List Save Icon Position (Task 10) - Moved to top left as requested
+              // My List Save Icon Position (Task 10)
               Positioned(
-                top: 8, 
-                left: 8, 
+                top: 8, // Changed position to top left
+                left: 8, // Changed position to top left
                 child: GestureDetector(
-                  onTap: () {
-                    _toggleSave(); // Call save logic on tap
-                    // Optional: Add magic effect here if needed
-                    setState(() {}); // Update UI to show/hide bookmark icon
+                  onTap: () async {
+                    _toggleSaveAnime(); // Call save logic
                   },
                   child: Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -1857,7 +1830,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE
+// FAST LOAD VIDEO PLAYER PAGE - UPDATED LIKES/DISLIKES
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -1884,16 +1857,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _forwardOpacity = 0.0; 
   double _rewindOpacity = 0.0;
   
-  // Like/Dislike state variables
-  bool _isLoadingLikes = true;
-  int _likesCount = 0; 
-  int _dislikesCount = 0; 
+  // Local state for like/dislike status (now also linked to Supabase)
   bool _isLiked = false; 
   bool _isDisliked = false;
+  // Local state for counts (updated from Supabase)
+  int _likesCount = 0;
+  int _dislikesCount = 0;
 
   @override 
   void initState() { 
     super.initState(); 
+    _fetchLikesDislikes(); // Fetch current counts from Supabase
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex]; 
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(ep.videoUrl), 
@@ -1905,44 +1879,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       setState(() {}); 
       _controller.play(); 
     }); 
-    _fetchLikesDislikes();
-  }
-
-  // Fetch initial likes/dislikes from Supabase
-  Future<void> _fetchLikesDislikes() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('anime_likes') // assuming table name is anime_likes
-          .select('likes, dislikes')
-          .eq('video_url', widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex].videoUrl)
-          .single();
-
-      if (response != null) {
-        setState(() {
-          _likesCount = response['likes'] ?? 0;
-          _dislikesCount = response['dislikes'] ?? 0;
-          _isLoadingLikes = false;
-        });
-      } else {
-        setState(() => _isLoadingLikes = false);
-      }
-    } catch (e) {
-      print("Error fetching likes: $e");
-      setState(() => _isLoadingLikes = false);
-    }
-  }
-
-  // Update likes/dislikes in Supabase (Task 11)
-  Future<void> _updateLikesDislikes() async {
-    try {
-      await Supabase.instance.client.from('anime_likes').upsert({
-        'video_url': widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex].videoUrl,
-        'likes': _likesCount,
-        'dislikes': _dislikesCount,
-      });
-    } catch (e) {
-      print("Error updating likes: $e");
-    }
   }
 
   @override 
@@ -1952,6 +1888,111 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge); 
     _controller.dispose(); 
     super.dispose(); 
+  }
+
+  // --- Supabase Likes/Dislikes Logic ---
+  // Fetch initial likes/dislikes from Supabase
+  Future<void> _fetchLikesDislikes() async {
+    final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
+    try {
+      final response = await Supabase.instance.client
+          .from('content_likes') // Create a table named 'content_likes' in Supabase
+          .select('likes, dislikes')
+          .eq('episode_id', episodeId)
+          .single();
+      
+      if (mounted && response != null) {
+        setState(() {
+          _likesCount = response['likes'] ?? 0;
+          _dislikesCount = response['dislikes'] ?? 0;
+        });
+      }
+      
+      // Check if current user has liked/disliked
+      final userResponse = await Supabase.instance.client
+          .from('user_likes') // Create a table named 'user_likes' in Supabase
+          .select('is_liked')
+          .eq('episode_id', episodeId)
+          .eq('user_id', Supabase.instance.client.auth.currentUser!.id)
+          .single();
+
+      if (mounted && userResponse != null) {
+        setState(() {
+          _isLiked = userResponse['is_liked'] ?? false;
+          _isDisliked = !(_isLiked); // If liked, then not disliked
+        });
+      }
+
+    } catch (e) {
+      print("Error fetching likes/dislikes: $e");
+    }
+  }
+
+  // Update likes/dislikes in Supabase when button is pressed
+  Future<void> _updateLikesDislikes(bool newLikeStatus, bool newDislikeStatus) async {
+    final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
+    final userId = Supabase.instance.client.auth.currentUser!.id;
+
+    // 1. Update user_likes table for current user (to save state)
+    await Supabase.instance.client.from('user_likes').upsert({
+      'user_id': userId,
+      'episode_id': episodeId,
+      'is_liked': newLikeStatus,
+    }, onConflict: 'user_id, episode_id');
+
+    // 2. Update content_likes table (increment/decrement counts)
+    try {
+        // Fetch current counts again (to avoid conflicts with other users liking/disliking)
+        final currentCounts = await Supabase.instance.client
+            .from('content_likes')
+            .select('likes, dislikes')
+            .eq('episode_id', episodeId)
+            .single();
+        
+        int currentLikes = currentCounts?['likes'] ?? 0;
+        int currentDislikes = currentCounts?['dislikes'] ?? 0;
+        
+        // Calculate new counts based on new state
+        int newLikes = currentLikes;
+        int newDislikes = currentDislikes;
+
+        if (newLikeStatus && !_isLiked) { // Liked (and wasn't liked before)
+            newLikes++;
+            if (_isDisliked) newDislikes--; // If previously disliked, remove dislike count
+        } else if (!newLikeStatus && _isLiked) { // Unliked (was liked before)
+            newLikes--;
+        }
+
+        if (newDislikeStatus && !_isDisliked) { // Disliked (and wasn't disliked before)
+            newDislikes++;
+            if (_isLiked) newLikes--; // If previously liked, remove like count
+        } else if (!newDislikeStatus && _isDisliked) { // Undisliked (was disliked before)
+            newDislikes--;
+        }
+        
+        // Ensure counts are non-negative
+        newLikes = max(0, newLikes);
+        newDislikes = max(0, newDislikes);
+
+        // Update counts in database
+        await Supabase.instance.client.from('content_likes').upsert({
+            'episode_id': episodeId,
+            'likes': newLikes,
+            'dislikes': newDislikes,
+        }, onConflict: 'episode_id');
+        
+        if (mounted) {
+            setState(() {
+                _likesCount = newLikes;
+                _dislikesCount = newDislikes;
+                _isLiked = newLikeStatus;
+                _isDisliked = newDislikeStatus;
+            });
+        }
+
+    } catch (e) {
+        print("Error updating content counts: $e");
+    }
   }
 
   void _updateContinueWatching() { 
@@ -1970,20 +2011,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         list.insert(0, CWItem(anime: widget.anime, seasonIndex: widget.seasonIndex, episodeIndex: widget.episodeIndex, position: pos, totalDuration: dur)); 
       } 
       continueWatchingNotifier.value = list; 
-      _saveContinueWatchingToSupabase(); // Save to Supabase (Task 2)
+      // Save Continue Watching list to Supabase (Task 1)
+      _saveContinueWatchingToSupabase(list);
     } 
   }
   
-  // Save updated continue watching list to Supabase database
-  void _saveContinueWatchingToSupabase() async {
-    final List<Map<String, dynamic>> cwData = continueWatchingNotifier.value.map((e) => e.toJson()).toList();
+  Future<void> _saveContinueWatchingToSupabase(List<CWItem> cwList) async {
+    final savedData = cwList.map((item) => item.toJson()).toList();
     try {
       await Supabase.instance.client.from('user_preferences').upsert(
-        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'continue_watching_list': cwData},
+        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'continue_watching': savedData},
         onConflict: 'id',
       );
     } catch (e) {
-      print("Error saving Continue Watching list: $e");
+      print("Error saving continue watching list: $e");
     }
   }
 
@@ -2018,42 +2059,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }); 
   }
 
-  // Like logic (Task 11)
-  void _toggleLike() { 
-    setState(() { 
-      if (_isLiked) { 
-        _isLiked = false; 
-        _likesCount--; 
-      } else { 
-        _isLiked = true; 
-        _likesCount++; 
-        if (_isDisliked) { 
-          _isDisliked = false; 
-          _dislikesCount--; 
-        } 
-      } 
-    }); 
-    _updateLikesDislikes(); // Save to Supabase
-  }
-
-  // Dislike logic (Task 11)
-  void _toggleDislike() { 
-    setState(() { 
-      if (_isDisliked) { 
-        _isDisliked = false; 
-        _dislikesCount--; 
-      } else { 
-        _isDisliked = true; 
-        _dislikesCount++; 
-        if (_isLiked) { 
-          _isLiked = false; 
-          _likesCount--; 
-        } 
-      } 
-    }); 
-    _updateLikesDislikes(); // Save to Supabase
-  }
-
+  // --- My List Save Button Logic ---
   bool get _isSaved { 
     return myListNotifier.value.any((item) => item.anime.title == widget.anime.title && item.seasonIndex == widget.seasonIndex && item.episodeIndex == widget.episodeIndex); 
   }
@@ -2066,6 +2072,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       list.add(SavedEpisode(anime: widget.anime, seasonIndex: widget.seasonIndex, episodeIndex: widget.episodeIndex)); 
     } 
     myListNotifier.value = list; 
+    MyListService(Supabase.instance.client).saveMyList(currentUserEmail, list); // Save to Supabase
     setState(() {}); 
   }
 
@@ -2161,7 +2168,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                           IconButton(
                             icon: const Icon(Icons.cast, color: Colors.white), 
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Connecting to TV...")));
+                              // Task: Connect TV functionality (Complex implementation required here)
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Connecting to TV feature coming soon!")));
                             }
                           ), 
                           IconButton(
@@ -2291,7 +2299,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ), 
                       const SizedBox(height: 20),
                       
-                      // SLEEK ACTION BAR (LIKE, DISLIKE, SAVE) - UPDATED WITH REAL DATA & MAGIC EFFECT
+                      // SLEEK ACTION BAR (LIKE, DISLIKE, SAVE)
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20), 
                         decoration: BoxDecoration(
@@ -2303,23 +2311,31 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                           children:[
                             GestureDetector(
                               onTap: _toggleLike, 
-                              child: Row(
-                                children:[
-                                  Icon(_isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _isLiked ? Colors.orange : Colors.white, size: 22), 
-                                  const SizedBox(width: 8), 
-                                  Text(_likesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
-                                ]
+                              child: AnimatedContainer( // Magic effect for like button
+                                duration: const Duration(milliseconds: 150),
+                                transform: Matrix4.identity()..scale(_isLiked ? 1.1 : 1.0),
+                                child: Row(
+                                  children:[
+                                    Icon(_isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _isLiked ? Colors.orange : Colors.white, size: 22), 
+                                    const SizedBox(width: 8), 
+                                    Text(_likesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
+                                  ]
+                                )
                               )
                             ), 
                             Container(width: 1, height: 24, color: Colors.white24), 
                             GestureDetector(
                               onTap: _toggleDislike, 
-                              child: Row(
-                                children:[
-                                  Icon(_isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: _isDisliked ? Colors.orange : Colors.white, size: 22), 
-                                  const SizedBox(width: 8), 
-                                  Text(_dislikesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
-                                ]
+                              child: AnimatedContainer( // Magic effect for dislike button
+                                duration: const Duration(milliseconds: 150),
+                                transform: Matrix4.identity()..scale(_isDisliked ? 1.1 : 1.0),
+                                child: Row(
+                                  children:[
+                                    Icon(_isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: _isDisliked ? Colors.orange : Colors.white, size: 22), 
+                                    const SizedBox(width: 8), 
+                                    Text(_dislikesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
+                                  ]
+                                )
                               )
                             ), 
                             Container(width: 1, height: 24, color: Colors.white24), 
@@ -2482,18 +2498,18 @@ class _BrowseScreenState extends State<BrowseScreen> {
     }
   }
 
-  // Save/Update recent searches to Supabase DB (Task 3)
+  // Save/Update recent searches to Supabase DB
   Future<void> _updateRecentSearchesInDb(String query) async {
     final newSearches = [...globalRecentSearches];
     if (newSearches.length > 5) newSearches.removeLast(); // Keep list short
     if (!newSearches.contains(query)) newSearches.insert(0, query);
     
     // Convert List<String> to JSON string for jsonb type in Supabase
-    // If you are using Supabase, you need to save as List<String> not JSON string
-    // Let's re-save to make sure it's correct.
+    String searchesJson = jsonEncode(newSearches);
+
     try {
       await Supabase.instance.client.from('user_preferences').upsert(
-        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'recent_searches': newSearches},
+        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'recent_searches': searchesJson},
         onConflict: 'id',
       );
     } catch (e) {
@@ -2647,7 +2663,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
           children:[
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis), 
+            Expanded( // Added Expanded here to handle overflow
+              child: Text(
+                title, 
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ), 
             Row(
               children:[
                 GestureDetector(
@@ -2702,7 +2725,7 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "DUB" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing dubStatus as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: "DUB"); // Passing "DUB" as pageTitle for tag logic
                 }
                 return const SizedBox.shrink();
               }
@@ -2715,7 +2738,7 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "ORIGINAL" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: anime.dubStatus); // Passing "ORIGINAL" as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: "ORIGINAL"); // Passing "ORIGINAL" as pageTitle for tag logic
                 }
                 return const SizedBox.shrink();
               }
@@ -2728,7 +2751,7 @@ class DubsScreen extends StatelessWidget {
 }
 
 // ==========================================
-// MY LIST SCREEN - UPDATED PERSISTENCE
+// MY LIST SCREEN - PERSISTENCE ADDED
 // ==========================================
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
@@ -2752,7 +2775,7 @@ class _MyListScreenState extends State<MyListScreen> {
       final response = await Supabase.instance.client
           .from('user_preferences')
           .select('saved_anime')
-          .eq('email', currentUserEmail) // Filter by current user's email (Task 1 fix)
+          .eq('email', currentUserEmail) // Filter by current user's email
           .single();
 
       if (response != null && response['saved_anime'] != null) {
@@ -2768,7 +2791,7 @@ class _MyListScreenState extends State<MyListScreen> {
               episodeIndex: data['episodeIndex'] ?? 0,
             ));
           } catch (e) {
-            print("Anime not found for title: $animeTitle");
+            print("Anime not found in dummy data: $animeTitle");
           }
         }
         setState(() {
@@ -2829,7 +2852,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE, PREMIUM, ACTIVITY & SUPPORT PAGES
+// PROFILE SCREEN - UPDATED UI
 // ==========================================
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key}); 
@@ -2927,197 +2950,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             children:[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              // Task: Profile UI Redesign based on screenshot example
+              Column(
                 children: [
-                  Column(
-                    children:[
-                      // DYNAMIC AVATAR LOGO (First Letter of User Name)
-                      Container(
-                        width: 75,
-                        height: 75,
-                        decoration: BoxDecoration(
-                          color: getAvatarColor(currentUserName),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: getAvatarColor(currentUserName).withOpacity(0.5), blurRadius: 15)
-                          ]
-                        ),
-                        child: Center(
-                          child: Text(
-                            getAvatarLetter(currentUserName),
-                            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8), 
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, 
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                          children:[
-                            Text(currentUserName.isNotEmpty ? currentUserName : "Welcome!", style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
-                            Container(
-                              width: 14, 
-                              height: 14, 
-                              decoration: const BoxDecoration(
-                                color: Colors.greenAccent, 
-                                shape: BoxShape.circle, 
-                                boxShadow:[BoxShadow(color: Colors.greenAccent, blurRadius: 8)]
-                              )
-                            )
-                          ]
-                        ), 
-                        const SizedBox(height: 4), 
-                        Text(
-                          currentUserEmail, 
-                          style: const TextStyle(color: Colors.white70, fontSize: 14)
-                        ), 
-                        if (addedMobileNumber != null) ...[
-                          const SizedBox(height: 8), 
-                          Row(
-                            children:[
-                              Text(addedMobileNumber!, style: const TextStyle(color: Colors.grey, fontSize: 12)), 
-                              const SizedBox(width: 8), 
-                              const Icon(Icons.check_circle, color: Colors.green, size: 14)
-                            ]
-                          )
-                        ], 
-                        if (userActivePlan.isNotEmpty) ...[
-                          const SizedBox(height: 12), 
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
-                            decoration: BoxDecoration(
-                              color: Colors.orangeAccent.withOpacity(0.2), 
-                              borderRadius: BorderRadius.circular(6), 
-                              border: Border.all(color: Colors.orangeAccent.withOpacity(0.6))
-                            ), 
-                            child: Text(
-                              userActivePlan.toUpperCase(), 
-                              style: const TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 1)
-                            )
-                          )
-                        ]
-                      ]
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundColor: getAvatarColor(currentUserName),
+                    child: Text(
+                      getAvatarLetter(currentUserName),
+                      style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 10), 
-                  padding: const EdgeInsets.all(16), 
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20), 
-                    gradient: const LinearGradient(
-                      colors: [Colors.orangeAccent, Colors.deepOrange], 
-                      begin: Alignment.topLeft, 
-                      end: Alignment.bottomRight
-                    )
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        children:[
-                          Icon(Icons.workspace_premium, color: Colors.white, size: 26), 
-                          SizedBox(width: 8), 
-                          Text("Go Premium", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))
-                        ]
-                      ),
-                      const SizedBox(height: 6),
-                      const Text("Unlock all episodes & Remove ads", style: TextStyle(color: Colors.white70, fontSize: 13)),
-                      const SizedBox(height: 12),
-                      Row(
-                        children:[
-                          _buildPricePill("₹50"), 
-                          const SizedBox(width: 8), 
-                          _buildPricePill("₹100"), 
-                          const SizedBox(width: 8), 
-                          _buildPricePill("₹150"), 
-                          const SizedBox(width: 8), 
-                          _buildPricePill("₹200")
-                        ]
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 30),
+
+              // Membership Section (Task: New Screenshot Layout)
+              const Divider(color: Colors.white12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.star, color: Colors.amber),
+                title: const Text("Subscription", style: TextStyle(color: Colors.white)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(userActivePlan.isNotEmpty ? userActivePlan : "Free", style: const TextStyle(color: Colors.white70)),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                  ],
                 ),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
               ),
-              const SizedBox(height: 24),
-              
-              _buildMenuItem(context, Icons.inventory_2_outlined, "Activity & Orders", const ActivityPage()),
-              _buildMenuItem(context, Icons.credit_card, "Payment Proof", const PaymentProofPage()),
-              _buildMenuItem(context, Icons.headphones, "Support", const SupportPage()),
-              _buildMenuItem(context, Icons.verified_user_outlined, "Privacy Policy", const PrivacyPolicyPage()),
-              _buildMenuItem(context, Icons.info_outline, "About Us", const AboutUsPage()),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.notifications_none, color: Colors.white),
+                title: const Text("Notifications", style: TextStyle(color: Colors.white)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSizeSize.min,
+                  children: [
+                    Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)), child: const Text("1", style: TextStyle(color: Colors.white, fontSize: 12))),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                  ],
+                ),
+                onTap: () {},
+              ),
+              const Divider(color: Colors.white12),
+
+              // Account Details Section (Task: New Screenshot Layout)
+              const SizedBox(height: 10),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.email, color: Colors.white),
+                title: const Text("Email", style: TextStyle(color: Colors.white)),
+                trailing: Text(currentUserEmail, style: const TextStyle(color: Colors.white70)),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.lock, color: Colors.white),
+                title: const Text("Password", style: TextStyle(color: Colors.white)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                onTap: () {},
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.phone, color: Colors.white),
+                title: const Text("Add Phone Number", style: TextStyle(color: Colors.white)),
+                trailing: addedMobileNumber != null ? const Icon(Icons.check_circle, color: Colors.green, size: 16) : const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                onTap: _showAddInfoDialog,
+              ),
+              const Divider(color: Colors.white12),
+
+              // App Experience Settings (Task: New Screenshot Layout)
+              const SizedBox(height: 10),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Stream Using Cellular", style: TextStyle(color: Colors.white)),
+                value: true, // Placeholder value
+                onChanged: (bool value) {},
+                activeColor: Colors.orange,
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Notification Settings", style: TextStyle(color: Colors.white)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                onTap: () {},
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Connected Apps", style: TextStyle(color: Colors.white)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                onTap: () {},
+              ),
+              const Divider(color: Colors.white12),
+
+              // Privacy and Other Settings (Task: New Screenshot Layout)
+              const SizedBox(height: 10),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Don't Sell/Share my personal information", style: TextStyle(color: Colors.white)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                onTap: () {},
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text("Delete My Account", style: TextStyle(color: Colors.redAccent)),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+                onTap: () {},
+              ),
+              const Divider(color: Colors.white12),
+
+              const SizedBox(height: 20),
+              const Text("Version 1.0.0 (1)", style: TextStyle(color: Colors.white54, fontSize: 12)),
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () {},
+                child: const Text("Terms of Service", style: TextStyle(color: Colors.orange)),
+              ),
+              GestureDetector(
+                onTap: () {},
+                child: const Text("Privacy Policy", style: TextStyle(color: Colors.orange)),
+              ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  Widget _buildPricePill(String price) { 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), 
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2), 
-        borderRadius: BorderRadius.circular(8)
-      ), 
-      child: Text(
-        price, 
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)
-      )
-    ); 
-  }
-  
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title, Widget page) { 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12), 
-      child: Material(
-        color: const Color(0xFF161618), 
-        borderRadius: BorderRadius.circular(16), 
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16), 
-          splashColor: Colors.grey.withOpacity(0.3), 
-          highlightColor: Colors.grey.withOpacity(0.3), 
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => page)), 
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), 
-            child: Row(
-              children:[
-                Container(
-                  padding: const EdgeInsets.all(8), 
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2C2C2E), 
-                    borderRadius: BorderRadius.circular(8)
-                  ), 
-                  child: Icon(icon, color: Colors.white, size: 20)
-                ), 
-                const SizedBox(width: 16), 
-                Expanded(
-                  child: Text(
-                    title, 
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)
-                  )
-                ), 
-                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)
-              ]
-            )
-          )
-        )
-      ),
-    ); 
   }
 }
 
