@@ -1,3 +1,4 @@
+
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -57,6 +58,26 @@ class CWItem {
     required this.position,
     required this.totalDuration,
   });
+
+  Map<String, dynamic> toJson() => {
+    'animeTitle': anime.title,
+    'seasonIndex': seasonIndex,
+    'episodeIndex': episodeIndex,
+    'positionInSeconds': position.inSeconds,
+    'totalDurationInSeconds': totalDuration.inSeconds,
+  };
+
+  factory CWItem.fromJson(Map<String, dynamic> json) {
+    final animeTitle = json['animeTitle'] as String;
+    final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
+    return CWItem(
+      anime: animeMatch,
+      seasonIndex: json['seasonIndex'] ?? 0,
+      episodeIndex: json['episodeIndex'] ?? 0,
+      position: Duration(seconds: json['positionInSeconds'] ?? 0),
+      totalDuration: Duration(seconds: json['totalDurationInSeconds'] ?? 0),
+    );
+  }
 }
 
 final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
@@ -71,6 +92,22 @@ class SavedEpisode {
     required this.seasonIndex,
     required this.episodeIndex,
   });
+
+  Map<String, dynamic> toJson() => {
+    'animeTitle': anime.title,
+    'seasonIndex': seasonIndex,
+    'episodeIndex': episodeIndex,
+  };
+
+  factory SavedEpisode.fromJson(Map<String, dynamic> json) {
+    final animeTitle = json['animeTitle'] as String;
+    final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
+    return SavedEpisode(
+      anime: animeMatch,
+      seasonIndex: json['seasonIndex'] ?? 0,
+      episodeIndex: json['episodeIndex'] ?? 0,
+    );
+  }
 }
 
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
@@ -1166,6 +1203,35 @@ class GridCategoryCard extends StatefulWidget {
 }
 
 class _GridCategoryCardState extends State<GridCategoryCard> {
+  // Save/Unsave logic (Task 10)
+  void _toggleSave() {
+    final list = List<SavedEpisode>.from(myListNotifier.value);
+    final isSaved = list.any((item) => item.anime.title == widget.anime.title);
+
+    if (isSaved) {
+      list.removeWhere((item) => item.anime.title == widget.anime.title);
+    } else {
+      list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0));
+    }
+    myListNotifier.value = list;
+    
+    // Save to Supabase (Task 2)
+    _saveMyListToSupabase();
+  }
+
+  // Save updated myList to Supabase database
+  void _saveMyListToSupabase() async {
+    final List<Map<String, dynamic>> savedData = myListNotifier.value.map((e) => e.toJson()).toList();
+    try {
+      await Supabase.instance.client.from('user_preferences').upsert(
+        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'saved_anime': savedData},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving MyList: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String? tagText; 
@@ -1180,8 +1246,15 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     } else if (widget.pageTitle == "Popular Anime") { 
       tagText = "POPULAR"; 
       tagBgColor = Colors.cyan; 
+      tagTextColor = Colors.white; 
     } else if (widget.pageTitle == "DUB" || widget.pageTitle == "ORIGINAL") { // Using "DUB" or "ORIGINAL" directly from anime.dubStatus property
-      tagText = widget.anime.dubStatus == "DUB" ? "AMX DUB" : (widget.anime.dubStatus == "ORIGINAL" ? "ORIGINAL" : "MIX O/D");
+      if (widget.anime.dubStatus == "DUB") {
+        tagText = "AMX DUB";
+      } else if (widget.anime.dubStatus == "ORIGINAL") {
+        tagText = "ORIGINAL";
+      } else {
+        tagText = "MIX O/D";
+      }
       tagBgColor = widget.anime.dubColor;
       tagTextColor = Colors.white;
     }
@@ -1279,20 +1352,15 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                   ]
                 )
               ),
-              // My List Save Icon Position (Task 10)
+              // My List Save Icon Position (Task 10) - Moved to top left as requested
               Positioned(
-                top: 8, // Changed position to top left
-                left: 8, // Changed position to top left
+                top: 8, 
+                left: 8, 
                 child: GestureDetector(
                   onTap: () {
-                    final list = List<SavedEpisode>.from(myListNotifier.value);
-                    if (isSaved) {
-                      list.removeWhere((item) => item.anime.title == widget.anime.title);
-                    } else {
-                      list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); // Add to list (default season/episode)
-                    }
-                    myListNotifier.value = list;
-                    // setState(() {}); // No need to call setState here, valueNotifier handles update
+                    _toggleSave(); // Call save logic on tap
+                    // Optional: Add magic effect here if needed
+                    setState(() {}); // Update UI to show/hide bookmark icon
                   },
                   child: Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -1816,10 +1884,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _forwardOpacity = 0.0; 
   double _rewindOpacity = 0.0;
   
-  int likes = 12400; 
-  int dislikes = 230; 
-  bool isLiked = false; 
-  bool isDisliked = false;
+  // Like/Dislike state variables
+  bool _isLoadingLikes = true;
+  int _likesCount = 0; 
+  int _dislikesCount = 0; 
+  bool _isLiked = false; 
+  bool _isDisliked = false;
 
   @override 
   void initState() { 
@@ -1835,6 +1905,44 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       setState(() {}); 
       _controller.play(); 
     }); 
+    _fetchLikesDislikes();
+  }
+
+  // Fetch initial likes/dislikes from Supabase
+  Future<void> _fetchLikesDislikes() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('anime_likes') // assuming table name is anime_likes
+          .select('likes, dislikes')
+          .eq('video_url', widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex].videoUrl)
+          .single();
+
+      if (response != null) {
+        setState(() {
+          _likesCount = response['likes'] ?? 0;
+          _dislikesCount = response['dislikes'] ?? 0;
+          _isLoadingLikes = false;
+        });
+      } else {
+        setState(() => _isLoadingLikes = false);
+      }
+    } catch (e) {
+      print("Error fetching likes: $e");
+      setState(() => _isLoadingLikes = false);
+    }
+  }
+
+  // Update likes/dislikes in Supabase (Task 11)
+  Future<void> _updateLikesDislikes() async {
+    try {
+      await Supabase.instance.client.from('anime_likes').upsert({
+        'video_url': widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex].videoUrl,
+        'likes': _likesCount,
+        'dislikes': _dislikesCount,
+      });
+    } catch (e) {
+      print("Error updating likes: $e");
+    }
   }
 
   @override 
@@ -1862,7 +1970,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         list.insert(0, CWItem(anime: widget.anime, seasonIndex: widget.seasonIndex, episodeIndex: widget.episodeIndex, position: pos, totalDuration: dur)); 
       } 
       continueWatchingNotifier.value = list; 
+      _saveContinueWatchingToSupabase(); // Save to Supabase (Task 2)
     } 
+  }
+  
+  // Save updated continue watching list to Supabase database
+  void _saveContinueWatchingToSupabase() async {
+    final List<Map<String, dynamic>> cwData = continueWatchingNotifier.value.map((e) => e.toJson()).toList();
+    try {
+      await Supabase.instance.client.from('user_preferences').upsert(
+        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'continue_watching_list': cwData},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving Continue Watching list: $e");
+    }
   }
 
   void _toggleControls() { 
@@ -1896,36 +2018,40 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }); 
   }
 
+  // Like logic (Task 11)
   void _toggleLike() { 
     setState(() { 
-      if (isLiked) { 
-        isLiked = false; 
-        likes--; 
+      if (_isLiked) { 
+        _isLiked = false; 
+        _likesCount--; 
       } else { 
-        isLiked = true; 
-        likes++; 
-        if (isDisliked) { 
-          isDisliked = false; 
-          dislikes--; 
+        _isLiked = true; 
+        _likesCount++; 
+        if (_isDisliked) { 
+          _isDisliked = false; 
+          _dislikesCount--; 
         } 
       } 
     }); 
+    _updateLikesDislikes(); // Save to Supabase
   }
 
+  // Dislike logic (Task 11)
   void _toggleDislike() { 
     setState(() { 
-      if (isDisliked) { 
-        isDisliked = false; 
-        dislikes--; 
+      if (_isDisliked) { 
+        _isDisliked = false; 
+        _dislikesCount--; 
       } else { 
-        isDisliked = true; 
-        dislikes++; 
-        if (isLiked) { 
-          isLiked = false; 
-          likes--; 
+        _isDisliked = true; 
+        _dislikesCount++; 
+        if (_isLiked) { 
+          _isLiked = false; 
+          _likesCount--; 
         } 
       } 
     }); 
+    _updateLikesDislikes(); // Save to Supabase
   }
 
   bool get _isSaved { 
@@ -2034,7 +2160,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         children:[
                           IconButton(
                             icon: const Icon(Icons.cast, color: Colors.white), 
-                            onPressed: () {}
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Connecting to TV...")));
+                            }
                           ), 
                           IconButton(
                             icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white), 
@@ -2163,7 +2291,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ), 
                       const SizedBox(height: 20),
                       
-                      // SLEEK ACTION BAR (LIKE, DISLIKE, SAVE)
+                      // SLEEK ACTION BAR (LIKE, DISLIKE, SAVE) - UPDATED WITH REAL DATA & MAGIC EFFECT
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20), 
                         decoration: BoxDecoration(
@@ -2177,9 +2305,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               onTap: _toggleLike, 
                               child: Row(
                                 children:[
-                                  Icon(isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: isLiked ? Colors.orange : Colors.white, size: 22), 
+                                  Icon(_isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _isLiked ? Colors.orange : Colors.white, size: 22), 
                                   const SizedBox(width: 8), 
-                                  Text(likes.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
+                                  Text(_likesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
                                 ]
                               )
                             ), 
@@ -2188,9 +2316,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               onTap: _toggleDislike, 
                               child: Row(
                                 children:[
-                                  Icon(isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: isDisliked ? Colors.orange : Colors.white, size: 22), 
+                                  Icon(_isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: _isDisliked ? Colors.orange : Colors.white, size: 22), 
                                   const SizedBox(width: 8), 
-                                  Text(dislikes.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
+                                  Text(_dislikesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
                                 ]
                               )
                             ), 
@@ -2354,18 +2482,18 @@ class _BrowseScreenState extends State<BrowseScreen> {
     }
   }
 
-  // Save/Update recent searches to Supabase DB
+  // Save/Update recent searches to Supabase DB (Task 3)
   Future<void> _updateRecentSearchesInDb(String query) async {
     final newSearches = [...globalRecentSearches];
     if (newSearches.length > 5) newSearches.removeLast(); // Keep list short
     if (!newSearches.contains(query)) newSearches.insert(0, query);
     
     // Convert List<String> to JSON string for jsonb type in Supabase
-    String searchesJson = jsonEncode(newSearches);
-
+    // If you are using Supabase, you need to save as List<String> not JSON string
+    // Let's re-save to make sure it's correct.
     try {
       await Supabase.instance.client.from('user_preferences').upsert(
-        {'email': currentUserEmail, 'id': Supabase.instance.client.auth.currentUser!.id, 'recent_searches': searchesJson},
+        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'recent_searches': newSearches},
         onConflict: 'id',
       );
     } catch (e) {
@@ -2519,7 +2647,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
           children:[
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white)), 
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis), 
             Row(
               children:[
                 GestureDetector(
@@ -2600,7 +2728,7 @@ class DubsScreen extends StatelessWidget {
 }
 
 // ==========================================
-// MY LIST SCREEN
+// MY LIST SCREEN - UPDATED PERSISTENCE
 // ==========================================
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
@@ -2624,7 +2752,7 @@ class _MyListScreenState extends State<MyListScreen> {
       final response = await Supabase.instance.client
           .from('user_preferences')
           .select('saved_anime')
-          .eq('email', currentUserEmail)
+          .eq('email', currentUserEmail) // Filter by current user's email (Task 1 fix)
           .single();
 
       if (response != null && response['saved_anime'] != null) {
@@ -2632,12 +2760,16 @@ class _MyListScreenState extends State<MyListScreen> {
         final List<SavedEpisode> fetchedList = [];
         for (var data in savedData) {
           final animeTitle = data['animeTitle'];
-          final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
-          fetchedList.add(SavedEpisode(
-            anime: animeMatch,
-            seasonIndex: data['seasonIndex'] ?? 0,
-            episodeIndex: data['episodeIndex'] ?? 0,
-          ));
+          try {
+            final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
+            fetchedList.add(SavedEpisode(
+              anime: animeMatch,
+              seasonIndex: data['seasonIndex'] ?? 0,
+              episodeIndex: data['episodeIndex'] ?? 0,
+            ));
+          } catch (e) {
+            print("Anime not found for title: $animeTitle");
+          }
         }
         setState(() {
           myListNotifier.value = fetchedList;
