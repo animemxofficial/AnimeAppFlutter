@@ -20,6 +20,11 @@ String userActivePlan = "";
 
 List<String> globalRecentSearches = [];
 
+// --- MISSING GLOBAL NOTIFIERS ---
+final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
+final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
+// ---------------------------------
+
 // Helper function for Avatar Colors based on Email
 final List<Color> avatarColors = [
   Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
