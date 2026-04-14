@@ -3149,13 +3149,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // --- App Settings Section ---
               _buildAppSettings(),
-              
-              const SizedBox(height: 20),
-              // --- Privacy and Other Settings ---
-              _buildPrivacySection(),
 
               // --- Footer Info ---
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
               const Text("Version 1.0.0 (1)", style: TextStyle(color: Colors.white54, fontSize: 12)),
               const SizedBox(height: 10),
               GestureDetector(
@@ -3409,6 +3405,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
           onTap: () {},
         ),
+        const Divider(color: Colors.white12, thickness: 1),
       ],
     );
   }
@@ -3417,7 +3414,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildPrivacySection() {
     return Column(
       children: [
-        const Divider(color: Colors.white12, thickness: 1),
         _buildMenuItem(
           icon: null,
           label: "Don't Sell/Share my personal information",
@@ -3431,6 +3427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
           onTap: () {},
         ),
+        const Divider(color: Colors.white12, thickness: 1),
       ],
     );
   }
