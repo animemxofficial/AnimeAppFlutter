@@ -3026,88 +3026,96 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN - UPDATED UI
+// PROFILE SCREEN - REDESIGNED UI (BASED ON SCREENSHOT)
 // ==========================================
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key}); 
-  
-  @override 
-  State<ProfileScreen> createState() => _ProfileScreenState(); 
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String? addedMobileNumber; 
-  String selectedCountryCode = "+91"; 
+  String? addedMobileNumber;
+  String selectedCountryCode = "+91";
   final TextEditingController _mobileController = TextEditingController();
+
+  // Temporary/Placeholder values for the new stats section as requested by UI design
+  String episodesWatched = "145";
+  String watchTime = "28h 45m";
+  String favoritesCount = "32";
+
+  // State for the new SwitchListTile
+  bool _streamCellularEnabled = true;
 
   void _showAddInfoDialog() {
     showDialog(
-      context: context, 
-      builder: (ctx) { 
+      context: context,
+      builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setModalState) { 
+          builder: (context, setModalState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF1A1A1A), 
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
-              title: const Text("Add Mobile Number", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              backgroundColor: const Color(0xFF1A1A1A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text("Add Mobile Number", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
               content: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10), 
-                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(10)), 
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(10)),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        dropdownColor: Colors.black, 
-                        value: selectedCountryCode, 
-                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white54), 
+                        dropdownColor: Colors.black,
+                        value: selectedCountryCode,
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
                         items: const [
-                          DropdownMenuItem(value: "+91", child: Text("🇮🇳 +91", style: TextStyle(color: Colors.white))), 
-                          DropdownMenuItem(value: "+1", child: Text("🇺🇸 +1", style: TextStyle(color: Colors.white))), 
-                          DropdownMenuItem(value: "+44", child: Text("🇬🇧 +44", style: TextStyle(color: Colors.white))), 
+                          DropdownMenuItem(value: "+91", child: Text("🇮🇳 +91", style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: "+1", child: Text("🇺🇸 +1", style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: "+44", child: Text("🇬🇧 +44", style: TextStyle(color: Colors.white))),
                           DropdownMenuItem(value: "+81", child: Text("🇯🇵 +81", style: TextStyle(color: Colors.white)))
-                        ], 
-                        onChanged: (val) { 
+                        ],
+                        onChanged: (val) {
                           if (val != null) {
-                            setModalState(() => selectedCountryCode = val); 
+                            setModalState(() => selectedCountryCode = val);
                           }
                         }
                       )
                     )
-                  ), 
-                  const SizedBox(width: 10), 
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
-                      controller: _mobileController, 
-                      keyboardType: TextInputType.phone, 
-                      style: const TextStyle(color: Colors.white), 
+                      controller: _mobileController,
+                      keyboardType: TextInputType.phone,
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
-                        hintText: "Mobile Number", 
-                        hintStyle: const TextStyle(color: Colors.white38), 
-                        filled: true, 
-                        fillColor: Colors.black, 
+                        hintText: "Mobile Number",
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true,
+                        fillColor: Colors.black,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)
                       )
                     )
                   )
                 ],
-              ), 
+              ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx), 
+                  onPressed: () => Navigator.pop(ctx),
                   child: const Text("Cancel", style: TextStyle(color: Colors.grey))
-                ), 
+                ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange, 
+                    backgroundColor: Colors.orange,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
-                  ), 
-                  onPressed: () { 
+                  ),
+                  onPressed: () {
                     if (_mobileController.text.isNotEmpty) {
-                      setState(() => addedMobileNumber = "$selectedCountryCode ${_mobileController.text}"); 
+                      setState(() => addedMobileNumber = "$selectedCountryCode ${_mobileController.text}");
                     }
-                    Navigator.pop(ctx); 
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mobile number saved!"))); 
-                  }, 
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mobile number saved!")));
+                  },
                   child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
                 ),
               ],
@@ -3126,117 +3134,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            children:[
-              // Task: Profile UI Redesign based on screenshot example (Image 1)
-              Column(
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundColor: getAvatarColor(currentUserName),
-                    child: Text(
-                      getAvatarLetter(currentUserName),
-                      style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                ],
-              ),
+            children: [
+              // --- Header Section ---
+              _buildProfileHeader(),
+              const SizedBox(height: 20),
+
+              // --- Statistics Section ---
+              _buildStatsSection(),
               const SizedBox(height: 30),
 
-              // Membership Section (Task: New Screenshot Layout)
-              const Divider(color: Colors.white12),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.star, color: Colors.amber),
-                title: const Text("Subscription", style: TextStyle(color: Colors.white)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(userActivePlan.isNotEmpty ? userActivePlan : "Free", style: const TextStyle(color: Colors.white70)),
-                    const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                  ],
-                ),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.notifications_none, color: Colors.white),
-                title: const Text("Notifications", style: TextStyle(color: Colors.white)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)), child: const Text("1", style: TextStyle(color: Colors.white, fontSize: 12))),
-                    const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                  ],
-                ),
-                onTap: () {},
-              ),
-              const Divider(color: Colors.white12),
+              // --- Account Menu Section ---
+              _buildAccountMenu(),
+              const SizedBox(height: 20),
 
-              // Account Details Section (Task: New Screenshot Layout)
-              const SizedBox(height: 10),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.email, color: Colors.white),
-                title: const Text("Email", style: TextStyle(color: Colors.white)),
-                trailing: Text(currentUserEmail, style: const TextStyle(color: Colors.white70)),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.lock, color: Colors.white),
-                title: const Text("Password", style: TextStyle(color: Colors.white)),
-                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                onTap: () {},
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.phone, color: Colors.white),
-                title: const Text("Add Phone Number", style: TextStyle(color: Colors.white)),
-                trailing: addedMobileNumber != null ? const Icon(Icons.check_circle, color: Colors.green, size: 16) : const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                onTap: _showAddInfoDialog,
-              ),
-              const Divider(color: Colors.white12),
+              // --- App Settings Section ---
+              _buildAppSettings(),
+              
+              const SizedBox(height: 20),
+              // --- Privacy and Other Settings ---
+              _buildPrivacySection(),
 
-              // App Experience Settings (Task: New Screenshot Layout)
-              const SizedBox(height: 10),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Stream Using Cellular", style: TextStyle(color: Colors.white)),
-                value: true, // Placeholder value
-                onChanged: (bool value) {},
-                activeColor: Colors.orange,
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Notification Settings", style: TextStyle(color: Colors.white)),
-                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                onTap: () {},
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Connected Apps", style: TextStyle(color: Colors.white)),
-                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                onTap: () {},
-              ),
-              const Divider(color: Colors.white12),
-
-              // Privacy and Other Settings (Task: New Screenshot Layout)
-              const SizedBox(height: 10),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Don't Sell/Share my personal information", style: TextStyle(color: Colors.white)),
-                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                onTap: () {},
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Delete My Account", style: TextStyle(color: Colors.redAccent)),
-                trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-                onTap: () {},
-              ),
-              const Divider(color: Colors.white12),
-
+              // --- Footer Info ---
               const SizedBox(height: 20),
               const Text("Version 1.0.0 (1)", style: TextStyle(color: Colors.white54, fontSize: 12)),
               const SizedBox(height: 10),
@@ -3248,10 +3166,295 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 onTap: () {},
                 child: const Text("Privacy Policy", style: TextStyle(color: Colors.orange)),
               ),
+              const SizedBox(height: 80), // Space for bottom navigation bar
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // --- Profile Header Widget (Matching Screenshot) ---
+  Widget _buildProfileHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Avatar with Glowing Border (as per screenshot)
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  // Screenshot's glow effect
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.purple.withOpacity(0.4),
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.network(
+                    // Placeholder image URL, replace with dynamic logic if available
+                    "https://i.ibb.co/C3rhjGv3/images-1.jpg", // Example image URL
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => CircleAvatar(
+                      radius: 40,
+                      backgroundColor: getAvatarColor(currentUserName),
+                      child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+
+              // User Info Section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          currentUserName.isNotEmpty ? currentUserName : "User Name",
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.verified, color: Colors.blue, size: 18), // Verified checkmark
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // Premium Member Tag
+                    Row(
+                      children: [
+                        const Icon(Icons.workspace_premium, color: Colors.amber, size: 16),
+                        const SizedBox(width: 4),
+                        Text(
+                          userActivePlan.isNotEmpty ? "Premium Member" : "Free Member", // Dynamic text
+                          style: TextStyle(color: userActivePlan.isNotEmpty ? Colors.amber : Colors.white70, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      "Joined Jan 2024 • ID: ANMX1001", // Placeholder text matching screenshot
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Notification and Settings Icons (top right)
+              Row(
+                children: [
+                  Stack(
+                    alignment: Alignment.topRight,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: Colors.white),
+                        onPressed: () { /* Navigate to Notifications */ },
+                      ),
+                      Container( // Red dot for new notification
+                        margin: const EdgeInsets.all(8),
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.settings, color: Colors.white),
+                    onPressed: () { /* Navigate to Settings */ },
+                  ),
+                ],
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Edit Profile Button (separate line below user info)
+          Align(
+            alignment: Alignment.centerRight,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.edit, color: Colors.white, size: 16),
+                  SizedBox(width: 4),
+                  Text(
+                    "Edit Profile",
+                    style: TextStyle(color: Colors.white, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Statistics Section Widget (Matching Screenshot) ---
+  Widget _buildStatsSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatItem(Icons.play_circle_fill, Colors.purpleAccent, episodesWatched, "Episodes Watched"),
+          _buildStatItem(Icons.watch_later, Colors.green, watchTime, "Watch Time"),
+          _buildStatItem(Icons.favorite, Colors.pinkAccent, favoritesCount, "Favorites"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(IconData icon, Color iconColor, String count, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: iconColor, size: 30),
+        const SizedBox(height: 6),
+        Text(count, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 2),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+      ],
+    );
+  }
+
+  // --- Account Menu Section Widget ---
+  Widget _buildAccountMenu() {
+    return Column(
+      children: [
+        _buildMenuItem(
+          icon: Icons.star,
+          label: "Subscription",
+          iconColor: Colors.amber,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(userActivePlan.isNotEmpty ? userActivePlan : "Free", style: const TextStyle(color: Colors.white70)),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+            ],
+          ),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
+        ),
+        _buildMenuItem(
+          icon: Icons.notifications_none,
+          label: "Notifications",
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)), child: const Text("1", style: TextStyle(color: Colors.white, fontSize: 12))),
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+            ],
+          ),
+          onTap: () {},
+        ),
+        const Divider(color: Colors.white12, thickness: 1),
+        _buildMenuItem(
+          icon: Icons.email,
+          label: "Email",
+          trailing: Text(currentUserEmail, style: const TextStyle(color: Colors.white70)),
+        ),
+        _buildMenuItem(
+          icon: Icons.lock,
+          label: "Password",
+          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+          onTap: () {},
+        ),
+        _buildMenuItem(
+          icon: Icons.phone,
+          label: "Add Phone Number",
+          trailing: addedMobileNumber != null ? const Icon(Icons.check_circle, color: Colors.green, size: 16) : const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+          onTap: _showAddInfoDialog,
+        ),
+      ],
+    );
+  }
+
+  // --- App Settings Section Widget ---
+  Widget _buildAppSettings() {
+    return Column(
+      children: [
+        _buildSwitchItem(
+          label: "Stream Using Cellular",
+          value: _streamCellularEnabled,
+          onChanged: (value) => setState(() => _streamCellularEnabled = value),
+        ),
+        _buildMenuItem(
+          icon: null,
+          label: "Notification Settings",
+          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+          onTap: () {},
+        ),
+        _buildMenuItem(
+          icon: null,
+          label: "Connected Apps",
+          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+          onTap: () {},
+        ),
+      ],
+    );
+  }
+  
+  // --- Privacy and Other Settings Section Widget ---
+  Widget _buildPrivacySection() {
+    return Column(
+      children: [
+        const Divider(color: Colors.white12, thickness: 1),
+        _buildMenuItem(
+          icon: null,
+          label: "Don't Sell/Share my personal information",
+          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+          onTap: () {},
+        ),
+        _buildMenuItem(
+          icon: null,
+          label: "Delete My Account",
+          textColor: Colors.redAccent,
+          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+          onTap: () {},
+        ),
+      ],
+    );
+  }
+
+  // --- Generic Menu Item Builder (for standard list items) ---
+  Widget _buildMenuItem({required IconData? icon, required String label, Color? iconColor, Color textColor = Colors.white, Widget? trailing, VoidCallback? onTap}) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: icon != null ? Icon(icon, color: iconColor ?? Colors.white) : null,
+      title: Text(label, style: TextStyle(color: textColor)),
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+
+  // --- Generic Switch Item Builder (for settings toggle) ---
+  Widget _buildSwitchItem({required String label, required bool value, required ValueChanged<bool> onChanged}) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(label, style: const TextStyle(color: Colors.white)),
+      value: value,
+      onChanged: onChanged,
+      activeColor: Colors.orange,
+      trackOutlineColor: MaterialStateProperty.resolveWith((states) => Colors.transparent), // Remove border
     );
   }
 }
@@ -3302,131 +3505,133 @@ class AboutUsPage extends StatelessWidget {
             Text("About AnimeMX", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
             SizedBox(height: 12), 
             Text(
-              "Welcome to AnimeMX, your ultimate destination for streaming the best and latest anime! Our mission is to provide an ad-free, high-quality, and seamless viewing experience for anime lovers around the world.\n\nWe offer dubbed anime in Hindi, English, and Japanese languages. Enjoy HD & 4K quality, dubbed & subbed versions, and lightning-fast streaming anywhere, anytime.", 
+              "Welcome to AnimeMX, your ultimate destination for streaming the best and latest anime! Our mission is to provide a seamless and high-quality viewing experience for anime fans around the world. We offer a vast library of titles, from classics to new releases, both dubbed and subbed, ensuring everyone finds something they love.", 
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
-            ), 
-            SizedBox(height: 30), 
-            Text("Contact Us", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
-            SizedBox(height: 12), 
-            Text("Email: animemx.official@gmail.com", style: TextStyle(color: Colors.orange, fontSize: 14, fontWeight: FontWeight.bold))
-          ]
-        )
+            ),
+          ],
+        ),
       ),
     ); 
   } 
 }
 
-// ==========================================
-// UPDATED PREMIUM PAGE WITH 4 PLANS
-// ==========================================
-class PremiumPage extends StatelessWidget {
-  const PremiumPage({super.key});
-
-  void _launchUPI(BuildContext context, String amount, String plan) async {
-    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan");
-    if (await canLaunchUrl(uri)) { 
-      await launchUrl(uri, mode: LaunchMode.externalApplication); 
-    } else { 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!"))); 
-    }
-  }
+class SupportPage extends StatelessWidget {
+  const SupportPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F), 
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("Go Premium", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+        title: const Text("Support", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20), 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
-                children: const [
-                  Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
-                  SizedBox(height: 5), 
-                  Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14))
-                ]
-              )
+          children: [
+            const Text("Contact Us", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _buildSupportItem(
+              icon: Icons.email,
+              title: "Email Support",
+              subtitle: "support@animemx.com",
+              onTap: () { launchInBrowser("mailto:support@animemx.com"); },
             ),
-            const SizedBox(height: 30),
-            
-            // HORIZONTAL SCROLLING WIDE CARDS
-            SizedBox(
-              height: 340, 
-              child: ListView(
-                scrollDirection: Axis.horizontal, 
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+            _buildSupportItem(
+              icon: Icons.phone,
+              title: "WhatsApp Support",
+              subtitle: "+91 1234567890",
+              onTap: () { launchWhatsApp("+911234567890"); },
+            ),
+            _buildSupportItem(
+              icon: Icons.telegram,
+              title: "Telegram Channel",
+              subtitle: "@animemx_official",
+              onTap: () { launchTelegram("animemx_official"); },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSupportItem({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+    return Card(
+      color: const Color(0xFF1A1A1A),
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.white, size: 28),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        subtitle: Text(subtitle, style: const TextStyle(color: Colors.white70)),
+        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class PremiumPage extends StatelessWidget {
+  const PremiumPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("Premium Membership", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Upgrade to AnimeMX Premium",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.amber),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              "Enjoy ad-free streaming, unlimited downloads, and access to exclusive content.",
+              style: TextStyle(fontSize: 16, color: Colors.white70),
+            ),
+            const SizedBox(height: 24),
+            // Example of a premium plan card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.amber, width: 2),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildNewPlanCard(
-                    context: context, 
-                    title: "Lite Plan", 
-                    price: "₹50", 
-                    quality: "720p", 
-                    ads: "NO", 
-                    slot: "1", 
-                    limit: "50 minutes", 
-                    limitSub: "(0.8 hrs)", 
-                    hasEarlyAccess: false, 
-                    color: Colors.orange, 
-                    icon: Icons.local_fire_department
-                  ), 
-                  const SizedBox(width: 16),
-                  
-                  _buildNewPlanCard(
-                    context: context, 
-                    title: "Plus Plan", 
-                    price: "₹100", 
-                    quality: "1080p", 
-                    ads: "NO", 
-                    slot: "2", 
-                    limit: "240 minutes", 
-                    limitSub: "(4 hrs)", 
-                    hasEarlyAccess: false, 
-                    color: Colors.amber, 
-                    icon: Icons.star, 
-                    badgeText: "MOST POPULAR"
-                  ), 
-                  const SizedBox(width: 16),
-                  
-                  _buildNewPlanCard(
-                    context: context, 
-                    title: "Pro Plan", 
-                    price: "₹150", 
-                    quality: "1080p", 
-                    ads: "NO", 
-                    slot: "3", 
-                    limit: "480 minutes", 
-                    limitSub: "(8 hrs)", 
-                    hasEarlyAccess: true, 
-                    hasAllPremium: true, 
-                    color: Colors.lightBlueAccent, 
-                    icon: Icons.auto_awesome
-                  ), 
-                  const SizedBox(width: 16),
-                  
-                  _buildNewPlanCard(
-                    context: context, 
-                    title: "Ultra Plan", 
-                    price: "₹200", 
-                    quality: "1080p", 
-                    ads: "NO", 
-                    slot: "4", 
-                    limit: "Unlimited", 
-                    hasEarlyAccess: true, 
-                    hasAllPremium: true, 
-                    earlyAccessText: "YES", 
-                    allPremiumText: "YES", 
-                    color: Colors.purpleAccent, 
-                    icon: Icons.flash_on, 
-                    isGradientBtn: true
+                  const Text("Monthly Plan", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 8),
+                  const Text("₹199 / month", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.amber)),
+                  const SizedBox(height: 12),
+                  _buildFeatureItem("Ad-free viewing"),
+                  _buildFeatureItem("HD streaming quality"),
+                  _buildFeatureItem("Download episodes for offline viewing"),
+                  _buildFeatureItem("Early access to new releases"),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Logic for purchase/subscription initiation
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Purchase flow initiated.")));
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.amber,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text("Subscribe Now", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -3437,780 +3642,16 @@ class PremiumPage extends StatelessWidget {
     );
   }
 
-  Widget _buildNewPlanCard({
-    required BuildContext context, 
-    required String title, 
-    required String price, 
-    required String quality, 
-    required String ads, 
-    required String slot, 
-    required String limit, 
-    String? limitSub, 
-    required bool hasEarlyAccess, 
-    bool? hasAllPremium, 
-    required Color color, 
-    required IconData icon, 
-    String? badgeText, 
-    String? earlyAccessText, 
-    String? allPremiumText, 
-    bool isGradientBtn = false
-  }) {
-    String cleanPrice = price.replaceAll("₹", "");
-    
-    return Stack(
-      clipBehavior: Clip.none, 
-      children: [
-        Container(
-          width: MediaQuery.of(context).size.width * 0.75, 
-          decoration: BoxDecoration(
-            color: const Color(0xFF121212), 
-            borderRadius: BorderRadius.circular(16), 
-            border: Border.all(color: color.withOpacity(0.8), width: 1.5), 
-            boxShadow: [
-              BoxShadow(color: color.withOpacity(0.15), blurRadius: 15, spreadRadius: 1)
-            ]
-          ), 
-          padding: const EdgeInsets.all(16), 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                children: [
-                  Row(
-                    children: [
-                      Icon(icon, color: color, size: 20), 
-                      const SizedBox(width: 8), 
-                      Text(title, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold))
-                    ]
-                  ), 
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline, 
-                    textBaseline: TextBaseline.alphabetic, 
-                    children: [
-                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
-                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12))
-                    ]
-                  )
-                ]
-              ), 
-              const SizedBox(height: 12), 
-              const Divider(color: Colors.white12, height: 1), 
-              const SizedBox(height: 12), 
-              
-              _buildGridRow("Quality", quality), 
-              _buildGridRow("Ads", ads), 
-              _buildGridRow("Device Slot", slot), 
-              
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12), 
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start, 
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                  children: [
-                    const Expanded(
-                      child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 13))
-                    ), 
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end, 
-                      children: [
-                        Text(limit, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)), 
-                        if (limitSub != null) 
-                          Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 10))
-                      ]
-                    )
-                  ]
-                )
-              ), 
-              const Spacer(), 
-              
-              if (!hasEarlyAccess) 
-                Row(
-                  children: [
-                    const Icon(Icons.check_circle_outline, color: Colors.white38, size: 16), 
-                    const SizedBox(width: 8), 
-                    const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 12))
-                  ]
-                ) 
-              else ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16), 
-                        const SizedBox(width: 8), 
-                        const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 12))
-                      ]
-                    ), 
-                    if (earlyAccessText != null) 
-                      Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))
-                  ]
-                ), 
-                if (hasAllPremium != null) ...[
-                  const SizedBox(height: 8), 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16), 
-                          const SizedBox(width: 8), 
-                          const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 12))
-                        ]
-                      ), 
-                      if (allPremiumText != null) 
-                        Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))
-                    ]
-                  )
-                ]
-              ], 
-              const SizedBox(height: 16), 
-              
-              GestureDetector(
-                onTap: () { 
-                  userActivePlan = title; 
-                  _launchUPI(context, cleanPrice, title.replaceAll(" ", "")); 
-                }, 
-                child: Container(
-                  height: 40, 
-                  alignment: Alignment.center, 
-                  decoration: BoxDecoration(
-                    color: isGradientBtn ? null : color, 
-                    gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null, 
-                    borderRadius: BorderRadius.circular(10)
-                  ), 
-                  child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold))
-                )
-              )
-            ],
-          ),
-        ),
-        
-        if (badgeText != null) 
-          Positioned(
-            top: -12, 
-            right: 15, 
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), 
-              decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)), 
-              child: Row(
-                children: [
-                  const Icon(Icons.star, color: Colors.black, size: 12), 
-                  const SizedBox(width: 4), 
-                  Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold))
-                ]
-              )
-            )
-          ),
-      ],
-    );
-  }
-  
-  Widget _buildGridRow(String feature, String value) { 
+  Widget _buildFeatureItem(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12), 
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
         children: [
-          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 13)), 
-          Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
-        ]
-      )
-    ); 
-  }
-}
-
-// ==========================================
-// NEW PAYMENT PROOF PAGE
-// ==========================================
-class PaymentProofPage extends StatefulWidget {
-  const PaymentProofPage({super.key});
-
-  @override 
-  State<PaymentProofPage> createState() => _PaymentProofPageState();
-}
-
-class _PaymentProofPageState extends State<PaymentProofPage> {
-  String? _selectedPlan;
-  File? _imageFile;
-  final TextEditingController _trxController = TextEditingController();
-  bool _isSubmitting = false;
-
-  final List<String> _plans = [
-    "Lite Plan - ₹50",
-    "Plus Plan - ₹100",
-    "Pro Plan - ₹150",
-    "Ultra Plan - ₹200"
-  ];
-
-  Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
-    }
-  }
-
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: const Color(0xFF1E1E1E), 
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0), 
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF2ECA71), 
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check, color: Colors.black, size: 40, weight: 700),
-                ),
-                const SizedBox(height: 16), 
-                const Text(
-                  "Submitted!",
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), 
-                ),
-                const SizedBox(height: 8), 
-                const Text(
-                  "Your payment proof is submitted. It will be verified shortly.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 14), 
-                ),
-                const SizedBox(height: 20), 
-                SizedBox(
-                  width: double.infinity,
-                  height: 45, 
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); 
-                      Navigator.pop(context); 
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF07E2B), 
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), 
-                    ),
-                    child: const Text(
-                      "OK",
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
-                    ),
-                  ),
-                )
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _submitRequest() async {
-    if (_selectedPlan == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please select a plan.")));
-      return;
-    }
-    if (_imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please upload a payment screenshot.")));
-      return;
-    }
-    if (_trxController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter the Transaction ID.")));
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
-    try {
-      String imageUrl = "No URL (RLS issue)";
-      
-      try {
-        final ext = _imageFile!.path.split('.').last;
-        final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-        
-        // Upload image to Supabase Storage
-        await Supabase.instance.client.storage
-            .from('payment_proofs')
-            .upload(fileName, _imageFile!, fileOptions: const FileOptions(cacheControl: '3600', upsert: false));
-            
-        // Get public URL for the image
-        imageUrl = Supabase.instance.client.storage
-            .from('payment_proofs')
-            .getPublicUrl(fileName);
-            
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Storage Upload Error: ${e.toString()}")));
-        }
-        setState(() => _isSubmitting = false);
-        return; 
-      }
-
-      // Insert data into Database
-      try {
-        await Supabase.instance.client.from('payment_requests').insert({
-          'email': currentUserEmail,
-          'plan': _selectedPlan,
-          'transaction_id': _trxController.text.trim(),
-          'image_path': imageUrl,
-          'status': 'Pending',
-          'created_at': DateTime.now().toIso8601String(),
-        });
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Database Insert Error: ${e.toString()}")));
-        }
-        setState(() => _isSubmitting = false);
-        return;
-      }
-
-      if (mounted) {
-        _showSuccessDialog();
-      }
-      
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("An unexpected error occurred: ${e.toString()}"),
-          duration: const Duration(seconds: 5),
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  @override
-  void dispose() {
-    _trxController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F), 
-      appBar: AppBar(
-        title: const Text("Verify Payment", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+          const Icon(Icons.check_circle, color: Colors.green, size: 18),
+          const SizedBox(width: 10),
+          Text(text, style: const TextStyle(color: Colors.white)),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            Container(
-              padding: const EdgeInsets.all(15), 
-              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.orange.withOpacity(0.3))), 
-              child: Row(
-                children: const [
-                  Icon(Icons.info_outline, color: Colors.orange), 
-                  SizedBox(width: 10), 
-                  Expanded(
-                    child: Text("Provide your payment details below to instantly activate your plan.", style: TextStyle(color: Colors.orange, fontSize: 13))
-                  )
-                ]
-              )
-            ),
-            const SizedBox(height: 30), 
-            
-            const Text("Select Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white12)
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  dropdownColor: const Color(0xFF1A1A1A),
-                  hint: const Text("Choose your purchased plan", style: TextStyle(color: Colors.white54)),
-                  value: _selectedPlan,
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
-                  items: _plans.map((String plan) {
-                    return DropdownMenuItem<String>(
-                      value: plan,
-                      child: Text(plan),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedPlan = newValue;
-                    });
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            const Text("Payment Screenshot", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _pickImage,
-              child: Container(
-                width: double.infinity,
-                height: 160,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white12, style: BorderStyle.solid),
-                ),
-                child: _imageFile != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity),
-                      )
-                    : Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.cloud_upload_outlined, color: Colors.orange, size: 40),
-                          SizedBox(height: 10),
-                          Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 14)),
-                          SizedBox(height: 4),
-                          Text("(JPG, PNG allowed)", style: TextStyle(color: Colors.white38, fontSize: 12)),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            const Text("Transaction ID (UTR)", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            TextField(
-              controller: _trxController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: "Enter 12-digit UTR or Transaction ID",
-                hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
-                prefixIcon: const Icon(Icons.tag, color: Colors.orange),
-                filled: true,
-                fillColor: const Color(0xFF1A1A1A),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white12),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.white12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.orange),
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
-
-            SizedBox(
-              width: double.infinity, 
-              height: 50, 
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange, 
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 5,
-                ), 
-                onPressed: _isSubmitting ? null : _submitRequest, 
-                child: _isSubmitting 
-                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text("Submit Proof", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              )
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class SupportPage extends StatelessWidget {
-  const SupportPage({super.key});
-
-  @override 
-  Widget build(BuildContext context) { 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F), 
-      appBar: AppBar(
-        title: const Text("Help Center", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
-      ), 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16), 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, 
-          children:[
-            Container(
-              padding: const EdgeInsets.all(20), 
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16), 
-                gradient: const LinearGradient(colors:[Colors.orangeAccent, Colors.deepOrange])
-              ), 
-              child: Row(
-                children:[
-                  Container(
-                    padding: const EdgeInsets.all(10), 
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle), 
-                    child: const Icon(Icons.headset_mic, color: Colors.white, size: 30)
-                  ), 
-                  const SizedBox(width: 15), 
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, 
-                      children: const [
-                        Text("How can we help?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
-                        Text("We're here to help you with any issues.", style: TextStyle(color: Colors.white70, fontSize: 12))
-                      ]
-                    )
-                  )
-                ]
-              )
-            ), 
-            const SizedBox(height: 30), 
-            const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 16), 
-            
-            // Task 6: Add Contact Links (WhatsApp, Telegram, Email)
-            _buildSupportTile(
-              Icons.telegram, 
-              "Telegram", 
-              "Instant Chat Support", 
-              Colors.blueAccent, 
-              onTap: () => launchTelegram("your_telegram_username_here"), // Replace with actual username
-            ), 
-            _buildSupportTile(
-              Icons.chat, 
-              "WhatsApp", 
-              "Chat Support", 
-              Colors.green, 
-              onTap: () => launchWhatsApp("918987927874"), // Indian number provided by user
-            ), 
-            _buildSupportTile(
-              Icons.email, 
-              "Email", 
-              "24-hour Response", 
-              Colors.orangeAccent, 
-              onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), // Email link provided by user
-            ),
-            
-            const SizedBox(height: 30), 
-            const Text("Social Media", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 16), 
-
-            // Task 6: Add Social Media Links
-            _buildSupportTile(
-              Icons.ondemand_video, 
-              "YouTube", 
-              "Watch trailers and updates", 
-              Colors.red, 
-              onTap: () => launchInBrowser("https://www.youtube.com/@animemxofficial"), // Replace with actual URL
-            ),
-            _buildSupportTile(
-              Icons.camera_alt, 
-              "Instagram", 
-              "Follow for latest posts", 
-              Colors.pink, 
-              onTap: () => launchInBrowser("https://www.instagram.com/animemxofficial"), // Replace with actual URL
-            ),
-            _buildSupportTile(
-              Icons.facebook, 
-              "Facebook", 
-              "Like our page", 
-              Colors.blue, 
-              onTap: () => launchInBrowser("https://www.facebook.com/animemxofficial"), // Replace with actual URL
-            ),
-            _buildSupportTile(
-              Icons.public, 
-              "Twitter", 
-              "Latest news", 
-              Colors.lightBlue, 
-              onTap: () => launchInBrowser("https://twitter.com/animemxofficial"), // Replace with actual URL
-            ),
-          ]
-        )
-      ), 
-    ); 
-  }
-  
-  Widget _buildSupportTile(IconData icon, String title, String sub, Color color, {required VoidCallback onTap}) { 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12), 
-      child: Material(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(12), 
-            child: Row(
-              children:[
-                Container(
-                  padding: const EdgeInsets.all(10), 
-                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), 
-                  child: Icon(icon, color: color)
-                ), 
-                const SizedBox(width: 15), 
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, 
-                    children:[
-                      Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), 
-                      Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12))
-                    ]
-                  )
-                ), 
-                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)
-              ]
-            ),
-          ),
-        ),
-      ),
-    ); 
-  }
-}
-
-// ==========================================
-// ACTIVITY PAGE (FETCHES DATA FROM SUPABASE)
-// ==========================================
-class ActivityPage extends StatefulWidget {
-  const ActivityPage({super.key});
-
-  @override 
-  State<ActivityPage> createState() => _ActivityPageState();
-}
-
-class _ActivityPageState extends State<ActivityPage> {
-  List<OrderItem> _fetchedOrders = []; 
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchOrders();
-  }
-
-  // Fetch data from Supabase on load
-  Future<void> _fetchOrders() async {
-    try {
-      final response = await Supabase.instance.client
-          .from('payment_requests')
-          .select()
-          .eq('email', currentUserEmail) // Filter by current user's email (Task 1 fix)
-          .order('created_at', ascending: false)
-          .limit(10); 
-
-      if (response != null && response.isNotEmpty) {
-        final List<OrderItem> fetchedList = [];
-        for (var data in response) {
-          String fullPlanName = data['plan'] ?? 'N/A';
-          List<String> planParts = fullPlanName.split(' - ');
-          String planNameOnly = planParts.length > 0 ? planParts[0] : fullPlanName;
-          String priceOnly = planParts.length > 1 ? planParts[1] : '₹0';
-
-          fetchedList.add(OrderItem(
-            planName: planNameOnly,
-            amount: priceOnly,
-            status: data['status'] ?? 'Pending',
-            date: data['created_at'] != null ? data['created_at'].substring(0, 10) : 'N/A', 
-          ));
-        }
-        setState(() {
-          _fetchedOrders = fetchedList;
-          _isLoading = false;
-        });
-      } else {
-        setState(() => _isLoading = false);
-      }
-
-    } catch (e) {
-      print("Error fetching orders: $e");
-      setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black, 
-      appBar: AppBar(
-        title: const Text("Activity & Orders", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
-      ),
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange)) 
-          : _fetchedOrders.isEmpty 
-              ? const Center(
-                  child: Text("No recent orders found.", style: TextStyle(color: Colors.white54))
-                ) 
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16), 
-                  itemCount: _fetchedOrders.length, 
-                  itemBuilder: (ctx, i) { 
-                    final order = _fetchedOrders[i]; 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12), 
-                      padding: const EdgeInsets.all(16), 
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1A), 
-                        borderRadius: BorderRadius.circular(12), 
-                        border: Border(
-                          left: BorderSide(
-                            color: order.status == "Pending" ? Colors.orange : Colors.green, 
-                            width: 4
-                          )
-                        )
-                      ), 
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                        children:[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start, 
-                            children:[
-                              Text(
-                                order.planName, 
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)
-                              ), 
-                              const SizedBox(height: 4), 
-                              Text(
-                                "${order.amount} • ${order.date}", 
-                                style: const TextStyle(color: Colors.white54, fontSize: 12)
-                              )
-                            ]
-                          ), 
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
-                            decoration: BoxDecoration(
-                              color: order.status == "Pending" ? Colors.orange.withOpacity(0.2) : Colors.green.withOpacity(0.2), 
-                              borderRadius: BorderRadius.circular(20)
-                            ), 
-                            child: Text(
-                              order.status, 
-                              style: TextStyle(
-                                color: order.status == "Pending" ? Colors.orange : Colors.green, 
-                                fontSize: 12, 
-                                fontWeight: FontWeight.bold
-                              )
-                            )
-                          )
-                        ]
-                      ),
-                    ); 
-                  }, 
-                ),
     );
   }
 }
