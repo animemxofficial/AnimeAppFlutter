@@ -37,6 +37,148 @@ String getAvatarLetter(String inputString) {
   return inputString[0].toUpperCase();
 }
 
+// ==========================================
+// SUPABASE DATA PERSISTENCE SERVICES
+// ==========================================
+
+// --- Continue Watching Persistence ---
+class CWService {
+  final SupabaseClient supabase;
+  CWService(this.supabase);
+
+  Future<List<CWItem>> fetchCWList(String userEmail) async {
+    try {
+      final response = await supabase
+          .from('user_preferences')
+          .select('continue_watching')
+          .eq('email', userEmail)
+          .single();
+
+      if (response != null && response['continue_watching'] != null) {
+        final List<dynamic> cwData = response['continue_watching'];
+        return cwData.map((data) => CWItem.fromJson(data)).toList();
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching continue watching list: $e");
+      return [];
+    }
+  }
+
+  Future<void> saveCWList(String userEmail, List<CWItem> cwList) async {
+    final savedData = cwList.map((item) => item.toJson()).toList();
+    try {
+      await supabase.from('user_preferences').upsert(
+        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'continue_watching': savedData},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving continue watching list: $e");
+    }
+  }
+}
+
+// --- Recent Searches Persistence ---
+class RecentSearchesService {
+  final SupabaseClient supabase;
+
+  RecentSearchesService(this.supabase);
+
+  Future<List<String>> fetchRecentSearches(String userEmail) async {
+    try {
+      final response = await supabase
+          .from('user_preferences')
+          .select('recent_searches')
+          .eq('email', userEmail)
+          .single();
+
+      if (response != null && response['recent_searches'] != null) {
+        var data = response['recent_searches'];
+        if (data is String) {
+          return List<String>.from(jsonDecode(data));
+        } else if (data is List) {
+          return List<String>.from(data);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching recent searches: $e");
+      return [];
+    }
+  }
+
+  Future<void> saveRecentSearches(String userEmail, List<String> searches) async {
+    final newSearches = [...searches];
+    if (newSearches.length > 5) newSearches.removeLast(); // Keep list short
+    final searchesJson = jsonEncode(newSearches);
+    try {
+      await supabase.from('user_preferences').upsert(
+        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'recent_searches': searchesJson},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving recent searches: $e");
+    }
+  }
+}
+
+// --- My List Persistence ---
+class MyListService {
+  final SupabaseClient supabase;
+
+  MyListService(this.supabase);
+
+  Future<List<SavedEpisode>> fetchMyList(String userEmail) async {
+    try {
+      final response = await supabase
+          .from('user_preferences')
+          .select('saved_anime')
+          .eq('email', userEmail)
+          .single();
+
+      if (response != null && response['saved_anime'] != null) {
+        final List<dynamic> savedData = response['saved_anime'];
+        final List<SavedEpisode> fetchedList = [];
+        for (var data in savedData) {
+          final animeTitle = data['animeTitle'];
+          try {
+            final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
+            fetchedList.add(SavedEpisode(
+              anime: animeMatch,
+              seasonIndex: data['seasonIndex'] ?? 0,
+              episodeIndex: data['episodeIndex'] ?? 0,
+            ));
+          } catch (e) {
+            print("Anime not found in dummy data: $animeTitle");
+          }
+        }
+        return fetchedList;
+      }
+      return [];
+    } catch (e) {
+      print("Error fetching saved anime: $e");
+      return [];
+    }
+  }
+
+  Future<void> saveMyList(String userEmail, List<SavedEpisode> savedList) async {
+    final List<Map<String, dynamic>> savedData = savedList.map((item) => item.toJson()).toList();
+    try {
+      await supabase.from('user_preferences').upsert(
+        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'saved_anime': savedData},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving saved anime list: $e");
+    }
+  }
+}
+
+
+// ==========================================
+// DATA MODELS (Cont'd)
+// ==========================================
+
 class CWItem {
   final Anime anime;
   int seasonIndex;
@@ -61,18 +203,28 @@ class CWItem {
   };
   
   static CWItem fromJson(Map<String, dynamic> json) {
-    final animeMatch = animeData.firstWhere((anime) => anime.title == json['animeTitle']);
-    return CWItem(
-      anime: animeMatch,
-      seasonIndex: json['seasonIndex'],
-      episodeIndex: json['episodeIndex'],
-      position: Duration(seconds: json['positionInSeconds']),
-      totalDuration: Duration(seconds: json['totalDurationInSeconds']),
-    );
+    // Check if anime exists in dummy data before creating CWItem
+    try {
+      final animeMatch = animeData.firstWhere((anime) => anime.title == json['animeTitle']);
+      return CWItem(
+        anime: animeMatch,
+        seasonIndex: json['seasonIndex'],
+        episodeIndex: json['episodeIndex'],
+        position: Duration(seconds: json['positionInSeconds']),
+        totalDuration: Duration(seconds: json['totalDurationInSeconds']),
+      );
+    } catch (e) {
+      // Return a dummy CWItem or handle gracefully if anime not found
+      return CWItem(
+        anime: animeData[0], // Fallback to first anime
+        seasonIndex: 0,
+        episodeIndex: 0,
+        position: Duration(seconds: json['positionInSeconds'] ?? 0),
+        totalDuration: Duration(seconds: json['totalDurationInSeconds'] ?? 0),
+      );
+    }
   }
 }
-
-final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 
 class SavedEpisode {
   final Anime anime;
@@ -91,8 +243,6 @@ class SavedEpisode {
     'episodeIndex': episodeIndex,
   };
 }
-
-final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 
 class Episode {
   final String title;
@@ -131,7 +281,7 @@ class Anime {
   final String views;
   final Color dubColor;
   final List<Season> seasonsList;
-  final bool isNew; // Added new property
+  final bool isNew; 
 
   Anime({
     required this.title, 
@@ -144,7 +294,7 @@ class Anime {
     this.views = "1.1M", 
     this.dubColor = const Color(0xFFFF4D4D), 
     required this.seasonsList,
-    this.isNew = false, // Default to false
+    this.isNew = false, 
   });
 }
 
@@ -1919,7 +2069,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       if (mounted && userResponse != null) {
         setState(() {
           _isLiked = userResponse['is_liked'] ?? false;
-          _isDisliked = !(_isLiked); // If liked, then not disliked
+          _isDisliked = userResponse['is_disliked'] ?? false; // Fixed issue where dislike status wasn't fetched correctly.
         });
       }
 
@@ -1938,6 +2088,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       'user_id': userId,
       'episode_id': episodeId,
       'is_liked': newLikeStatus,
+      'is_disliked': newDislikeStatus,
     }, onConflict: 'user_id, episode_id');
 
     // 2. Update content_likes table (increment/decrement counts)
@@ -1985,8 +2136,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             setState(() {
                 _likesCount = newLikes;
                 _dislikesCount = newDislikes;
-                _isLiked = newLikeStatus;
-                _isDisliked = newDislikeStatus;
             });
         }
 
@@ -2057,6 +2206,27 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     Future.delayed(const Duration(milliseconds: 300), () { 
       if (mounted) setState(() => _rewindOpacity = 0.0); 
     }); 
+  }
+
+  // --- Like/Dislike Button Handlers ---
+  void _toggleLike() { 
+    final newLikeStatus = !_isLiked;
+    final newDislikeStatus = false;
+    _updateLikesDislikes(newLikeStatus, newDislikeStatus);
+    setState(() { // Local UI update immediately
+      _isLiked = newLikeStatus;
+      _isDisliked = false;
+    });
+  }
+
+  void _toggleDislike() { 
+    final newLikeStatus = false;
+    final newDislikeStatus = !_isDisliked;
+    _updateLikesDislikes(newLikeStatus, newDislikeStatus);
+    setState(() { // Local UI update immediately
+      _isDisliked = newDislikeStatus;
+      _isLiked = false;
+    });
   }
 
   // --- My List Save Button Logic ---
@@ -2953,7 +3123,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Column(
             children:[
-              // Task: Profile UI Redesign based on screenshot example
+              // Task: Profile UI Redesign based on screenshot example (Image 1)
               Column(
                 children: [
                   CircleAvatar(
@@ -2990,7 +3160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 leading: const Icon(Icons.notifications_none, color: Colors.white),
                 title: const Text("Notifications", style: TextStyle(color: Colors.white)),
                 trailing: Row(
-                  mainAxisSize: MainAxisSizeSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)), child: const Text("1", style: TextStyle(color: Colors.white, fontSize: 12))),
                     const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
