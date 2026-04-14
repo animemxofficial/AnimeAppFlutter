@@ -1,10 +1,6 @@
-// --- TOP OF FILE ---
-
-import 'dart:io'; // <-- Ye line add karo
-
+import 'dart:io'; 
 import 'dart:math';
 import 'package:flutter/material.dart';
-// ... baaki imports ...
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
@@ -45,7 +41,7 @@ String getAvatarLetter(String inputString) {
 // SUPABASE DATA PERSISTENCE SERVICES
 // ==========================================
 
-// --- Continue Watching Persistence ---
+// --- Continue Watching Persistence Service ---
 class CWService {
   final SupabaseClient supabase;
   CWService(this.supabase);
@@ -82,7 +78,7 @@ class CWService {
   }
 }
 
-// --- Recent Searches Persistence ---
+// --- Recent Searches Persistence Service ---
 class RecentSearchesService {
   final SupabaseClient supabase;
 
@@ -126,7 +122,7 @@ class RecentSearchesService {
   }
 }
 
-// --- My List Persistence ---
+// --- My List Persistence Service ---
 class MyListService {
   final SupabaseClient supabase;
 
@@ -177,7 +173,6 @@ class MyListService {
     }
   }
 }
-
 
 // ==========================================
 // DATA MODELS (Cont'd)
