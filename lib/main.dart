@@ -1,45 +1,3 @@
-Bhai, main samajh gaya. Aap bahut try kar rahe ho aur thak gaye ho. Chinta mat karo, main aapki saari baaton ko dhyan se padh kar, aur pichle errors ko fix karte hue, **ek final, complete code** de raha hoon.
-
-Aapne jo naye changes bataye hain:
-
-*   **Continue Watching Fix:** User data isolation issue (subke account mein show hona) aur persistence issue (restart par gayab hona).
-*   **Like/Dislike Fix:** Supabase se connect karna.
-*   **Account page redesign:** Pura layout, colors, sections (Premium, Stats, Quick Actions, Rewards) ko naye sample image ke hisaab se banana.
-*   **My List Icon Location:** Save icon ko upper left side mein shift karna.
-*   **Dubs Screen Tags:** `AMX DUB`/`Original` tags.
-*   **Login/Signup Page Design:** Soft color design.
-*   **Recent searches persistence:** Supabase se connect karna.
-
-**Main In Sabhi Changes Ko Ek Hi Baar Mein Final Code Mein Implement Kar Raha Hoon.**
-
----
-
-### **Supabase Preparation (Zaroori Kadam):**
-
-Aapne `user_preferences` table aur `payment_requests` table banayi thi. Abhi, `user_preferences` table mein do naye columns chahiye jo saved anime list ko store karein. Agar aapne pichli baar nahi banaya tha, toh ab `user_preferences` table mein ye columns add karein:
-
-*   **Table:** `user_preferences`
-*   **Columns to add/check:**
-    *   `recent_searches` (Type: `jsonb`, Default Value: `{}`)
-    *   `saved_anime` (Type: `jsonb`, Default Value: `{}`)
-    *   `continue_watching` (Type: `jsonb`, Default Value: `{}`)
-
-**Aur naye tables for Likes/Dislikes:**
-
-*   **Table:** `content_likes` (global counts ke liye)
-    *   **Columns:** `episode_id` (text, Primary Key), `likes` (int), `dislikes` (int). RLS off for simplicity, or add RLS policy for public read.
-*   **Table:** `user_likes` (per-user status ke liye)
-    *   **Columns:** `user_id` (uuid, Primary Key), `episode_id` (text, Primary Key), `is_liked` (boolean). RLS ON, policy: `auth.uid() = user_id`.
-
-**RLS Policy Reminder:** In sabhi tables par RLS policies lagana mat bhoolna.
-
----
-
-### **Complete Code with all requested changes:**
-
-```dart
-// --- START OF FILE code.txt ---
-
 import 'dart:io'; 
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -208,7 +166,7 @@ class MyListService {
   }
 
   Future<void> saveMyList(String userEmail, List<SavedEpisode> savedList) async {
-    final List<Map<String, dynamic>> savedData = savedList.map((item) => item.toJson()).toList();
+    final savedData = savedList.map((item) => item.toJson()).toList();
     try {
       await supabase.from('user_preferences').upsert(
         {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'saved_anime': savedData},
@@ -2181,8 +2139,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             setState(() {
                 _likesCount = newLikes;
                 _dislikesCount = newDislikes;
-                _isLiked = newLikeStatus;
-                _isDisliked = newDislikeStatus;
             });
         }
 
@@ -3207,7 +3163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 leading: const Icon(Icons.notifications_none, color: Colors.white),
                 title: const Text("Notifications", style: TextStyle(color: Colors.white)),
                 trailing: Row(
-                  mainAxisSize: MainAxisSizeSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)), child: const Text("1", style: TextStyle(color: Colors.white, fontSize: 12))),
                     const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
@@ -4257,4 +4213,3 @@ class _ActivityPageState extends State<ActivityPage> {
     );
   }
 }
-```
