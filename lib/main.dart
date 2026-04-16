@@ -3117,34 +3117,66 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // New function to delete user account
-  Future<void> _deleteAccount() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text("Confirm Deletion", style: TextStyle(color: Colors.white)),
-        content: const Text("Are you sure you want to delete your account? This action cannot be undone.", style: TextStyle(color: Colors.white70)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
-          ),
+  // --- New Quick Action Cards Widget ---
+  Widget _buildQuickActionCard({required IconData icon, required String title, required Color color, required VoidCallback onTap}) {
+    return Container(
+      width: 100, // Fixed width for each card as per new UI logic
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A), // Dark background for card
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
         ],
       ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(height: 8),
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 12), textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
     );
+  }
 
-    if (confirmed == true) {
-      try {
-        await Supabase.instance.client.auth.signOut(); // Logout first
-        await Supabase.instance.client.rpc('delete_user_data'); // Call RPC to delete data
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Account deleted successfully!")));
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting account: $e")));
-      }
-    }
+  // --- New Menu Item Widget ---
+  Widget _buildNewMenuItem({required IconData icon, required String title, required VoidCallback onTap, Color iconColor = Colors.white, String? trailingText, Color? trailingColor}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Material(
+        color: const Color(0xFF1A1A1A), // Card background color
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Icon(icon, color: iconColor),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                ),
+                if (trailingText != null) ...[
+                  Text(trailingText, style: TextStyle(color: trailingColor ?? Colors.grey)),
+                  const SizedBox(width: 8),
+                ],
+                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -3153,192 +3185,112 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.black,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             children:[
-              // Profile Header Card (based on sample image)
+              // === Header Section (as per sample image) ===
               Container(
-                margin: const EdgeInsets.only(bottom: 16),
+                width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF141414), Color(0xFF1A1A1A)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 5))
-                  ]
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                  color: const Color(0xFF1A1A1A), // Using solid color for simplicity, you can add gradient if needed.
                 ),
                 child: Column(
                   children: [
-                    // Avatar and Name Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 72,
-                              height: 72,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: const Color(0xFF6A5AE0).withOpacity(0.4), width: 2),
-                                boxShadow: [
-                                  BoxShadow(color: const Color(0xFF6A5AE0).withOpacity(0.2), blurRadius: 12)
-                                ],
-                              ),
-                              child: Center(
-                                child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.check_circle, color: Color(0xFF8A7BFF), size: 16),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF2A2A2A),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text("Free Member", style: TextStyle(color: const Color(0xFFFFD700), fontSize: 12)),
-                                ),
-                                const SizedBox(height: 4),
-                                Text("Joined Jan 2024 • ID: ANMX1001", style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-                              ],
-                            ),
-                          ],
-                        ),
-                        // Top Right Icons
-                        Row(
-                          children: [
-                            IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none, color: Color(0xFFCCCCCC), size: 20)),
-                            IconButton(onPressed: () {}, icon: const Icon(Icons.settings, color: Color(0xFFCCCCCC), size: 20)),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    // Edit Profile Button (sample image-based)
-                    Container(
-                      height: 36,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xFF333333), width: 1),
-                      ),
-                      child: TextButton.icon(
-                        onPressed: () {},
-                        icon: const Icon(Icons.edit, color: Colors.white, size: 16),
-                        label: const Text("Edit Profile", style: TextStyle(color: Colors.white, fontSize: 13)),
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundColor: getAvatarColor(currentUserName),
+                      child: Text(
+                        getAvatarLetter(currentUserName),
+                        style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 5),
+                        const Icon(Icons.check_circle, color: Colors.purpleAccent, size: 18), // Verified Badge
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(userActivePlan, style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 5),
+                    const Text("Joined Jan 2024 • ID: ANMX1001", style: TextStyle(color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),
 
-              // Stats Card (based on sample image)
-              Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+              // === Stats Section (as per sample image) ===
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatItem(Icons.play_arrow, Colors.deepPurpleAccent, "145", "Episodes Watched"),
-                    _buildStatItem(Icons.history, Colors.green, "28h 45m", "Watch Time"),
-                    _buildStatItem(Icons.favorite, Colors.pink, "32", "Favorites"),
+                    _buildStatItem(Icons.play_arrow, "145", "Episodes Watched", Colors.deepPurple),
+                    _buildStatItem(Icons.access_time, "28h 45m", "Watch Time", Colors.green),
+                    _buildStatItem(Icons.favorite, "32", "Favorites", Colors.pinkAccent),
                   ],
                 ),
               ),
-
-              // Premium Section (based on sample image)
-              Container(
-                margin: const EdgeInsets.only(bottom: 20),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFff6b00), Color(0xFFff3300)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Go Premium", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    const Text("Unlock all episodes & Remove ads", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildPremiumFeature(Icons.remove_red_eye, "No Ads", Colors.white),
-                        _buildPremiumFeature(Icons.flash_on, "Early Access", Colors.white),
-                        _buildPremiumFeature(Icons.hd, "High Quality", Colors.white),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      height: 48,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Center(child: TextButton(onPressed: () {}, child: const Text("Upgrade Now", style: TextStyle(color: Colors.orange, fontSize: 16)))),
-                    )
-                  ],
-                ),
-              ),
-
-              // Quick Actions Section (based on sample image)
+              
+              // === Quick Actions Section ===
               const Padding(
-                padding: EdgeInsets.only(left: 16, top: 8, bottom: 8),
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Text("Quick Actions", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildQuickActionCard(Icons.play_arrow_rounded, "Continue Watching", Colors.deepPurple),
-                  _buildQuickActionCard(Icons.download, "Downloads", Colors.cyan),
-                  _buildQuickActionCard(Icons.bookmark, "Watch Later", Colors.green),
+                  _buildQuickActionCard(icon: Icons.play_arrow_rounded, title: "Continue Watching", color: Colors.deepPurple, onTap: () {}),
+                  _buildQuickActionCard(icon: Icons.download, title: "Downloads", color: Colors.cyan, onTap: () {}),
+                  _buildQuickActionCard(icon: Icons.bookmark, title: "Watch Later", color: Colors.green, onTap: () {}),
                 ],
               ),
+              const SizedBox(height: 20),
 
-              // Menu Options (based on sample image)
-              const SizedBox(height: 30),
-              _buildMenuItem(context, "Subscription", Icons.star, Colors.amber, hasArrow: true, trailingText: "Free"),
-              _buildMenuItem(context, "Notifications", Icons.notifications, Colors.white, hasArrow: true, trailingText: "1"),
-              const Divider(color: Colors.white12, indent: 16, endIndent: 16),
-              _buildMenuItem(context, "Email", Icons.email, Colors.white, hasArrow: true, trailingText: currentUserEmail),
-              _buildMenuItem(context, "Password", Icons.lock, Colors.white, hasArrow: true),
-              _buildMenuItem(context, "Phone Verification", Icons.phone, Colors.white, hasArrow: true),
-              const Divider(color: Colors.white12, indent: 16, endIndent: 16),
-              _buildMenuItem(context, "Payment Verification", Icons.credit_card, Colors.blueAccent, hasArrow: true),
-              _buildMenuItem(context, "Verification Status", Icons.check_circle, Colors.green, hasArrow: true),
-              _buildMenuItem(context, "Support Center", Icons.headset_mic, Colors.yellow, hasArrow: true, page: const SupportPage()),
-              const Divider(color: Colors.white12, indent: 16, endIndent: 16),
-              _buildMenuItem(context, "Feedback", Icons.feedback, Colors.lightBlue, hasArrow: true),
-              _buildMenuItem(context, "Follow Us", Icons.people, Colors.purpleAccent, hasArrow: true, page: const SupportPage()),
-              _buildMenuItem(context, "Rate Us", Icons.star_rate, Colors.redAccent, hasArrow: true),
-              const Divider(color: Colors.white12, indent: 16, endIndent: 16),
-              _buildMenuItem(context, "Delete My Account", Icons.delete, Colors.redAccent, hasArrow: true, onTap: _deleteAccount),
+              // === Menu Section (Custom Layout per user request) ===
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    // Group 1: Subscription and Notifications
+                    _buildNewMenuItem(icon: Icons.star, title: "Subscription", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), iconColor: Colors.amber, trailingText: userActivePlan, trailingColor: Colors.white70),
+                    _buildNewMenuItem(icon: Icons.notifications_none, title: "Notifications", onTap: () {}, iconColor: Colors.white, trailingText: "1"),
+                    const Divider(color: Colors.white12, thickness: 1, height: 16),
+
+                    // Group 2: Account Security
+                    _buildNewMenuItem(icon: Icons.email, title: "Email", onTap: () {}, iconColor: Colors.white, trailingText: currentUserEmail, trailingColor: Colors.white70),
+                    _buildNewMenuItem(icon: Icons.lock, title: "Password", onTap: () {}, iconColor: Colors.white),
+                    _buildNewMenuItem(icon: Icons.phone, title: "Phone Verification", onTap: () {}, iconColor: Colors.white),
+                    const Divider(color: Colors.white12, thickness: 1, height: 16),
+
+                    // Group 3: Payment/Verification
+                    _buildNewMenuItem(icon: Icons.credit_card, title: "Payment Verification", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), iconColor: Colors.green),
+                    _buildNewMenuItem(icon: Icons.check_circle, title: "Verification Status", onTap: () {}, iconColor: Colors.orange),
+                    const Divider(color: Colors.white12, thickness: 1, height: 16),
+
+                    // Group 4: Support & Feedback
+                    _buildNewMenuItem(icon: Icons.headphones, title: "Support Center", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), iconColor: Colors.yellow),
+                    _buildNewMenuItem(icon: Icons.feedback, title: "Feedback", onTap: () {}, iconColor: Colors.blue),
+                    _buildNewMenuItem(icon: Icons.share, title: "Follow Us", onTap: () {}, iconColor: Colors.pink),
+                    _buildNewMenuItem(icon: Icons.star_border, title: "Rate Us", onTap: () {}, iconColor: Colors.purple),
+                    const Divider(color: Colors.white12, thickness: 1, height: 16),
+
+                    // Group 5: Account Management
+                    _buildNewMenuItem(icon: Icons.delete_forever, title: "Delete My Account", onTap: () {}, iconColor: Colors.redAccent),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -3346,60 +3298,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
   
-  // Helper widget for stats card (similar to sample image)
-  Widget _buildStatItem(IconData icon, Color color, String value, String label) {
+  // Helper widget for stats section
+  Widget _buildStatItem(IconData icon, String value, String label, Color color) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 28),
+        Icon(icon, color: color, size: 30),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-        Text(label, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
       ],
-    );
-  }
-  
-  // Helper widget for premium features (similar to sample image)
-  Widget _buildPremiumFeature(IconData icon, String label, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: color.withOpacity(0.1),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: color, fontSize: 12)),
-      ],
-    );
-  }
-  
-  // Helper widget for menu items (similar to sample image)
-  Widget _buildMenuItem(BuildContext context, String title, IconData icon, Color color, {String trailingText = "", bool hasArrow = false, Widget? page, VoidCallback? onTap}) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: color, size: 22),
-      ),
-      title: Text(title, style: const TextStyle(color: Colors.white)),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (trailingText.isNotEmpty) Text(trailingText, style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-          if (hasArrow) const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16),
-        ],
-      ),
-      onTap: () {
-        if (onTap != null) {
-          onTap();
-        } else if (page != null) {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => page));
-        }
-      },
     );
   }
 }
