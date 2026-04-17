@@ -3034,23 +3034,95 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // --- Profile Data ---
   String? addedMobileNumber; 
   String selectedCountryCode = "+91"; 
   final TextEditingController _mobileController = TextEditingController();
-  // Stats (Dummy data for now, actual implementation needs data fetching logic)
-  int episodesWatched = 145;
-  String watchTime = "28h 45m";
-  int favoritesCount = 32;
 
-  // --- Quick Actions ---
-  // (Note: The screenshot shows quick actions in a specific design)
+  void _showAddInfoDialog() {
+    showDialog(
+      context: context, 
+      builder: (ctx) { 
+        return StatefulBuilder(
+          builder: (context, setModalState) { 
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1A1A1A), 
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
+              title: const Text("Add Mobile Number", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              content: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10), 
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(10)), 
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        dropdownColor: Colors.black, 
+                        value: selectedCountryCode, 
+                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white54), 
+                        items: const [
+                          DropdownMenuItem(value: "+91", child: Text("🇮🇳 +91", style: TextStyle(color: Colors.white))), 
+                          DropdownMenuItem(value: "+1", child: Text("🇺🇸 +1", style: TextStyle(color: Colors.white))), 
+                          DropdownMenuItem(value: "+44", child: Text("🇬🇧 +44", style: TextStyle(color: Colors.white))), 
+                          DropdownMenuItem(value: "+81", child: Text("🇯🇵 +81", style: TextStyle(color: Colors.white)))
+                        ], 
+                        onChanged: (val) { 
+                          if (val != null) {
+                            setModalState(() => selectedCountryCode = val); 
+                          }
+                        }
+                      )
+                    )
+                  ), 
+                  const SizedBox(width: 10), 
+                  Expanded(
+                    child: TextField(
+                      controller: _mobileController, 
+                      keyboardType: TextInputType.phone, 
+                      style: const TextStyle(color: Colors.white), 
+                      decoration: InputDecoration(
+                        hintText: "Mobile Number", 
+                        hintStyle: const TextStyle(color: Colors.white38), 
+                        filled: true, 
+                        fillColor: Colors.black, 
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none)
+                      )
+                    )
+                  )
+                ],
+              ), 
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx), 
+                  child: const Text("Cancel", style: TextStyle(color: Colors.grey))
+                ), 
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange, 
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+                  ), 
+                  onPressed: () { 
+                    if (_mobileController.text.isNotEmpty) {
+                      setState(() => addedMobileNumber = "$selectedCountryCode ${_mobileController.text}"); 
+                    }
+                    Navigator.pop(ctx); 
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mobile number saved!"))); 
+                  }, 
+                  child: const Text("Save", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                ),
+              ],
+            );
+          }
+        );
+      }
+    );
+  }
+
+  // --- New Quick Action Cards Widget ---
   Widget _buildQuickActionCard({required IconData icon, required String title, required Color color, required VoidCallback onTap}) {
     return Container(
-      width: 100, 
+      width: 100, // Fixed width for each card as per new UI logic
       margin: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A), 
+        color: const Color(0xFF1A1A1A), // Dark background for card
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
@@ -3074,7 +3146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- Menu Item Widget ---
+  // --- New Menu Item Widget ---
   Widget _buildNewMenuItem({required IconData icon, required String title, required VoidCallback onTap, Color iconColor = Colors.white, String? trailingText, Color? trailingColor}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -3106,38 +3178,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- Delete Account Logic ---
-  void _deleteAccount() {
-    // Show confirmation dialog before deletion
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Confirm Deletion", style: TextStyle(color: Colors.redAccent)),
-        content: const Text("Are you sure you want to delete your account? This action cannot be undone.", style: TextStyle(color: Colors.white70)),
-        backgroundColor: Colors.black,
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: Colors.white))),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx); // Close dialog
-              try {
-                // Supabase account deletion logic
-                await Supabase.instance.client.auth.signOut(); // Logout first
-                await Supabase.instance.client.rpc('delete_user_data'); // RPC function to delete user data from tables
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Account deleted successfully!")));
-              } catch (e) {
-                print("Error deleting account: $e");
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting account: $e")));
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text("Delete", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -3153,7 +3193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
-                  color: const Color(0xFF1A1A1A), // Dark background for card
+                  color: const Color(0xFF1A1A1A), // Using solid color for simplicity, you can add gradient if needed.
                 ),
                 child: Column(
                   children: [
@@ -3195,9 +3235,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildStatItem(Icons.play_arrow, episodesWatched.toString(), "Episodes Watched", Colors.deepPurple),
-                    _buildStatItem(Icons.access_time, watchTime, "Watch Time", Colors.green),
-                    _buildStatItem(Icons.favorite, favoritesCount.toString(), "Favorites", Colors.pinkAccent),
+                    _buildStatItem(Icons.play_arrow, "145", "Episodes Watched", Colors.deepPurple),
+                    _buildStatItem(Icons.access_time, "28h 45m", "Watch Time", Colors.green),
+                    _buildStatItem(Icons.favorite, "32", "Favorites", Colors.pinkAccent),
                   ],
                 ),
               ),
@@ -3227,26 +3267,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildNewMenuItem(icon: Icons.notifications_none, title: "Notifications", onTap: () {}, iconColor: Colors.white, trailingText: "1"),
                     const Divider(color: Colors.white12, thickness: 1, height: 16),
 
-                    // Group 2: Account Security (Updated to new options)
+                    // Group 2: Account Security
                     _buildNewMenuItem(icon: Icons.email, title: "Email", onTap: () {}, iconColor: Colors.white, trailingText: currentUserEmail, trailingColor: Colors.white70),
                     _buildNewMenuItem(icon: Icons.lock, title: "Password", onTap: () {}, iconColor: Colors.white),
                     _buildNewMenuItem(icon: Icons.phone, title: "Phone Verification", onTap: () {}, iconColor: Colors.white),
                     const Divider(color: Colors.white12, thickness: 1, height: 16),
 
-                    // Group 3: Payment/Verification (Updated to new options)
+                    // Group 3: Payment/Verification
                     _buildNewMenuItem(icon: Icons.credit_card, title: "Payment Verification", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), iconColor: Colors.green),
                     _buildNewMenuItem(icon: Icons.check_circle, title: "Verification Status", onTap: () {}, iconColor: Colors.orange),
                     const Divider(color: Colors.white12, thickness: 1, height: 16),
 
-                    // Group 4: Support & Feedback (Updated to new options)
+                    // Group 4: Support & Feedback
                     _buildNewMenuItem(icon: Icons.headphones, title: "Support Center", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), iconColor: Colors.yellow),
                     _buildNewMenuItem(icon: Icons.feedback, title: "Feedback", onTap: () {}, iconColor: Colors.blue),
                     _buildNewMenuItem(icon: Icons.share, title: "Follow Us", onTap: () {}, iconColor: Colors.pink),
                     _buildNewMenuItem(icon: Icons.star_border, title: "Rate Us", onTap: () {}, iconColor: Colors.purple),
                     const Divider(color: Colors.white12, thickness: 1, height: 16),
 
-                    // Group 5: Account Management (Updated to new options)
-                    _buildNewMenuItem(icon: Icons.delete_forever, title: "Delete My Account", onTap: _deleteAccount, iconColor: Colors.redAccent),
+                    // Group 5: Account Management
+                    _buildNewMenuItem(icon: Icons.delete_forever, title: "Delete My Account", onTap: () {}, iconColor: Colors.redAccent),
                   ],
                 ),
               ),
