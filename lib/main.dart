@@ -1470,7 +1470,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
                             Text(
-                              widget.anime.views, 
+                              anime.views, 
                               style: const TextStyle(color: Colors.white70, fontSize: 10)
                             )
                           ]
@@ -1983,7 +1983,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE - UPDATED LIKES/DISLIKES
+// FAST LOAD VIDEO PLAYER PAGE - LIKES/DISLIKES
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -2010,10 +2010,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _forwardOpacity = 0.0; 
   double _rewindOpacity = 0.0;
   
-  // Local state for like/dislike status (now also linked to Supabase)
+  // Local state for like/dislike status 
   bool _isLiked = false; 
   bool _isDisliked = false;
-  // Local state for counts (updated from Supabase)
+  // Local state for counts 
   int _likesCount = 0;
   int _dislikesCount = 0;
 
@@ -2052,7 +2052,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           .from('content_likes') 
           .select('likes, dislikes')
           .eq('episode_id', episodeId)
-          .maybeSingle(); // Use maybeSingle to prevent crash if row doesn't exist
+          .maybeSingle(); 
       
       if (mounted && response != null) {
         setState(() {
@@ -2082,7 +2082,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   // Update likes/dislikes in Supabase when button is pressed
-  Future<void> _updateLikesDislikes(bool newLikeStatus, bool newDislikeStatus, bool oldLikeStatus, bool oldDislikeStatus) async {
+  Future<void> _updateLikesDislikes(bool newLikeStatus, bool newDislikeStatus) async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
@@ -2095,7 +2095,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           'is_disliked': newDislikeStatus,
         });
 
-        // 2. Fetch current counts again to sync perfectly
+        // 2. Fetch current counts again 
         final currentCounts = await Supabase.instance.client
             .from('content_likes')
             .select('likes, dislikes')
@@ -2105,21 +2105,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         int currentLikes = currentCounts?['likes'] ?? 0;
         int currentDislikes = currentCounts?['dislikes'] ?? 0;
         
-        // Calculate new counts based on old and new states
+        // Calculate new counts based on new state
         int newLikes = currentLikes;
         int newDislikes = currentDislikes;
 
-        if (newLikeStatus && !oldLikeStatus) { // Liked
+        if (newLikeStatus && !_isLiked) { // Liked
             newLikes++;
-            if (oldDislikeStatus) newDislikes--; 
-        } else if (!newLikeStatus && oldLikeStatus) { // Unliked
+            if (_isDisliked) newDislikes--; 
+        } else if (!newLikeStatus && _isLiked) { // Unliked
             newLikes--;
         }
 
-        if (newDislikeStatus && !oldDislikeStatus) { // Disliked
+        if (newDislikeStatus && !_isDisliked) { // Disliked
             newDislikes++;
-            if (oldLikeStatus) newLikes--; 
-        } else if (!newDislikeStatus && oldDislikeStatus) { // Undisliked
+            if (_isLiked) newLikes--; 
+        } else if (!newDislikeStatus && _isDisliked) { // Undisliked
             newDislikes--;
         }
         
@@ -2133,6 +2133,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             'likes': newLikes,
             'dislikes': newDislikes,
         });
+        
+        if (mounted) {
+            setState(() {
+                _likesCount = newLikes;
+                _dislikesCount = newDislikes;
+            });
+        }
 
     } catch (e) {
         print("Error updating content counts: $e");
@@ -2205,43 +2212,39 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   // --- Like/Dislike Button Handlers ---
   void _toggleLike() { 
-    final oldLike = _isLiked;
-    final oldDislike = _isDisliked;
-    final newLike = !oldLike;
-    final newDislike = false;
-    
-    // Sync to backend first so proper calculation is sent to database
-    _updateLikesDislikes(newLike, newDislike, oldLike, oldDislike);
+    final newLikeStatus = !_isLiked;
+    final newDislikeStatus = false;
     
     // Update local state immediately for snappy UI
     setState(() { 
-      if (newLike) _likesCount++;
-      if (oldLike) _likesCount--;
-      if (oldDislike) _dislikesCount--;
+      if (newLikeStatus) _likesCount++;
+      if (_isLiked) _likesCount--;
+      if (_isDisliked) _dislikesCount--;
       
-      _isLiked = newLike;
-      _isDisliked = newDislike;
+      _isLiked = newLikeStatus;
+      _isDisliked = false;
     });
+    
+    // Sync to backend
+    _updateLikesDislikes(newLikeStatus, newDislikeStatus);
   }
 
   void _toggleDislike() { 
-    final oldLike = _isLiked;
-    final oldDislike = _isDisliked;
-    final newLike = false;
-    final newDislike = !oldDislike;
-
-    // Sync to backend first so proper calculation is sent to database
-    _updateLikesDislikes(newLike, newDislike, oldLike, oldDislike);
-
-    // Update local state immediately
+    final newLikeStatus = false;
+    final newDislikeStatus = !_isDisliked;
+    
+    // Update local state immediately for snappy UI
     setState(() { 
-      if (newDislike) _dislikesCount++;
-      if (oldDislike) _dislikesCount--;
-      if (oldLike) _likesCount--;
+      if (newDislikeStatus) _dislikesCount++;
+      if (_isDisliked) _dislikesCount--;
+      if (_isLiked) _likesCount--;
       
-      _isLiked = newLike;
-      _isDisliked = newDislike;
+      _isDisliked = newDislikeStatus;
+      _isLiked = false;
     });
+
+    // Sync to backend
+    _updateLikesDislikes(newLikeStatus, newDislikeStatus);
   }
 
   // --- My List Save Button Logic ---
@@ -3874,7 +3877,7 @@ class SupportPage extends StatelessWidget {
               "Instagram", 
               "Follow for latest posts", 
               Colors.pink, 
-              on monitoring -> launchInBrowser("https://www.instagram.com/animemxofficial"), 
+              onTap: () => launchInBrowser("https://www.instagram.com/animemxofficial"), 
             ),
             _buildSupportTile(
               Icons.facebook, 
