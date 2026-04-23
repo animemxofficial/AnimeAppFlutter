@@ -16,7 +16,7 @@ import 'dart:convert'; // For encoding/decoding JSON
 String currentUserName = "Guest User"; 
 String currentUserEmail = "";
 String userMobileNumber = ""; 
-String userActivePlan = ""; // Default value set
+String userActivePlan = ""; 
 
 List<String> globalRecentSearches = [];
 
@@ -2546,7 +2546,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               borderRadius: BorderRadius.circular(16), 
                               border: Border.all(color: Colors.white12), 
                               boxShadow: [
-                                BoxBoxShadow(
+                                BoxShadow(
                                   color: Colors.black.withOpacity(0.5), 
                                   blurRadius: 10, 
                                   offset: const Offset(0, 5)
@@ -3386,42 +3386,6 @@ class PremiumPage extends StatelessWidget {
     }
   }
 
-  // --- New Plan Card Widget for Vertical List ---
-  Widget _buildVerticalPlanCard({required BuildContext context, required String title, required String price, required String duration}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(duration, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-            ],
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Add purchase logic here
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(price, style: const TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -3432,38 +3396,283 @@ class PremiumPage extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white)
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            const Text("How to Payment", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            // Video Player Placeholder (Task 11)
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Center(
-                child: Icon(Icons.videocam, size: 50, color: Colors.white38),
-              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20), 
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, 
+                children: const [
+                  Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
+                  SizedBox(height: 5), 
+                  Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14))
+                ]
+              )
             ),
             const SizedBox(height: 30),
-
-            const Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 5), 
-            const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-            const SizedBox(height: 20),
             
-            // Vertical Plan Cards (Task 11)
-            _buildVerticalPlanCard(context: context, title: "Lite Plan", price: "₹33", duration: "1 Week"),
-            _buildVerticalPlanCard(context: context, title: "Month Plan", price: "₹50", duration: "1 Month"),
-            _buildVerticalPlanCard(context: context, title: "Pro Plan", price: "₹99", duration: "1 Month"),
+            // HORIZONTAL SCROLLING WIDE CARDS
+            SizedBox(
+              height: 340, 
+              child: ListView(
+                scrollDirection: Axis.horizontal, 
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Lite Plan", 
+                    price: "₹50", 
+                    quality: "720p", 
+                    ads: "NO", 
+                    slot: "1", 
+                    limit: "50 minutes", 
+                    limitSub: "(0.8 hrs)", 
+                    hasEarlyAccess: false, 
+                    color: Colors.orange, 
+                    icon: Icons.local_fire_department
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Plus Plan", 
+                    price: "₹100", 
+                    quality: "1080p", 
+                    ads: "NO", 
+                    slot: "2", 
+                    limit: "240 minutes", 
+                    limitSub: "(4 hrs)", 
+                    hasEarlyAccess: false, 
+                    color: Colors.amber, 
+                    icon: Icons.star, 
+                    badgeText: "MOST POPULAR"
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Pro Plan", 
+                    price: "₹150", 
+                    quality: "1080p", 
+                    ads: "NO", 
+                    slot: "3", 
+                    limit: "480 minutes", 
+                    limitSub: "(8 hrs)", 
+                    hasEarlyAccess: true, 
+                    hasAllPremium: true, 
+                    color: Colors.lightBlueAccent, 
+                    icon: Icons.auto_awesome
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Ultra Plan", 
+                    price: "₹200", 
+                    quality: "1080p", 
+                    ads: "NO", 
+                    slot: "4", 
+                    limit: "Unlimited", 
+                    hasEarlyAccess: true, 
+                    hasAllPremium: true, 
+                    earlyAccessText: "YES", 
+                    allPremiumText: "YES", 
+                    color: Colors.purpleAccent, 
+                    icon: Icons.flash_on, 
+                    isGradientBtn: true
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildNewPlanCard({
+    required BuildContext context, 
+    required String title, 
+    required String price, 
+    required String quality, 
+    required String ads, 
+    required String slot, 
+    required String limit, 
+    String? limitSub, 
+    required bool hasEarlyAccess, 
+    bool? hasAllPremium, 
+    required Color color, 
+    required IconData icon, 
+    String? badgeText, 
+    String? earlyAccessText, 
+    String? allPremiumText, 
+    bool isGradientBtn = false
+  }) {
+    String cleanPrice = price.replaceAll("₹", "");
+    
+    return Stack(
+      clipBehavior: Clip.none, 
+      children: [
+        Container(
+          width: MediaQuery.of(context).size.width * 0.75, 
+          decoration: BoxDecoration(
+            color: const Color(0xFF121212), 
+            borderRadius: BorderRadius.circular(16), 
+            border: Border.all(color: color.withOpacity(0.8), width: 1.5), 
+            boxShadow: [
+              BoxShadow(color: color.withOpacity(0.15), blurRadius: 15, spreadRadius: 1)
+            ]
+          ), 
+          padding: const EdgeInsets.all(16), 
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, 
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon, color: color, size: 20), 
+                      const SizedBox(width: 8), 
+                      Text(title, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.bold))
+                    ]
+                  ), 
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline, 
+                    textBaseline: TextBaseline.alphabetic, 
+                    children: [
+                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)), 
+                      const Text("/mo", style: TextStyle(color: Colors.white54, fontSize: 12))
+                    ]
+                  )
+                ]
+              ), 
+              const SizedBox(height: 12), 
+              const Divider(color: Colors.white12, height: 1), 
+              const SizedBox(height: 12), 
+              
+              _buildGridRow("Quality", quality), 
+              _buildGridRow("Ads", ads), 
+              _buildGridRow("Device Slot", slot), 
+              
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12), 
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start, 
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                  children: [
+                    const Expanded(
+                      child: Text("Daily Watching limit", style: TextStyle(color: Colors.white70, fontSize: 13))
+                    ), 
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end, 
+                      children: [
+                        Text(limit, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)), 
+                        if (limitSub != null) 
+                          Text(limitSub, style: const TextStyle(color: Colors.white54, fontSize: 10))
+                      ]
+                    )
+                  ]
+                )
+              ), 
+              const Spacer(), 
+              
+              if (!hasEarlyAccess) 
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle_outline, color: Colors.white38, size: 16), 
+                    const SizedBox(width: 8), 
+                    const Text("No Early Access", style: TextStyle(color: Colors.white38, fontSize: 12))
+                  ]
+                ) 
+              else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16), 
+                        const SizedBox(width: 8), 
+                        const Text("Early Access", style: TextStyle(color: Colors.white70, fontSize: 12))
+                      ]
+                    ), 
+                    if (earlyAccessText != null) 
+                      Text(earlyAccessText, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))
+                  ]
+                ), 
+                if (hasAllPremium != null) ...[
+                  const SizedBox(height: 8), 
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, color: Colors.greenAccent, size: 16), 
+                          const SizedBox(width: 8), 
+                          const Text("All Premium Anime", style: TextStyle(color: Colors.white70, fontSize: 12))
+                        ]
+                      ), 
+                      if (allPremiumText != null) 
+                        Text(allPremiumText, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))
+                    ]
+                  )
+                ]
+              ], 
+              const SizedBox(height: 16), 
+              
+              GestureDetector(
+                onTap: () { 
+                  userActivePlan = title; 
+                  _launchUPI(context, cleanPrice, title.replaceAll(" ", "")); 
+                }, 
+                child: Container(
+                  height: 40, 
+                  alignment: Alignment.center, 
+                  decoration: BoxDecoration(
+                    color: isGradientBtn ? null : color, 
+                    gradient: isGradientBtn ? const LinearGradient(colors: [Colors.purpleAccent, Colors.pinkAccent]) : null, 
+                    borderRadius: BorderRadius.circular(10)
+                  ), 
+                  child: Text("Select Plan", style: TextStyle(color: (title == "Lite Plan" || title == "Plus Plan") ? Colors.black : Colors.white, fontSize: 15, fontWeight: FontWeight.bold))
+                )
+              )
+            ],
+          ),
+        ),
+        
+        if (badgeText != null) 
+          Positioned(
+            top: -12, 
+            right: 15, 
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), 
+              decoration: BoxDecoration(color: Colors.amber, borderRadius: BorderRadius.circular(8)), 
+              child: Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.black, size: 12), 
+                  const SizedBox(width: 4), 
+                  Text(badgeText, style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold))
+                ]
+              )
+            )
+          ),
+      ],
+    );
+  }
+  
+  Widget _buildGridRow(String feature, String value) { 
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12), 
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+        children: [
+          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 13)), 
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
+        ]
+      )
+    ); 
   }
 }
 
