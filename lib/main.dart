@@ -1470,7 +1470,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
                             Text(
-                              anime.views, 
+                              widget.anime.views, // Fixed the typo here
                               style: const TextStyle(color: Colors.white70, fontSize: 10)
                             )
                           ]
@@ -2143,6 +2143,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
     } catch (e) {
         print("Error updating content counts: $e");
+        // Display error if DB update fails (helps with debugging RLS)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Like/Dislike error: $e")));
+        }
     }
   }
 
