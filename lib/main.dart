@@ -262,7 +262,7 @@ class Episode {
     required this.title, 
     required this.image, 
     required this.duration, 
-    required this.views, 
+    this.views = "0", // Default to 0 instead of dummy views
     required this.videoUrl
   });
 }
@@ -298,14 +298,14 @@ class Anime {
     this.dubStatus = "DUB", 
     this.season = "Season 1", 
     this.status = "Ongoing", 
-    this.views = "1.1M", 
+    this.views = "0", // Default to 0 instead of dummy views
     this.dubColor = const Color(0xFFFF4D4D), 
     required this.seasonsList,
     this.isNew = false, 
   });
 }
 
-// DUMMY DATA FOR DEMO
+// DUMMY DATA FOR DEMO (REMOVED DUMMY VIEWS)
 List<Season> generateDummySeasons() {
   return [
     Season(
@@ -315,14 +315,14 @@ List<Season> generateDummySeasons() {
           title: "The Beginning", 
           image: "https://i.ibb.co/rW2Zk9B/images.jpg", 
           duration: "24m 10s", 
-          views: "2.1M", 
+          views: "0", 
           videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
         ),
         Episode(
           title: "A New Threat", 
           image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", 
           duration: "23m 45s", 
-          views: "1.8M", 
+          views: "0", 
           videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
         ),
       ]
@@ -339,14 +339,14 @@ List<Season> generateClassroomOfEliteSeasons() {
           title: "Episode 1", 
           image: "https://i.ibb.co/vxJtwkcX/k.jpg", 
           duration: "24m 10s", 
-          views: "3.8K", 
+          views: "0", 
           videoUrl: "https://animemx-proxy.onrender.com/stream/AgADXx8AAg-FSFY"
         ), 
         Episode(
           title: "Episode 2", 
           image: "https://i.ibb.co/vxJtwkcX/k.jpg", 
           duration: "23m 45s", 
-          views: "1.8M", 
+          views: "0", 
           videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
         ),
       ]
@@ -355,13 +355,13 @@ List<Season> generateClassroomOfEliteSeasons() {
 }
 
 final List<Anime> animeData = [
-  Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "38K", dubStatus: "DUB", dubColor: const Color(0xFFFF4D4D), season: "S1", seasonsList: generateDummySeasons(), isNew: true),
-  Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", status: "Completed", views: "3K", dubStatus: "MIX", dubColor: const Color(0xFF4DA6FF), season: "S3", seasonsList: generateClassroomOfEliteSeasons()),
-  Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", views: "8.1K", dubStatus: "DUB", dubColor: const Color(0xFF4DA6FF), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "4.5K", dubStatus: "ORIGINAL", dubColor: const Color(0xFFFF9F43), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Demon Slayer", genre: "Action", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "3.1K", dubStatus: "MIX", dubColor: const Color(0xFF00C853), season: "S2", seasonsList: generateDummySeasons()),
-  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "9M", dubStatus: "DUB", dubColor: const Color(0xFF7A5CFF), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "2M", dubStatus: "MIX", dubColor: const Color(0xFFFF4D4D), season: "Movie", seasonsList: generateDummySeasons()),
+  Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFFFF4D4D), season: "S1", seasonsList: generateDummySeasons(), isNew: true),
+  Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", status: "Completed", views: "0", dubStatus: "MIX", dubColor: const Color(0xFF4DA6FF), season: "S3", seasonsList: generateClassroomOfEliteSeasons()),
+  Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFF4DA6FF), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "0", dubStatus: "ORIGINAL", dubColor: const Color(0xFFFF9F43), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Demon Slayer", genre: "Action", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "0", dubStatus: "MIX", dubColor: const Color(0xFF00C853), season: "S2", seasonsList: generateDummySeasons()),
+  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFF7A5CFF), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "0", dubStatus: "MIX", dubColor: const Color(0xFFFF4D4D), season: "Movie", seasonsList: generateDummySeasons()),
   Anime(title: "Bleach: Thousand-Year Blood War", genre: "Action", image: "https://i.ibb.co/DDDJNsFX/images-3.jpg", status: "Coming Soon", views: "0", dubStatus: "ORIGINAL", dubColor: Colors.grey, season: "S3", seasonsList: []),
 ];
 
@@ -834,13 +834,12 @@ class HomeScreen extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: 8.0), 
               child: Divider(color: Colors.white12, thickness: 1)
             ),
-            // REAL LOGOUT ACTION
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20), 
               title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)), 
               onTap: () async { 
-                Navigator.pop(context); // Close Drawer
-                await Supabase.instance.client.auth.signOut(); // REAL LOGOUT
+                Navigator.pop(context); 
+                await Supabase.instance.client.auth.signOut(); 
               }
             ),
             const SizedBox(height: 20),
@@ -1146,9 +1145,11 @@ class HomeScreen extends StatelessWidget {
               GestureDetector(
                 onTap: () { 
                   List<Anime> listToPass = isCW ? cwList!.map((cw) => cw.anime).toList() : animeList!; 
+                  // Pass isLatestOnly flag based on the title
+                  bool isLatest = title == "Latest Episodes";
                   Navigator.push(
                     context, 
-                    MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: listToPass))
+                    MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: listToPass, isLatestOnly: isLatest))
                   ); 
                 }, 
                 child: const Text(
@@ -1169,7 +1170,8 @@ class HomeScreen extends StatelessWidget {
               if (isCW) {
                 return CWAnimeCard(item: cwList![index]); 
               } else {
-                return ThumbnailLatestCard(anime: animeList![index]); 
+                bool isLatest = title == "Latest Episodes";
+                return ThumbnailLatestCard(anime: animeList![index], isLatestOnly: isLatest); 
               }
             }
           ),
@@ -1186,11 +1188,13 @@ class HomeScreen extends StatelessWidget {
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
   final List<Anime> animeList; 
+  final bool isLatestOnly;
   
   const SeeAllCategoryPage({
     super.key, 
     required this.title, 
-    required this.animeList
+    required this.animeList,
+    this.isLatestOnly = false,
   });
 
   @override
@@ -1215,7 +1219,7 @@ class SeeAllCategoryPage extends StatelessWidget {
           mainAxisSpacing: 16
         ), 
         itemCount: animeList.length, 
-        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title)
+        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title, isLatestOnly: isLatestOnly)
       ),
     );
   }
@@ -1322,8 +1326,9 @@ class OverlayPopularCard extends StatelessWidget {
 class GridCategoryCard extends StatefulWidget {
   final Anime anime; 
   final String pageTitle; 
+  final bool isLatestOnly;
   
-  const GridCategoryCard({super.key, required this.anime, required this.pageTitle});
+  const GridCategoryCard({super.key, required this.anime, required this.pageTitle, this.isLatestOnly = false});
 
   @override
   State<GridCategoryCard> createState() => _GridCategoryCardState();
@@ -1386,7 +1391,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     return GestureDetector(
       onTap: () => Navigator.push(
         context, 
-        MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime))
+        MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime, isLatestOnly: widget.isLatestOnly))
       ), 
       child: Container(
         decoration: BoxDecoration(
@@ -1490,14 +1495,19 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
 
 class ThumbnailLatestCard extends StatelessWidget {
   final Anime anime; 
-  const ThumbnailLatestCard({super.key, required this.anime});
+  final bool isLatestOnly;
+  const ThumbnailLatestCard({super.key, required this.anime, this.isLatestOnly = false});
   
   @override
   Widget build(BuildContext context) {
+    int latestEpNum = anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty 
+        ? anime.seasonsList.last.episodes.length 
+        : 1;
+
     return GestureDetector(
       onTap: () => Navigator.push(
         context, 
-        MaterialPageRoute(builder: (_) => DetailsPage(anime: anime))
+        MaterialPageRoute(builder: (_) => DetailsPage(anime: anime, isLatestOnly: isLatestOnly))
       ), 
       child: Container(
         width: 180, 
@@ -1543,9 +1553,9 @@ class ThumbnailLatestCard extends StatelessWidget {
                           color: Colors.black87, 
                           borderRadius: BorderRadius.circular(4)
                         ), 
-                        child: const Text(
-                          "Ep 12", 
-                          style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                        child: Text(
+                          "Ep $latestEpNum", 
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
                         )
                       )
                     )
@@ -1664,11 +1674,12 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
 }
 
 // ==========================================
-// DETAILS PAGE - UPDATED WITH REALTIME VIEWS
+// DETAILS PAGE - UPDATED WITH REALTIME VIEWS & LATEST ONLY LOGIC
 // ==========================================
 class DetailsPage extends StatefulWidget {
   final Anime anime; 
-  const DetailsPage({super.key, required this.anime});
+  final bool isLatestOnly; // New flag for Latest Episodes category
+  const DetailsPage({super.key, required this.anime, this.isLatestOnly = false});
   @override 
   State<DetailsPage> createState() => _DetailsPageState();
 }
@@ -1681,6 +1692,9 @@ class _DetailsPageState extends State<DetailsPage> {
   @override
   void initState() {
     super.initState();
+    if (widget.isLatestOnly && widget.anime.seasonsList.isNotEmpty) {
+      _selectedSeasonIndex = widget.anime.seasonsList.length - 1;
+    }
     _fetchEpisodeViews();
   }
 
@@ -1734,8 +1748,13 @@ class _DetailsPageState extends State<DetailsPage> {
       ); 
     }
 
-    final currentSeason = widget.anime.seasonsList[_selectedSeasonIndex]; 
-    final episodesList = currentSeason.episodes;
+    Season currentSeason = widget.anime.seasonsList[_selectedSeasonIndex]; 
+    List<Episode> episodesList = currentSeason.episodes;
+    
+    // IF THIS IS CLICKED FROM "LATEST EPISODES", ONLY SHOW THE LAST EPISODE
+    if (widget.isLatestOnly && episodesList.isNotEmpty) {
+      episodesList = [episodesList.last];
+    }
 
     return Scaffold(
       backgroundColor: darkBg,
@@ -1818,15 +1837,16 @@ class _DetailsPageState extends State<DetailsPage> {
                       ), 
                       onPressed: () { 
                         if (episodesList.isNotEmpty) {
+                          int playIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : 0;
                           Navigator.push(
                             context, 
-                            MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: 0))
+                            MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex))
                           ).then((_) => _fetchEpisodeViews()); // Refresh on back
                         }
                       }, 
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
                       label: const Text(
-                        "Play Season 1", 
+                        "Play Now", 
                         style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
                       )
                     )
@@ -1847,28 +1867,33 @@ class _DetailsPageState extends State<DetailsPage> {
                     )
                   ),
                   const SizedBox(height: 30),
-                  const Text(
-                    "Seasons", 
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 40, 
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal, 
-                      itemCount: widget.anime.seasonsList.length, 
-                      itemBuilder: (context, index) { 
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 10), 
-                          child: _buildSeasonTab(index, widget.anime.seasonsList[index].name, primaryColor)
-                        ); 
-                      }
-                    )
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    "Episodes", 
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                  
+                  // Hide Seasons Tabs if it's Latest Only mode
+                  if (!widget.isLatestOnly) ...[
+                    const Text(
+                      "Seasons", 
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 40, 
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal, 
+                        itemCount: widget.anime.seasonsList.length, 
+                        itemBuilder: (context, index) { 
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10), 
+                            child: _buildSeasonTab(index, widget.anime.seasonsList[index].name, primaryColor)
+                          ); 
+                        }
+                      )
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+
+                  Text(
+                    widget.isLatestOnly ? "Latest Episode" : "Episodes", 
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
                   ),
                   const SizedBox(height: 12),
                   ValueListenableBuilder<List<CWItem>>(
@@ -1880,8 +1905,12 @@ class _DetailsPageState extends State<DetailsPage> {
                         itemCount: episodesList.length, 
                         itemBuilder: (context, index) { 
                           final ep = episodesList[index]; 
+                          
+                          // Calculate exact index to fetch correct views and resume state
+                          int actualEpIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : index;
+
                           double progress = 0.0; 
-                          final cwIndex = cwList.indexWhere((item) => item.anime.title == widget.anime.title && item.seasonIndex == _selectedSeasonIndex && item.episodeIndex == index); 
+                          final cwIndex = cwList.indexWhere((item) => item.anime.title == widget.anime.title && item.seasonIndex == _selectedSeasonIndex && item.episodeIndex == actualEpIndex); 
                           if (cwIndex != -1) { 
                             if (cwList[cwIndex].totalDuration.inMilliseconds > 0) {
                               progress = cwList[cwIndex].position.inMilliseconds / cwList[cwIndex].totalDuration.inMilliseconds; 
@@ -1891,9 +1920,9 @@ class _DetailsPageState extends State<DetailsPage> {
                             onTap: () => Navigator.push(
                               context, 
                               MaterialPageRoute(
-                                builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: index, startPosition: cwIndex != -1 ? cwList[cwIndex].position : null)
+                                builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: actualEpIndex, startPosition: cwIndex != -1 ? cwList[cwIndex].position : null)
                               )
-                            ).then((_) => _fetchEpisodeViews()), // Refresh views on back 
+                            ).then((_) => _fetchEpisodeViews()), 
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 12), 
                               padding: const EdgeInsets.all(10), 
@@ -1934,7 +1963,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                       crossAxisAlignment: CrossAxisAlignment.start, 
                                       children:[
                                         Text(
-                                          "${index + 1}. ${ep.title}", 
+                                          "${actualEpIndex + 1}. ${ep.title}", 
                                           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15), 
                                           maxLines: 1, 
                                           overflow: TextOverflow.ellipsis
@@ -1950,7 +1979,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                             const Icon(Icons.visibility, color: Colors.white54, size: 12), 
                                             const SizedBox(width: 4), 
                                             Text(
-                                              _episodeViews[index] ?? ep.views, // SHOWING REALTIME VIEWS HERE
+                                              _episodeViews[actualEpIndex] ?? ep.views, // REALTIME VIEWS
                                               style: const TextStyle(color: Colors.white54, fontSize: 12)
                                             )
                                           ]
@@ -2070,28 +2099,53 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.dispose(); 
   }
 
-  // --- NEW 100% REALTIME VIEWS LOGIC ---
+  // --- NEW 1 UNIQUE VIEW PER USER LOGIC ---
   Future<void> _incrementAndFetchViews() async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
+    final userId = Supabase.instance.client.auth.currentUser!.id;
+
     try {
-      final response = await Supabase.instance.client
-          .from('episode_views')
-          .select('view_count')
+      // Check if user already viewed this episode
+      final userView = await Supabase.instance.client
+          .from('user_views')
+          .select()
+          .eq('user_id', userId)
           .eq('episode_id', episodeId)
           .maybeSingle();
 
-      int currentViews = response?['view_count'] ?? 0;
-      int newViews = currentViews + 1; // Increment View
-
-      await Supabase.instance.client.from('episode_views').upsert({
-        'episode_id': episodeId,
-        'view_count': newViews,
-      });
-
-      if (mounted) {
-        setState(() {
-          _currentViews = formatViewsCount(newViews);
+      if (userView == null) {
+        // User has NOT viewed. Insert record so they can't spam views
+        await Supabase.instance.client.from('user_views').insert({
+          'user_id': userId,
+          'episode_id': episodeId,
         });
+
+        // Increment Global View count
+        final response = await Supabase.instance.client
+            .from('episode_views')
+            .select('view_count')
+            .eq('episode_id', episodeId)
+            .maybeSingle();
+
+        int currentViews = response?['view_count'] ?? 0;
+        int newViews = currentViews + 1;
+
+        await Supabase.instance.client.from('episode_views').upsert({
+          'episode_id': episodeId,
+          'view_count': newViews,
+        });
+
+        if (mounted) setState(() => _currentViews = formatViewsCount(newViews));
+      } else {
+        // User ALREADY viewed. Just fetch current count (No increment).
+        final response = await Supabase.instance.client
+            .from('episode_views')
+            .select('view_count')
+            .eq('episode_id', episodeId)
+            .maybeSingle();
+            
+        int currentViews = response?['view_count'] ?? 0;
+        if (mounted) setState(() => _currentViews = formatViewsCount(currentViews));
       }
     } catch (e) {
       print("Views error: $e");
