@@ -24,7 +24,7 @@ List<String> globalRecentSearches = [];
 final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 
-// --- Helper functions for Avatar Colors ---
+// --- Helper functions for Avatar Colors & Views Formatting ---
 final List<Color> avatarColors = [
   Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
   Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo,
@@ -39,6 +39,12 @@ Color getAvatarColor(String inputString) {
 String getAvatarLetter(String inputString) {
   if (inputString.isEmpty) return "?";
   return inputString[0].toUpperCase();
+}
+
+String formatViewsCount(int views) {
+  if (views >= 1000000) return (views / 1000000).toStringAsFixed(1) + "M";
+  if (views >= 1000) return (views / 1000).toStringAsFixed(1) + "K";
+  return views.toString();
 }
 
 // ==========================================
@@ -494,7 +500,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN (REAL EMAIL/PASSWORD) - UPDATED UI/UX
+// LOGIN SCREEN (REAL EMAIL/PASSWORD)
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -1324,7 +1330,6 @@ class GridCategoryCard extends StatefulWidget {
 }
 
 class _GridCategoryCardState extends State<GridCategoryCard> {
-  // Save/Unsave logic function
   void _toggleSaveAnime() {
     final list = List<SavedEpisode>.from(myListNotifier.value);
     final isSaved = list.any((item) => item.anime.title == widget.anime.title);
@@ -1659,7 +1664,7 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
 }
 
 // ==========================================
-// DETAILS PAGE 
+// DETAILS PAGE - UPDATED WITH REALTIME VIEWS
 // ==========================================
 class DetailsPage extends StatefulWidget {
   final Anime anime; 
@@ -1671,6 +1676,43 @@ class DetailsPage extends StatefulWidget {
 class _DetailsPageState extends State<DetailsPage> {
   int _selectedSeasonIndex = 0; 
   bool _isExpanded = false;
+  Map<int, String> _episodeViews = {}; 
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEpisodeViews();
+  }
+
+  Future<void> _fetchEpisodeViews() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('episode_views')
+          .select('episode_id, view_count')
+          .like('episode_id', '${widget.anime.title}_${_selectedSeasonIndex}_%');
+          
+      if (mounted && response != null) {
+        Map<int, String> viewsMap = {};
+        for (var row in response) {
+          String epId = row['episode_id'];
+          int vCount = row['view_count'] ?? 0;
+          
+          List<String> parts = epId.split('_');
+          if (parts.isNotEmpty) {
+            int? eIdx = int.tryParse(parts.last);
+            if (eIdx != null) {
+              viewsMap[eIdx] = formatViewsCount(vCount);
+            }
+          }
+        }
+        setState(() {
+          _episodeViews = viewsMap;
+        });
+      }
+    } catch (e) {
+      print("Error fetching views: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1779,7 +1821,7 @@ class _DetailsPageState extends State<DetailsPage> {
                           Navigator.push(
                             context, 
                             MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: 0))
-                          );
+                          ).then((_) => _fetchEpisodeViews()); // Refresh on back
                         }
                       }, 
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
@@ -1851,7 +1893,7 @@ class _DetailsPageState extends State<DetailsPage> {
                               MaterialPageRoute(
                                 builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: index, startPosition: cwIndex != -1 ? cwList[cwIndex].position : null)
                               )
-                            ), 
+                            ).then((_) => _fetchEpisodeViews()), // Refresh views on back 
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 12), 
                               padding: const EdgeInsets.all(10), 
@@ -1908,7 +1950,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                             const Icon(Icons.visibility, color: Colors.white54, size: 12), 
                                             const SizedBox(width: 4), 
                                             Text(
-                                              ep.views, 
+                                              _episodeViews[index] ?? ep.views, // SHOWING REALTIME VIEWS HERE
                                               style: const TextStyle(color: Colors.white54, fontSize: 12)
                                             )
                                           ]
@@ -1944,7 +1986,12 @@ class _DetailsPageState extends State<DetailsPage> {
   Widget _buildSeasonTab(int index, String title, Color primaryColor) { 
     bool isActive = _selectedSeasonIndex == index; 
     return GestureDetector(
-      onTap: () => setState(() => _selectedSeasonIndex = index), 
+      onTap: () {
+        setState(() {
+          _selectedSeasonIndex = index;
+        });
+        _fetchEpisodeViews(); // Fetch views for new season
+      }, 
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
         decoration: BoxDecoration(
@@ -1963,7 +2010,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE - SUPER LIKES/DISLIKES
+// FAST LOAD VIDEO PLAYER PAGE - UPDATED VIEWS
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -1994,10 +2041,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   bool _isDisliked = false;
   int _likesCount = 0;
   int _dislikesCount = 0;
+  String _currentViews = "0";
 
   @override 
   void initState() { 
     super.initState(); 
+    _incrementAndFetchViews(); 
     _fetchLikesDislikes(); 
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex]; 
     _controller = VideoPlayerController.networkUrl(
@@ -2021,27 +2070,51 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.dispose(); 
   }
 
-  // --- NEW 100% ACCURATE LIKES LOGIC ---
+  // --- NEW 100% REALTIME VIEWS LOGIC ---
+  Future<void> _incrementAndFetchViews() async {
+    final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
+    try {
+      final response = await Supabase.instance.client
+          .from('episode_views')
+          .select('view_count')
+          .eq('episode_id', episodeId)
+          .maybeSingle();
+
+      int currentViews = response?['view_count'] ?? 0;
+      int newViews = currentViews + 1; // Increment View
+
+      await Supabase.instance.client.from('episode_views').upsert({
+        'episode_id': episodeId,
+        'view_count': newViews,
+      });
+
+      if (mounted) {
+        setState(() {
+          _currentViews = formatViewsCount(newViews);
+        });
+      }
+    } catch (e) {
+      print("Views error: $e");
+    }
+  }
+
   Future<void> _fetchLikesDislikes() async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
     try {
-      // 1. Fetch TOTAL likes count directly from the single user_likes table
       final likesData = await Supabase.instance.client
           .from('user_likes')
           .select('user_id')
           .eq('episode_id', episodeId)
           .eq('is_liked', true);
           
-      // 2. Fetch TOTAL dislikes count
       final dislikesData = await Supabase.instance.client
           .from('user_likes')
           .select('user_id')
           .eq('episode_id', episodeId)
           .eq('is_disliked', true);
 
-      // 3. Fetch MY specific status
       final myStatus = await Supabase.instance.client
           .from('user_likes')
           .select('is_liked, is_disliked')
@@ -2067,7 +2140,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
     try {
-        // Sirf ek hi table me update hoga, isse fast aur safe kuch nahi!
         await Supabase.instance.client.from('user_likes').upsert({
           'user_id': userId,
           'episode_id': episodeId,
@@ -2075,7 +2147,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           'is_disliked': newDislike,
         });
 
-        // Background me accurate totals waapas le aao confirm karne ke liye
         final likesData = await Supabase.instance.client
             .from('user_likes')
             .select('user_id')
@@ -2134,7 +2205,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
     _updateLikesDislikes(newLike, newDislike);
   }
-  // ---------------------------------------------
 
   void _updateContinueWatching() { 
     if (!_controller.value.isInitialized) return; 
@@ -2431,9 +2501,27 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         style: const TextStyle(color: Colors.white70, fontSize: 12)
                       ), 
                       const SizedBox(height: 4), 
-                      Text(
-                        currentEpisode.title, 
-                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              currentEpisode.title, 
+                              style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(8)),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.visibility, color: Colors.white70, size: 14),
+                                const SizedBox(width: 4),
+                                Text(_currentViews, style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                        ],
                       ), 
                       const SizedBox(height: 20),
                       
