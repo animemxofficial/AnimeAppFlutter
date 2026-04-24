@@ -24,6 +24,9 @@ List<String> globalRecentSearches = [];
 final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 
+// Naya Notifier: Sabhi Anime ke total views store karne ke liye
+final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
+
 // --- Helper functions for Avatar Colors & Views Formatting ---
 final List<Color> avatarColors = [
   Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
@@ -47,11 +50,37 @@ String formatViewsCount(int views) {
   return views.toString();
 }
 
+// Function: Database se saare views fetch karke sum (Total) karna
+Future<void> fetchGlobalAnimeViews() async {
+  try {
+    final response = await Supabase.instance.client
+        .from('episode_views')
+        .select('episode_id, view_count');
+
+    Map<String, int> viewsMap = {};
+    if (response != null) {
+      for (var row in response) {
+        String epId = row['episode_id'];
+        int vCount = row['view_count'] ?? 0;
+
+        // Episode ID se Anime ka naam nikalna
+        List<String> parts = epId.split('_');
+        if (parts.length >= 3) {
+          String title = parts.sublist(0, parts.length - 2).join('_');
+          viewsMap[title] = (viewsMap[title] ?? 0) + vCount; // Us anime ke purane views me naye views plus karna
+        }
+      }
+    }
+    globalAnimeViewsNotifier.value = viewsMap;
+  } catch (e) {
+    print("Error fetching global views: $e");
+  }
+}
+
 // ==========================================
 // SUPABASE DATA PERSISTENCE SERVICES
 // ==========================================
 
-// --- Continue Watching Persistence Service ---
 class CWService {
   final SupabaseClient supabase;
   CWService(this.supabase);
@@ -88,7 +117,6 @@ class CWService {
   }
 }
 
-// --- Recent Searches Persistence Service ---
 class RecentSearchesService {
   final SupabaseClient supabase;
 
@@ -119,7 +147,7 @@ class RecentSearchesService {
 
   Future<void> saveRecentSearches(String userEmail, List<String> searches) async {
     final newSearches = [...searches];
-    if (newSearches.length > 5) newSearches.removeLast(); // Keep list short
+    if (newSearches.length > 5) newSearches.removeLast(); 
     final searchesJson = jsonEncode(newSearches);
     try {
       await supabase.from('user_preferences').upsert(
@@ -132,7 +160,6 @@ class RecentSearchesService {
   }
 }
 
-// --- My List Persistence Service ---
 class MyListService {
   final SupabaseClient supabase;
 
@@ -223,7 +250,7 @@ class CWItem {
       );
     } catch (e) {
       return CWItem(
-        anime: animeData[0], // Fallback to first anime
+        anime: animeData[0], 
         seasonIndex: 0,
         episodeIndex: 0,
         position: Duration(seconds: json['positionInSeconds'] ?? 0),
@@ -262,7 +289,7 @@ class Episode {
     required this.title, 
     required this.image, 
     required this.duration, 
-    this.views = "0", // Default to 0 instead of dummy views
+    this.views = "0", 
     required this.videoUrl
   });
 }
@@ -298,14 +325,14 @@ class Anime {
     this.dubStatus = "DUB", 
     this.season = "Season 1", 
     this.status = "Ongoing", 
-    this.views = "0", // Default to 0 instead of dummy views
+    this.views = "0", 
     this.dubColor = const Color(0xFFFF4D4D), 
     required this.seasonsList,
     this.isNew = false, 
   });
 }
 
-// DUMMY DATA FOR DEMO (REMOVED DUMMY VIEWS)
+// DUMMY DATA FOR DEMO 
 List<Season> generateDummySeasons() {
   return [
     Season(
@@ -379,7 +406,6 @@ class OrderItem {
   });
 }
 
-// Global list for initial data (updated by payment submission)
 List<OrderItem> userOrders = []; 
 
 // ==========================================
@@ -389,7 +415,6 @@ List<OrderItem> userOrders = [];
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // --- Supabase Initialization ---
   await Supabase.initialize(
     url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
     anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
@@ -667,6 +692,12 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchGlobalAnimeViews(); // Load global views when app starts
+  }
 
   void _goToSearch() { 
     setState(() { 
@@ -1145,7 +1176,6 @@ class HomeScreen extends StatelessWidget {
               GestureDetector(
                 onTap: () { 
                   List<Anime> listToPass = isCW ? cwList!.map((cw) => cw.anime).toList() : animeList!; 
-                  // Pass isLatestOnly flag based on the title
                   bool isLatest = title == "Latest Episodes";
                   Navigator.push(
                     context, 
@@ -1225,6 +1255,7 @@ class SeeAllCategoryPage extends StatelessWidget {
   }
 }
 
+// POPULAR CARD - REALTIME TOTAL VIEWS ADDED
 class OverlayPopularCard extends StatelessWidget {
   final Anime anime; 
   const OverlayPopularCard({super.key, required this.anime});
@@ -1304,9 +1335,16 @@ class OverlayPopularCard extends StatelessWidget {
                           children:[
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
-                            Text(
-                              anime.views, 
-                              style: const TextStyle(color: Colors.white70, fontSize: 10)
+                            // Realtime Views Builder
+                            ValueListenableBuilder<Map<String, int>>(
+                              valueListenable: globalAnimeViewsNotifier,
+                              builder: (context, viewsMap, child) {
+                                int totalViews = viewsMap[anime.title] ?? 0;
+                                return Text(
+                                  formatViewsCount(totalViews),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 10)
+                                );
+                              },
                             )
                           ]
                         )
@@ -1323,6 +1361,7 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
+// MAIN ANIME CARD - REALTIME TOTAL VIEWS ADDED
 class GridCategoryCard extends StatefulWidget {
   final Anime anime; 
   final String pageTitle; 
@@ -1460,9 +1499,16 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                           children:[
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
-                            Text(
-                              widget.anime.views,
-                              style: const TextStyle(color: Colors.white70, fontSize: 10)
+                            // Realtime Views Builder
+                            ValueListenableBuilder<Map<String, int>>(
+                              valueListenable: globalAnimeViewsNotifier,
+                              builder: (context, viewsMap, child) {
+                                int totalViews = viewsMap[widget.anime.title] ?? 0;
+                                return Text(
+                                  formatViewsCount(totalViews),
+                                  style: const TextStyle(color: Colors.white70, fontSize: 10)
+                                );
+                              },
                             )
                           ]
                         )
@@ -1493,6 +1539,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
+// LATEST CARD - REALTIME TOTAL VIEWS ADDED
 class ThumbnailLatestCard extends StatelessWidget {
   final Anime anime; 
   final bool isLatestOnly;
@@ -1536,9 +1583,16 @@ class ThumbnailLatestCard extends StatelessWidget {
                           children:[
                             const Icon(Icons.visibility, color: Colors.orange, size: 12), 
                             const SizedBox(width: 4), 
-                            Text(
-                              anime.views, 
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                            // Realtime Views Builder
+                            ValueListenableBuilder<Map<String, int>>(
+                              valueListenable: globalAnimeViewsNotifier,
+                              builder: (context, viewsMap, child) {
+                                int totalViews = viewsMap[anime.title] ?? 0;
+                                return Text(
+                                  formatViewsCount(totalViews),
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                                );
+                              },
                             )
                           ]
                         )
@@ -1674,11 +1728,11 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
 }
 
 // ==========================================
-// DETAILS PAGE - UPDATED WITH REALTIME VIEWS & LATEST ONLY LOGIC
+// DETAILS PAGE - LATEST ONLY LOGIC
 // ==========================================
 class DetailsPage extends StatefulWidget {
   final Anime anime; 
-  final bool isLatestOnly; // New flag for Latest Episodes category
+  final bool isLatestOnly; 
   const DetailsPage({super.key, required this.anime, this.isLatestOnly = false});
   @override 
   State<DetailsPage> createState() => _DetailsPageState();
@@ -1751,7 +1805,7 @@ class _DetailsPageState extends State<DetailsPage> {
     Season currentSeason = widget.anime.seasonsList[_selectedSeasonIndex]; 
     List<Episode> episodesList = currentSeason.episodes;
     
-    // IF THIS IS CLICKED FROM "LATEST EPISODES", ONLY SHOW THE LAST EPISODE
+    // LATEST ONLY LOGIC
     if (widget.isLatestOnly && episodesList.isNotEmpty) {
       episodesList = [episodesList.last];
     }
@@ -1841,7 +1895,7 @@ class _DetailsPageState extends State<DetailsPage> {
                           Navigator.push(
                             context, 
                             MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex))
-                          ).then((_) => _fetchEpisodeViews()); // Refresh on back
+                          ).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }); // Refresh views globally
                         }
                       }, 
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
@@ -1868,7 +1922,6 @@ class _DetailsPageState extends State<DetailsPage> {
                   ),
                   const SizedBox(height: 30),
                   
-                  // Hide Seasons Tabs if it's Latest Only mode
                   if (!widget.isLatestOnly) ...[
                     const Text(
                       "Seasons", 
@@ -1906,7 +1959,6 @@ class _DetailsPageState extends State<DetailsPage> {
                         itemBuilder: (context, index) { 
                           final ep = episodesList[index]; 
                           
-                          // Calculate exact index to fetch correct views and resume state
                           int actualEpIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : index;
 
                           double progress = 0.0; 
@@ -1922,7 +1974,7 @@ class _DetailsPageState extends State<DetailsPage> {
                               MaterialPageRoute(
                                 builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: actualEpIndex, startPosition: cwIndex != -1 ? cwList[cwIndex].position : null)
                               )
-                            ).then((_) => _fetchEpisodeViews()), 
+                            ).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }), 
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 12), 
                               padding: const EdgeInsets.all(10), 
@@ -1979,7 +2031,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                             const Icon(Icons.visibility, color: Colors.white54, size: 12), 
                                             const SizedBox(width: 4), 
                                             Text(
-                                              _episodeViews[actualEpIndex] ?? ep.views, // REALTIME VIEWS
+                                              _episodeViews[actualEpIndex] ?? ep.views, 
                                               style: const TextStyle(color: Colors.white54, fontSize: 12)
                                             )
                                           ]
@@ -2019,7 +2071,7 @@ class _DetailsPageState extends State<DetailsPage> {
         setState(() {
           _selectedSeasonIndex = index;
         });
-        _fetchEpisodeViews(); // Fetch views for new season
+        _fetchEpisodeViews(); 
       }, 
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
@@ -2039,7 +2091,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE - UPDATED VIEWS
+// FAST LOAD VIDEO PLAYER PAGE - REALTIME VIEWS FIX
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -2099,13 +2151,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.dispose(); 
   }
 
-  // --- NEW 1 UNIQUE VIEW PER USER LOGIC ---
   Future<void> _incrementAndFetchViews() async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
     try {
-      // Check if user already viewed this episode
       final userView = await Supabase.instance.client
           .from('user_views')
           .select()
@@ -2114,13 +2164,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           .maybeSingle();
 
       if (userView == null) {
-        // User has NOT viewed. Insert record so they can't spam views
         await Supabase.instance.client.from('user_views').insert({
           'user_id': userId,
           'episode_id': episodeId,
         });
 
-        // Increment Global View count
         final response = await Supabase.instance.client
             .from('episode_views')
             .select('view_count')
@@ -2135,9 +2183,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           'view_count': newViews,
         });
 
+        // Global Notifier me bhi instantly +1 kar do taaki bahar wale cards update ho jayein
+        final currentMap = Map<String, int>.from(globalAnimeViewsNotifier.value);
+        currentMap[widget.anime.title] = (currentMap[widget.anime.title] ?? 0) + 1;
+        globalAnimeViewsNotifier.value = currentMap;
+
         if (mounted) setState(() => _currentViews = formatViewsCount(newViews));
       } else {
-        // User ALREADY viewed. Just fetch current count (No increment).
         final response = await Supabase.instance.client
             .from('episode_views')
             .select('view_count')
@@ -2728,7 +2780,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// FULLY WORKING BROWSE (SEARCH) SCREEN - UPDATED PERSISTENCE
+// FULLY WORKING BROWSE (SEARCH) SCREEN 
 // ==========================================
 class BrowseScreen extends StatefulWidget {
   const BrowseScreen({super.key}); 
@@ -2744,21 +2796,19 @@ class _BrowseScreenState extends State<BrowseScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchRecentSearches(); // Fetch on load
+    _fetchRecentSearches(); 
   }
 
-  // Fetch data from Supabase on load
   Future<void> _fetchRecentSearches() async {
     try {
       final response = await Supabase.instance.client
           .from('user_preferences')
           .select('recent_searches')
-          .eq('email', currentUserEmail) // Filter by current user's email
+          .eq('email', currentUserEmail) 
           .maybeSingle();
 
       if (response != null && response['recent_searches'] != null) {
         setState(() {
-          // Check if recent searches is a string or list
           var data = response['recent_searches'];
           if (data is String) {
             globalRecentSearches = List<String>.from(jsonDecode(data));
@@ -2778,13 +2828,11 @@ class _BrowseScreenState extends State<BrowseScreen> {
     }
   }
 
-  // Save/Update recent searches to Supabase DB
   Future<void> _updateRecentSearchesInDb(String query) async {
     final newSearches = [...globalRecentSearches];
-    if (newSearches.length > 5) newSearches.removeLast(); // Keep list short
+    if (newSearches.length > 5) newSearches.removeLast(); 
     if (!newSearches.contains(query)) newSearches.insert(0, query);
     
-    // Convert List<String> to JSON string for jsonb type in Supabase
     String searchesJson = jsonEncode(newSearches);
 
     try {
@@ -2814,7 +2862,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
   void _setSearchQuery(String query) { 
     _searchController.text = query; 
     _performSearch(query); 
-    // Save to DB when selected from recents
     if (query.isNotEmpty) {
       _updateRecentSearchesInDb(query); 
     }
@@ -2825,7 +2872,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
       setState(() {
         globalRecentSearches.insert(0, query.trim());
       }); 
-      _updateRecentSearchesInDb(query.trim()); // Save to DB when new search submitted
+      _updateRecentSearchesInDb(query.trim()); 
     } 
     _performSearch(query); 
   }
@@ -2834,7 +2881,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
     setState(() {
       globalRecentSearches.removeAt(index);
     });
-    // Update DB after removal
     _updateRecentSearchesInDb(globalRecentSearches.join(',')); 
   }
 
@@ -2943,7 +2989,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
           children:[
-            Expanded( // Added Expanded here to handle overflow
+            Expanded( 
               child: Text(
                 title, 
                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
@@ -2969,7 +3015,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
 }
 
 // ==========================================
-// DUBS SCREEN - UPDATED TAGS
+// DUBS SCREEN 
 // ==========================================
 class DubsScreen extends StatelessWidget {
   const DubsScreen({super.key}); 
@@ -2997,7 +3043,6 @@ class DubsScreen extends StatelessWidget {
         ), 
         body: TabBarView(
           children:[
-            // Dubbed Section (show DUB and MIX tags)
             GridView.builder(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), 
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16), 
@@ -3005,12 +3050,11 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "DUB" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: "DUB"); // Passing "DUB" as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: "DUB"); 
                 }
                 return const SizedBox.shrink();
               }
             ), 
-            // Original Section (show ORIGINAL and MIX tags)
             GridView.builder(
               padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), 
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16), 
@@ -3018,7 +3062,7 @@ class DubsScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final anime = animeData[index];
                 if (anime.dubStatus == "ORIGINAL" || anime.dubStatus == "MIX") {
-                  return GridCategoryCard(anime: anime, pageTitle: "ORIGINAL"); // Passing "ORIGINAL" as pageTitle for tag logic
+                  return GridCategoryCard(anime: anime, pageTitle: "ORIGINAL"); 
                 }
                 return const SizedBox.shrink();
               }
@@ -3031,7 +3075,7 @@ class DubsScreen extends StatelessWidget {
 }
 
 // ==========================================
-// MY LIST SCREEN - PERSISTENCE ADDED
+// MY LIST SCREEN
 // ==========================================
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
@@ -3049,13 +3093,12 @@ class _MyListScreenState extends State<MyListScreen> {
     _fetchSavedAnime();
   }
 
-  // Fetch saved anime list from Supabase on load
   Future<void> _fetchSavedAnime() async {
     try {
       final response = await Supabase.instance.client
           .from('user_preferences')
           .select('saved_anime')
-          .eq('email', currentUserEmail) // Filter by current user's email
+          .eq('email', currentUserEmail) 
           .maybeSingle();
 
       if (response != null && response['saved_anime'] != null) {
@@ -3132,12 +3175,11 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN - CLEANED & PROFESSIONAL
+// PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
 
-  // Function to build unified menu groups
   Widget _buildMenuGroup(List<Widget> items) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -3154,7 +3196,7 @@ class ProfileScreen extends StatelessWidget {
           return Column(
             children: [
               item,
-              const Divider(color: Colors.white12, height: 1, indent: 56), // 56 corresponds to icon width spacing
+              const Divider(color: Colors.white12, height: 1, indent: 56), 
             ],
           );
         }).toList(),
@@ -3162,10 +3204,9 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // Simple item within the group
   Widget _buildGroupedItem({required IconData icon, required String title, required VoidCallback onTap, Color iconColor = Colors.white, String? trailingText, Color? trailingColor}) {
     return Material(
-      color: Colors.transparent, // Background handled by parent container
+      color: Colors.transparent, 
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -3198,7 +3239,6 @@ class ProfileScreen extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             children:[
-              // === Header Section (Cleaned) ===
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -3239,7 +3279,6 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: 10),
 
-              // === Sleek Menu Sections ===
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
@@ -3249,7 +3288,6 @@ class ProfileScreen extends StatelessWidget {
                       padding: EdgeInsets.only(left: 8, bottom: 8),
                       child: Text("Account", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
-                    // Group 1: Account info & Settings
                     _buildMenuGroup([
                       _buildGroupedItem(
                         icon: Icons.workspace_premium, 
@@ -3280,7 +3318,6 @@ class ProfileScreen extends StatelessWidget {
                       padding: EdgeInsets.only(left: 8, bottom: 8),
                       child: Text("Payments", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
-                    // Group 2: Payments
                     _buildMenuGroup([
                       _buildGroupedItem(
                         icon: Icons.verified_user_outlined, 
@@ -3300,7 +3337,6 @@ class ProfileScreen extends StatelessWidget {
                       padding: EdgeInsets.only(left: 8, bottom: 8),
                       child: Text("Support & Feedback", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
-                    // Group 3: Support
                     _buildMenuGroup([
                       _buildGroupedItem(
                         icon: Icons.support_agent, 
@@ -3401,7 +3437,7 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// UPDATED PREMIUM PAGE WITH VERTICAL PLANS
+// PREMIUM PAGE 
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
@@ -3434,7 +3470,6 @@ class PremiumPage extends StatelessWidget {
             const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 15)),
             const SizedBox(height: 30),
             
-            // VERTICAL COMPACT CARDS
             _buildCompactPlanCard(
               context: context, 
               title: "Weekly Pass", 
@@ -3570,7 +3605,7 @@ class PremiumPage extends StatelessWidget {
 }
 
 // ==========================================
-// NEW PAYMENT PROOF PAGE (UPDATED PLANS)
+// PAYMENT PROOF PAGE 
 // ==========================================
 class PaymentProofPage extends StatefulWidget {
   const PaymentProofPage({super.key});
@@ -3585,7 +3620,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   final TextEditingController _trxController = TextEditingController();
   bool _isSubmitting = false;
 
-  // Updated plans list to match new Premium Page
   final List<String> _plans = [
     "Weekly Pass - ₹33",
     "Monthly Lite - ₹50",
@@ -3681,29 +3715,25 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       
       try {
         final pathParts = _imageFile!.path.split('.');
-        final ext = pathParts.length > 1 ? pathParts.last : 'jpg'; // Fallback if no extension
+        final ext = pathParts.length > 1 ? pathParts.last : 'jpg'; 
         final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
         
-        // Upload image to Supabase Storage
         await Supabase.instance.client.storage
             .from('payment_proofs')
             .upload(fileName, _imageFile!, fileOptions: const FileOptions(cacheControl: '3600', upsert: false));
             
-        // Get public URL for the image
         imageUrl = Supabase.instance.client.storage
             .from('payment_proofs')
             .getPublicUrl(fileName);
             
       } catch (e) {
         if (mounted) {
-          // Clear error message for debugging
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Storage Upload Error: Make sure Storage RLS is disabled/configured. Details: $e")));
         }
         setState(() => _isSubmitting = false);
         return; 
       }
 
-      // Insert data into Database
       try {
         await Supabase.instance.client.from('payment_requests').insert({
           'email': currentUserEmail,
@@ -3937,21 +3967,21 @@ class SupportPage extends StatelessWidget {
               "Telegram", 
               "Instant Chat Support", 
               Colors.blueAccent, 
-              onTap: () => launchTelegram("your_telegram_username_here"), // Replace with actual username
+              onTap: () => launchTelegram("your_telegram_username_here"), 
             ), 
             _buildSupportTile(
               Icons.chat, 
               "WhatsApp", 
               "Chat Support", 
               Colors.green, 
-              onTap: () => launchWhatsApp("918987927874"), // Indian number provided by user
+              onTap: () => launchWhatsApp("918987927874"), 
             ), 
             _buildSupportTile(
               Icons.email, 
               "Email", 
               "24-hour Response", 
               Colors.orangeAccent, 
-              onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), // Email link provided by user
+              onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), 
             ),
             
             const SizedBox(height: 30), 
@@ -4050,13 +4080,12 @@ class _ActivityPageState extends State<ActivityPage> {
     _fetchOrders();
   }
 
-  // Fetch data from Supabase on load
   Future<void> _fetchOrders() async {
     try {
       final response = await Supabase.instance.client
           .from('payment_requests')
           .select()
-          .eq('email', currentUserEmail) // Filter by current user's email
+          .eq('email', currentUserEmail) 
           .order('created_at', ascending: false)
           .limit(10); 
 
