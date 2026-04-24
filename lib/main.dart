@@ -206,7 +206,6 @@ class CWItem {
   };
   
   static CWItem fromJson(Map<String, dynamic> json) {
-    // Check if anime exists in dummy data before creating CWItem
     try {
       final animeMatch = animeData.firstWhere((anime) => anime.title == json['animeTitle']);
       return CWItem(
@@ -217,7 +216,6 @@ class CWItem {
         totalDuration: Duration(seconds: json['totalDurationInSeconds']),
       );
     } catch (e) {
-      // Return a dummy CWItem or handle gracefully if anime not found
       return CWItem(
         anime: animeData[0], // Fallback to first anime
         seasonIndex: 0,
@@ -376,7 +374,6 @@ class OrderItem {
 }
 
 // Global list for initial data (updated by payment submission)
-// ActivityPage now fetches from Supabase on load, but we keep this for local updates.
 List<OrderItem> userOrders = []; 
 
 // ==========================================
@@ -423,7 +420,6 @@ Future<void> launchWhatsApp(String number) async {
   if (await canLaunchUrl(uri)) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   } else {
-    // Fallback to web link
     final webUri = Uri.parse("https://api.whatsapp.com/send?phone=$number");
     if (await canLaunchUrl(webUri)) {
       await launchUrl(webUri, mode: LaunchMode.externalApplication);
@@ -438,7 +434,6 @@ Future<void> launchTelegram(String username) async {
   if (await canLaunchUrl(uri)) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   } else {
-    // Fallback to web link
     final webUri = Uri.parse("https://t.me/$username");
     if (await canLaunchUrl(webUri)) {
       await launchUrl(webUri, mode: LaunchMode.externalApplication);
@@ -489,11 +484,9 @@ class AuthGate extends StatelessWidget {
         final session = snapshot.data?.session;
         if (session != null) {
           currentUserEmail = session.user.email ?? "User";
-          // Generate userName from email prefix as requested (Task 1 fix)
           currentUserName = currentUserEmail.split('@')[0]; 
           return const MainScreen();
         }
-        // User is not logged in
         return const LoginScreen();
       },
     );
@@ -514,9 +507,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _isLoginMode = true; // State to toggle between Login and Signup
+  bool _isLoginMode = true; 
 
-  // Supabase Login Function
   Future<void> _signIn() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
@@ -537,7 +529,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Supabase Sign Up Function (Removed first name/last name)
   Future<void> _signUp() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
@@ -550,7 +541,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.")));
-      setState(() => _isLoginMode = true); // Switch back to login after signup
+      setState(() => _isLoginMode = true); 
     } on AuthException catch (e) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
@@ -570,7 +561,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Light color background as requested
+      backgroundColor: Colors.white, 
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -581,11 +572,10 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 10),
               const Text(
                 "AnimeMX", 
-                style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold) // Black text for light background
+                style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold) 
               ),
               const SizedBox(height: 40),
               
-              // Email Field (light UI)
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -594,7 +584,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Password Field (light UI)
               TextField(
                 controller: _passwordController,
                 obscureText: true,
@@ -608,7 +597,6 @@ class _LoginScreenState extends State<LoginScreen> {
               else
                 Column(
                   children: [
-                    // Primary Action Button (Login or Signup based on mode)
                     SizedBox(
                       width: double.infinity,
                       height: 50,
@@ -622,7 +610,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Toggle Button
                     GestureDetector(
                       onTap: () {
                         setState(() {
@@ -649,7 +636,7 @@ class _LoginScreenState extends State<LoginScreen> {
       hintStyle: const TextStyle(color: Colors.black54),
       prefixIcon: Icon(icon, color: Colors.orange),
       filled: true,
-      fillColor: const Color(0xFFE0E0E0), // Soft light background color
+      fillColor: const Color(0xFFE0E0E0), 
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -750,7 +737,6 @@ class HomeScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  // DYNAMIC AVATAR LOGO (First Letter of User Name)
                   CircleAvatar(
                     radius: 30,
                     backgroundColor: getAvatarColor(currentUserName),
@@ -1338,7 +1324,7 @@ class GridCategoryCard extends StatefulWidget {
 }
 
 class _GridCategoryCardState extends State<GridCategoryCard> {
-  // Save/Unsave logic function (local update, save to Supabase will be implemented in future steps)
+  // Save/Unsave logic function
   void _toggleSaveAnime() {
     final list = List<SavedEpisode>.from(myListNotifier.value);
     final isSaved = list.any((item) => item.anime.title == widget.anime.title);
@@ -1349,8 +1335,6 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0));
     }
     myListNotifier.value = list;
-    // Notify the UI to rebuild (handled by ValueListenableBuilder in MyListScreen)
-    // Save to Supabase (Task 10)
     _saveMyListToSupabase();
   }
 
@@ -1372,7 +1356,6 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     Color? tagBgColor; 
     Color tagTextColor = Colors.black;
     
-    // Logic for tags based on section (Task 8 & 9)
     if (widget.pageTitle == "Trending Now") { 
       tagText = "TRENDING"; 
       tagBgColor = Colors.orange; 
@@ -1387,14 +1370,12 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       tagTextColor = Colors.white;
     }
     
-    // New tag for "Latest Episodes" see all page (Task 8)
     if (widget.pageTitle == "Latest Episodes" && widget.anime.isNew) {
       tagText = "NEW";
       tagBgColor = Colors.green;
       tagTextColor = Colors.white;
     }
 
-    // MyList save icon logic (Task 10)
     final bool isSaved = myListNotifier.value.any((item) => item.anime.title == widget.anime.title);
     
     return GestureDetector(
@@ -1470,7 +1451,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
                             Text(
-                              widget.anime.views, 
+                              widget.anime.views,
                               style: const TextStyle(color: Colors.white70, fontSize: 10)
                             )
                           ]
@@ -1480,13 +1461,12 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                   ]
                 )
               ),
-              // My List Save Icon Position (Task 10)
               Positioned(
-                top: 8, // Changed position to top left
-                left: 8, // Changed position to top left
+                top: 8, 
+                left: 8, 
                 child: GestureDetector(
                   onTap: () async {
-                    _toggleSaveAnime(); // Call save logic
+                    _toggleSaveAnime(); 
                   },
                   child: Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -1983,7 +1963,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE - FIX LIKES BUG
+// FAST LOAD VIDEO PLAYER PAGE - SUPER LIKES/DISLIKES
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -2010,17 +1990,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _forwardOpacity = 0.0; 
   double _rewindOpacity = 0.0;
   
-  // Local state for like/dislike status 
   bool _isLiked = false; 
   bool _isDisliked = false;
-  // Local state for counts 
   int _likesCount = 0;
   int _dislikesCount = 0;
 
   @override 
   void initState() { 
     super.initState(); 
-    _fetchLikesDislikes(); // Fetch current counts from Supabase
+    _fetchLikesDislikes(); 
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex]; 
     _controller = VideoPlayerController.networkUrl(
       Uri.parse(ep.videoUrl), 
@@ -2043,34 +2021,40 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.dispose(); 
   }
 
-  // --- Supabase Likes/Dislikes Logic ---
+  // --- NEW 100% ACCURATE LIKES LOGIC ---
   Future<void> _fetchLikesDislikes() async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
+    final userId = Supabase.instance.client.auth.currentUser!.id;
+
     try {
-      final response = await Supabase.instance.client
-          .from('content_likes') 
-          .select('likes, dislikes')
+      // 1. Fetch TOTAL likes count directly from the single user_likes table
+      final likesData = await Supabase.instance.client
+          .from('user_likes')
+          .select('user_id')
           .eq('episode_id', episodeId)
-          .maybeSingle(); 
-      
-      if (mounted && response != null) {
-        setState(() {
-          _likesCount = response['likes'] ?? 0;
-          _dislikesCount = response['dislikes'] ?? 0;
-        });
-      }
-      
-      final userResponse = await Supabase.instance.client
-          .from('user_likes') 
+          .eq('is_liked', true);
+          
+      // 2. Fetch TOTAL dislikes count
+      final dislikesData = await Supabase.instance.client
+          .from('user_likes')
+          .select('user_id')
+          .eq('episode_id', episodeId)
+          .eq('is_disliked', true);
+
+      // 3. Fetch MY specific status
+      final myStatus = await Supabase.instance.client
+          .from('user_likes')
           .select('is_liked, is_disliked')
           .eq('episode_id', episodeId)
-          .eq('user_id', Supabase.instance.client.auth.currentUser!.id)
+          .eq('user_id', userId)
           .maybeSingle();
 
-      if (mounted && userResponse != null) {
+      if (mounted) {
         setState(() {
-          _isLiked = userResponse['is_liked'] ?? false;
-          _isDisliked = userResponse['is_disliked'] ?? false; 
+          _likesCount = likesData.length;
+          _dislikesCount = dislikesData.length;
+          _isLiked = myStatus?['is_liked'] ?? false;
+          _isDisliked = myStatus?['is_disliked'] ?? false;
         });
       }
     } catch (e) {
@@ -2078,12 +2062,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }
   }
 
-  // Fixed mathematical logic
-  Future<void> _updateLikesDislikes(bool oldLike, bool oldDislike, bool newLike, bool newDislike) async {
+  Future<void> _updateLikesDislikes(bool newLike, bool newDislike) async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
     try {
+        // Sirf ek hi table me update hoga, isse fast aur safe kuch nahi!
         await Supabase.instance.client.from('user_likes').upsert({
           'user_id': userId,
           'episode_id': episodeId,
@@ -2091,43 +2075,66 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           'is_disliked': newDislike,
         });
 
-        final currentCounts = await Supabase.instance.client
-            .from('content_likes')
-            .select('likes, dislikes')
+        // Background me accurate totals waapas le aao confirm karne ke liye
+        final likesData = await Supabase.instance.client
+            .from('user_likes')
+            .select('user_id')
             .eq('episode_id', episodeId)
-            .maybeSingle();
-        
-        int newLikes = currentCounts?['likes'] ?? 0;
-        int newDislikes = currentCounts?['dislikes'] ?? 0;
-        
-        // Accurate calculations based on past and present states
-        if (newLike && !oldLike) { 
-            newLikes++;
-            if (oldDislike) newDislikes--; 
-        } else if (!newLike && oldLike) { 
-            newLikes--;
+            .eq('is_liked', true);
+            
+        final dislikesData = await Supabase.instance.client
+            .from('user_likes')
+            .select('user_id')
+            .eq('episode_id', episodeId)
+            .eq('is_disliked', true);
+
+        if (mounted) {
+            setState(() {
+                _likesCount = likesData.length;
+                _dislikesCount = dislikesData.length;
+            });
         }
-
-        if (newDislike && !oldDislike) { 
-            newDislikes++;
-            if (oldLike) newLikes--; 
-        } else if (!newDislike && oldDislike) { 
-            newDislikes--;
-        }
-        
-        newLikes = max(0, newLikes);
-        newDislikes = max(0, newDislikes);
-
-        await Supabase.instance.client.from('content_likes').upsert({
-            'episode_id': episodeId,
-            'likes': newLikes,
-            'dislikes': newDislikes,
-        });
-
     } catch (e) {
         print("Error updating content counts: $e");
     }
   }
+
+  void _toggleLike() { 
+    final newLike = !_isLiked;
+    final newDislike = false;
+    
+    setState(() { 
+      if (newLike) {
+        _likesCount++;
+        if (_isDisliked) _dislikesCount = max(0, _dislikesCount - 1);
+      } else {
+        _likesCount = max(0, _likesCount - 1);
+      }
+      _isLiked = newLike;
+      _isDisliked = false;
+    });
+    
+    _updateLikesDislikes(newLike, newDislike);
+  }
+
+  void _toggleDislike() { 
+    final newLike = false;
+    final newDislike = !_isDisliked;
+
+    setState(() { 
+      if (newDislike) {
+        _dislikesCount++;
+        if (_isLiked) _likesCount = max(0, _likesCount - 1);
+      } else {
+        _dislikesCount = max(0, _dislikesCount - 1);
+      }
+      _isDisliked = newDislike;
+      _isLiked = false;
+    });
+
+    _updateLikesDislikes(newLike, newDislike);
+  }
+  // ---------------------------------------------
 
   void _updateContinueWatching() { 
     if (!_controller.value.isInitialized) return; 
@@ -2190,48 +2197,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     Future.delayed(const Duration(milliseconds: 300), () { 
       if (mounted) setState(() => _rewindOpacity = 0.0); 
     }); 
-  }
-
-  // FIXED LIKES HANDLER
-  void _toggleLike() { 
-    final oldLike = _isLiked;
-    final oldDislike = _isDisliked;
-    final newLike = !_isLiked;
-    final newDislike = false;
-    
-    // Sync backend with accurate states
-    _updateLikesDislikes(oldLike, oldDislike, newLike, newDislike);
-
-    // Instant local UI update
-    setState(() { 
-      if (newLike) _likesCount++;
-      if (oldLike) _likesCount--;
-      if (oldDislike) _dislikesCount--;
-      
-      _isLiked = newLike;
-      _isDisliked = false;
-    });
-  }
-
-  // FIXED DISLIKES HANDLER
-  void _toggleDislike() { 
-    final oldLike = _isLiked;
-    final oldDislike = _isDisliked;
-    final newLike = false;
-    final newDislike = !_isDisliked;
-
-    // Sync backend with accurate states
-    _updateLikesDislikes(oldLike, oldDislike, newLike, newDislike);
-
-    // Instant local UI update
-    setState(() { 
-      if (newDislike) _dislikesCount++;
-      if (oldDislike) _dislikesCount--;
-      if (oldLike) _likesCount--;
-      
-      _isDisliked = newDislike;
-      _isLiked = false;
-    });
   }
 
   bool get _isSaved { 
