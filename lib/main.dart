@@ -7,7 +7,7 @@ import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'dart:convert'; // For encoding/decoding JSON
+import 'dart:convert'; 
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -23,11 +23,18 @@ List<String> globalRecentSearches = [];
 // --- GLOBAL NOTIFIERS ---
 final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
-
-// Naya Notifier: Sabhi Anime ke total views store karne ke liye
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
-// --- Helper functions for Avatar Colors & Views Formatting ---
+// --- THEME NOTIFIERS ---
+final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(Colors.orange);
+final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.dark);
+
+// --- THEME HELPER FUNCTIONS ---
+Color getBg(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white;
+Color getCard(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1A1A1A) : Colors.grey[100]!;
+Color getText(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black;
+Color getSubText(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54;
+
 final List<Color> avatarColors = [
   Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
   Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo,
@@ -50,7 +57,6 @@ String formatViewsCount(int views) {
   return views.toString();
 }
 
-// Function: Database se saare views fetch karke sum (Total) karna
 Future<void> fetchGlobalAnimeViews() async {
   try {
     final response = await Supabase.instance.client
@@ -63,11 +69,10 @@ Future<void> fetchGlobalAnimeViews() async {
         String epId = row['episode_id'];
         int vCount = row['view_count'] ?? 0;
 
-        // Episode ID se Anime ka naam nikalna
         List<String> parts = epId.split('_');
         if (parts.length >= 3) {
           String title = parts.sublist(0, parts.length - 2).join('_');
-          viewsMap[title] = (viewsMap[title] ?? 0) + vCount; // Us anime ke purane views me naye views plus karna
+          viewsMap[title] = (viewsMap[title] ?? 0) + vCount; 
         }
       }
     }
@@ -422,7 +427,7 @@ void main() async {
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
-      systemNavigationBarColor: Colors.black,
+      systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.light,
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
@@ -475,22 +480,41 @@ Future<void> launchTelegram(String username) async {
 }
 
 // ==========================================
-// ROOT APP
+// ROOT APP (WITH THEME SUPPORT)
 // ==========================================
 class AnimeMX extends StatelessWidget {
   const AnimeMX({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Colors.black,
-        primaryColor: Colors.orange,
-        useMaterial3: true,
-      ),
-      home: const AuthGate(), 
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, currentMode, _) {
+        return ValueListenableBuilder<Color>(
+          valueListenable: primaryColorNotifier,
+          builder: (context, currentColor, _) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              themeMode: currentMode,
+              theme: ThemeData(
+                brightness: Brightness.light,
+                primaryColor: currentColor,
+                scaffoldBackgroundColor: Colors.white,
+                useMaterial3: true,
+                appBarTheme: const AppBarTheme(backgroundColor: Colors.white, foregroundColor: Colors.black),
+              ),
+              darkTheme: ThemeData(
+                brightness: Brightness.dark,
+                primaryColor: currentColor,
+                scaffoldBackgroundColor: Colors.black,
+                useMaterial3: true,
+                appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white),
+              ),
+              home: const AuthGate(), 
+            );
+          }
+        );
+      }
     );
   }
 }
@@ -507,9 +531,9 @@ class AuthGate extends StatelessWidget {
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Colors.black,
-            body: Center(child: CircularProgressIndicator(color: Colors.orange)),
+          return Scaffold(
+            backgroundColor: getBg(context),
+            body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
           );
         }
         final session = snapshot.data?.session;
@@ -525,7 +549,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN (REAL EMAIL/PASSWORD)
+// LOGIN SCREEN 
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -591,26 +615,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
-      backgroundColor: Colors.white, 
+      backgroundColor: getBg(context), 
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.play_circle_fill, color: Colors.orange, size: 80),
+              Icon(Icons.play_circle_fill, color: primColor, size: 80),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 "AnimeMX", 
-                style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold) 
+                style: TextStyle(color: getText(context), fontSize: 32, fontWeight: FontWeight.bold) 
               ),
               const SizedBox(height: 40),
               
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.black),
+                style: TextStyle(color: getText(context)),
                 decoration: _inputDecoration(context, "Email", Icons.email),
               ),
               const SizedBox(height: 16),
@@ -618,13 +643,13 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                style: const TextStyle(color: Colors.black),
+                style: TextStyle(color: getText(context)),
                 decoration: _inputDecoration(context, "Password", Icons.lock),
               ),
               const SizedBox(height: 30),
               
               if (_isLoading)
-                const CircularProgressIndicator(color: Colors.orange)
+                CircularProgressIndicator(color: primColor)
               else
                 Column(
                   children: [
@@ -633,7 +658,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
+                          backgroundColor: primColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: _isLoginMode ? _signIn : _signUp,
@@ -649,7 +674,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         _isLoginMode ? "Don't have an account? Sign Up" : "Already have an account? Log In",
-                        style: const TextStyle(color: Colors.orange, decoration: TextDecoration.underline),
+                        style: TextStyle(color: primColor, decoration: TextDecoration.underline),
                       ),
                     ),
                   ],
@@ -662,19 +687,20 @@ class _LoginScreenState extends State<LoginScreen> {
   }
   
   InputDecoration _inputDecoration(BuildContext context, String hint, IconData icon) {
+    Color primColor = Theme.of(context).primaryColor;
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.black54),
-      prefixIcon: Icon(icon, color: Colors.orange),
+      hintStyle: TextStyle(color: getSubText(context)),
+      prefixIcon: Icon(icon, color: primColor),
       filled: true,
-      fillColor: const Color(0xFFE0E0E0), 
+      fillColor: getCard(context), 
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.orange, width: 2),
+        borderSide: BorderSide(color: primColor, width: 2),
       ),
     );
   }
@@ -719,9 +745,9 @@ class _MainScreenState extends State<MainScreen> {
       extendBody: true,
       body: pages[_index],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: getCard(context),
         type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
+        selectedItemColor: Theme.of(context).primaryColor,
         unselectedItemColor: Colors.grey[500],
         selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
@@ -753,24 +779,25 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     final List<Map<String, dynamic>> sliderItems = [
-      {'anime': animeData[0], 'tag': 'TRENDING', 'color': Colors.orange},
+      {'anime': animeData[0], 'tag': 'TRENDING', 'color': primColor},
       {'anime': animeData[2], 'tag': 'POPULAR', 'color': Colors.cyan},
       {'anime': animeData[6], 'tag': 'RECOMMENDED', 'color': Colors.blueAccent},
       {'anime': animeData[7], 'tag': 'COMING SOON', 'color': Colors.grey}, 
     ];
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: getBg(context),
       drawer: Drawer(
-        backgroundColor: const Color(0xFF121212),
+        backgroundColor: getBg(context),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(
-                color: Colors.black, 
-                border: Border(bottom: BorderSide(color: Colors.white12, width: 1))
+              decoration: BoxDecoration(
+                color: getCard(context), 
+                border: const Border(bottom: BorderSide(color: Colors.white12, width: 1))
               ),
               child: Row(
                 children: [
@@ -790,13 +817,13 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         Text(
                           currentUserName.isNotEmpty ? currentUserName : "Welcome!", 
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold),
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           currentUserEmail, 
-                          style: const TextStyle(color: Colors.white70, fontSize: 12), 
+                          style: TextStyle(color: getSubText(context), fontSize: 12), 
                           overflow: TextOverflow.ellipsis
                         ),
                         if (userActivePlan.isNotEmpty) ...[
@@ -804,12 +831,12 @@ class HomeScreen extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.2), 
+                              color: primColor.withOpacity(0.2), 
                               borderRadius: BorderRadius.circular(4)
                             ),
                             child: Text(
                               userActivePlan.toUpperCase(), 
-                              style: const TextStyle(color: Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)
+                              style: TextStyle(color: primColor, fontSize: 10, fontWeight: FontWeight.bold)
                             ),
                           )
                         ]
@@ -820,8 +847,8 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.home, color: Colors.white70), 
-              title: const Text("Home", style: TextStyle(color: Colors.white)), 
+              leading: Icon(Icons.home, color: getSubText(context)), 
+              title: Text("Home", style: TextStyle(color: getText(context))), 
               onTap: () => Navigator.pop(context)
             ),
             ListTile(
@@ -833,29 +860,29 @@ class HomeScreen extends StatelessWidget {
               }
             ),
             ListTile(
-              leading: const Icon(Icons.language, color: Colors.white70), 
-              title: const Text("Website", style: TextStyle(color: Colors.white)), 
+              leading: Icon(Icons.language, color: getSubText(context)), 
+              title: Text("Website", style: TextStyle(color: getText(context))), 
               onTap: () => Navigator.pop(context)
             ),
             ListTile(
-              leading: const Icon(Icons.headset_mic, color: Colors.white70), 
-              title: const Text("Support", style: TextStyle(color: Colors.white)), 
+              leading: Icon(Icons.headset_mic, color: getSubText(context)), 
+              title: Text("Support", style: TextStyle(color: getText(context))), 
               onTap: () { 
                 Navigator.pop(context); 
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); 
               }
             ),
             ListTile(
-              leading: const Icon(Icons.privacy_tip_outlined, color: Colors.white70), 
-              title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)), 
+              leading: Icon(Icons.privacy_tip_outlined, color: getSubText(context)), 
+              title: Text("Privacy Policy", style: TextStyle(color: getText(context))), 
               onTap: () { 
                 Navigator.pop(context); 
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage())); 
               }
             ),
             ListTile(
-              leading: const Icon(Icons.info_outline, color: Colors.white70), 
-              title: const Text("About Us", style: TextStyle(color: Colors.white)), 
+              leading: Icon(Icons.info_outline, color: getSubText(context)), 
+              title: Text("About Us", style: TextStyle(color: getText(context))), 
               onTap: () { 
                 Navigator.pop(context); 
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutUsPage())); 
@@ -878,23 +905,23 @@ class HomeScreen extends StatelessWidget {
         ),
       ),
       appBar: AppBar(
-        backgroundColor: Colors.black, 
+        backgroundColor: getBg(context), 
         elevation: 0,
         leading: Builder(
           builder: (context) { 
             return IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white), 
+              icon: Icon(Icons.menu, color: getText(context)), 
               onPressed: () => Scaffold.of(context).openDrawer()
             ); 
           }
         ),
-        title: const Text(
+        title: Text(
           "AnimeMX", 
-          style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)
+          style: TextStyle(color: primColor, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)
         ),
         actions:[
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white), 
+            icon: Icon(Icons.search, color: getText(context)), 
             onPressed: onSearchTap
           )
         ],
@@ -1005,11 +1032,11 @@ class HomeScreen extends StatelessWidget {
               valueListenable: continueWatchingNotifier, 
               builder: (context, cwList, child) { 
                 if (cwList.isEmpty) return const SizedBox.shrink(); 
-                return _buildThumbnailSection(context, "Continue Watching", Icons.history, Colors.orange, true, cwList: cwList); 
+                return _buildThumbnailSection(context, "Continue Watching", Icons.history, primColor, true, cwList: cwList); 
               }
             ),
             
-            _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, Colors.orange, animeData),
+            _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, primColor, animeData),
             _buildPopularSection(context, "Popular Anime", Icons.emoji_events, Colors.amber, animeData.reversed.toList()),
             _buildThumbnailSection(context, "Latest Episodes", null, null, false, animeList: animeData.where((a) => a.seasonsList.isNotEmpty).toList()),
             _buildPortraitSection(context, "Thriller", null, null, animeData.reversed.toList()),
@@ -1021,6 +1048,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildPortraitSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
+    Color primColor = Theme.of(context).primaryColor;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children:[
@@ -1033,7 +1061,7 @@ class HomeScreen extends StatelessWidget {
                 children:[
                   Text(
                     title, 
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))
                   ), 
                   if (icon != null) ...[
                     const SizedBox(width: 6), 
@@ -1046,9 +1074,9 @@ class HomeScreen extends StatelessWidget {
                   context, 
                   MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))
                 ), 
-                child: const Text(
+                child: Text(
                   "See All", 
-                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)
+                  style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)
                 )
               )
             ]
@@ -1081,13 +1109,13 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 8), 
                       Text(
                         list[index].title, 
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), 
+                        style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), 
                         maxLines: 1, 
                         overflow: TextOverflow.ellipsis
                       ), 
                       Text(
                         list[index].genre, 
-                        style: const TextStyle(color: Colors.grey, fontSize: 11), 
+                        style: TextStyle(color: getSubText(context), fontSize: 11), 
                         maxLines: 1, 
                         overflow: TextOverflow.ellipsis
                       )
@@ -1104,6 +1132,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildPopularSection(BuildContext context, String title, IconData icon, Color iconColor, List<Anime> list) {
+    Color primColor = Theme.of(context).primaryColor;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children:[
@@ -1116,7 +1145,7 @@ class HomeScreen extends StatelessWidget {
                 children:[
                   Text(
                     title, 
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))
                   ), 
                   const SizedBox(width: 6), 
                   Icon(icon, color: iconColor, size: 20)
@@ -1127,9 +1156,9 @@ class HomeScreen extends StatelessWidget {
                   context, 
                   MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))
                 ), 
-                child: const Text(
+                child: Text(
                   "See All", 
-                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)
+                  style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)
                 )
               )
             ]
@@ -1152,6 +1181,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildThumbnailSection(BuildContext context, String title, IconData? icon, Color? iconColor, bool isCW, {List<CWItem>? cwList, List<Anime>? animeList}) {
+    Color primColor = Theme.of(context).primaryColor;
     int itemCount = isCW ? cwList!.length : animeList!.length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1165,7 +1195,7 @@ class HomeScreen extends StatelessWidget {
                 children:[
                   Text(
                     title, 
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white)
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))
                   ), 
                   if (icon != null) ...[
                     const SizedBox(width: 6), 
@@ -1182,9 +1212,9 @@ class HomeScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: listToPass, isLatestOnly: isLatest))
                   ); 
                 }, 
-                child: const Text(
+                child: Text(
                   "See All", 
-                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)
+                  style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)
                 )
               )
             ]
@@ -1230,15 +1260,15 @@ class SeeAllCategoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: getBg(context),
       appBar: AppBar(
-        backgroundColor: Colors.black, 
+        backgroundColor: getBg(context), 
         elevation: 0, 
         title: Text(
           title, 
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)
+          style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)
         ), 
-        iconTheme: const IconThemeData(color: Colors.white)
+        iconTheme: IconThemeData(color: getText(context))
       ),
       body: GridView.builder(
         padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), 
@@ -1255,6 +1285,7 @@ class SeeAllCategoryPage extends StatelessWidget {
   }
 }
 
+// POPULAR CARD 
 class OverlayPopularCard extends StatelessWidget {
   final Anime anime; 
   const OverlayPopularCard({super.key, required this.anime});
@@ -1271,7 +1302,7 @@ class OverlayPopularCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12), 
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white, width: 1.5)
+          border: Border.all(color: Colors.white24, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1359,6 +1390,7 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
+// MAIN ANIME CARD 
 class GridCategoryCard extends StatefulWidget {
   final Anime anime; 
   final String pageTitle; 
@@ -1398,13 +1430,14 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
 
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     String? tagText; 
     Color? tagBgColor; 
     Color tagTextColor = Colors.black;
     
     if (widget.pageTitle == "Trending Now") { 
       tagText = "TRENDING"; 
-      tagBgColor = Colors.orange; 
+      tagBgColor = primColor; 
       tagTextColor = Colors.white; 
     } else if (widget.pageTitle == "Popular Anime") { 
       tagText = "POPULAR"; 
@@ -1432,7 +1465,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white, width: 1.5)
+          border: Border.all(color: Colors.white24, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1522,7 +1555,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                   },
                   child: Icon(
                     isSaved ? Icons.bookmark : Icons.bookmark_border,
-                    color: Colors.orange,
+                    color: primColor,
                     size: 24,
                   ),
                 ),
@@ -1535,6 +1568,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
+// LATEST CARD 
 class ThumbnailLatestCard extends StatelessWidget {
   final Anime anime; 
   final bool isLatestOnly;
@@ -1542,6 +1576,7 @@ class ThumbnailLatestCard extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     int latestEpNum = anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty 
         ? anime.seasonsList.last.episodes.length 
         : 1;
@@ -1587,14 +1622,14 @@ class ThumbnailLatestCard extends StatelessWidget {
             const SizedBox(height: 8), 
             Text(
               anime.title, 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), 
+              style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), 
               maxLines: 1, 
               overflow: TextOverflow.ellipsis
             ), 
             const SizedBox(height: 2), 
             Text(
               "Latest Episode", 
-              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11)
+              style: TextStyle(color: getSubText(context), fontSize: 11)
             )
           ]
         )
@@ -1616,6 +1651,7 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
   
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     double progress = 0.0;
     if (widget.item.totalDuration.inMilliseconds > 0) {
       progress = widget.item.position.inMilliseconds / widget.item.totalDuration.inMilliseconds;
@@ -1668,7 +1704,7 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
                       child: LinearProgressIndicator(
                         value: progress, 
                         backgroundColor: Colors.white24, 
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange), 
+                        valueColor: AlwaysStoppedAnimation<Color>(primColor), 
                         minHeight: 4
                       )
                     )
@@ -1679,13 +1715,13 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
             const SizedBox(height: 8), 
             Text(
               widget.item.anime.title, 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), 
+              style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), 
               maxLines: 1, 
               overflow: TextOverflow.ellipsis
             ), 
             Text(
               "Episode ${widget.item.episodeIndex + 1}", 
-              style: const TextStyle(color: Colors.grey, fontSize: 11)
+              style: TextStyle(color: getSubText(context), fontSize: 11)
             )
           ]
         )
@@ -1751,19 +1787,19 @@ class _DetailsPageState extends State<DetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Colors.orange; 
-    const Color darkBg = Color(0xFF0F0F0F);
+    Color primColor = Theme.of(context).primaryColor; 
     
     if (widget.anime.seasonsList.isEmpty) { 
       return Scaffold(
+        backgroundColor: getBg(context),
         appBar: AppBar(
-          backgroundColor: Colors.black, 
-          title: Text(widget.anime.title)
+          backgroundColor: getBg(context), 
+          title: Text(widget.anime.title, style: TextStyle(color: getText(context)))
         ), 
-        body: const Center(
+        body: Center(
           child: Text(
             "Episodes Coming Soon!", 
-            style: TextStyle(color: Colors.white)
+            style: TextStyle(color: getText(context))
           )
         )
       ); 
@@ -1777,15 +1813,15 @@ class _DetailsPageState extends State<DetailsPage> {
     }
 
     return Scaffold(
-      backgroundColor: darkBg,
+      backgroundColor: getBg(context),
       body: CustomScrollView(
         slivers:[
           SliverAppBar(
             expandedHeight: 250, 
             pinned: true, 
-            backgroundColor: Colors.black, 
+            backgroundColor: getBg(context), 
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white), 
+              icon: Icon(Icons.arrow_back_ios_new, color: getText(context)), 
               onPressed: () => Navigator.pop(context)
             ),
             flexibleSpace: FlexibleSpaceBar(
@@ -1800,7 +1836,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors:[darkBg, darkBg.withOpacity(0.5), Colors.transparent], 
+                        colors:[getBg(context), getBg(context).withOpacity(0.5), Colors.transparent], 
                         stops: const [0.0, 0.4, 1.0], 
                         begin: Alignment.bottomCenter, 
                         end: Alignment.topCenter
@@ -1819,7 +1855,7 @@ class _DetailsPageState extends State<DetailsPage> {
                 children:[
                   Text(
                     widget.anime.title, 
-                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white)
+                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: getText(context))
                   ), 
                   const SizedBox(height: 10),
                   Row(
@@ -1827,19 +1863,19 @@ class _DetailsPageState extends State<DetailsPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
                         decoration: BoxDecoration(
-                          color: Colors.white24, 
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.black12, 
                           borderRadius: BorderRadius.circular(12)
                         ), 
                         child: Text(
                           widget.anime.rating, 
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)
+                          style: TextStyle(color: getText(context), fontSize: 11, fontWeight: FontWeight.bold)
                         )
                       ), 
                       const SizedBox(width: 10), 
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           "• Dub | Action, Thriller, Drama", 
-                          style: TextStyle(color: Colors.white70, fontSize: 13), 
+                          style: TextStyle(color: getSubText(context), fontSize: 13), 
                           overflow: TextOverflow.ellipsis
                         )
                       )
@@ -1850,7 +1886,7 @@ class _DetailsPageState extends State<DetailsPage> {
                     width: double.infinity, 
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor, 
+                        backgroundColor: primColor, 
                         padding: const EdgeInsets.symmetric(vertical: 14), 
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
                         elevation: 5
@@ -1876,22 +1912,22 @@ class _DetailsPageState extends State<DetailsPage> {
                     "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School, which is dedicated to fostering the best and brightest students. But he ends up in Class-D, a dumping ground for the school's worst. A cruel meritocracy awaits where he must use his dark intellect to survive in a school of ruthless competition and psychological warfare.", 
                     maxLines: _isExpanded ? null : 2, 
                     overflow: _isExpanded ? null : TextOverflow.ellipsis, 
-                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.5)
+                    style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
                   ),
                   const SizedBox(height: 6),
                   GestureDetector(
                     onTap: () => setState(() => _isExpanded = !_isExpanded), 
                     child: Text(
                       _isExpanded ? "Read Less" : "Read More", 
-                      style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 13)
+                      style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)
                     )
                   ),
                   const SizedBox(height: 30),
                   
                   if (!widget.isLatestOnly) ...[
-                    const Text(
+                    Text(
                       "Seasons", 
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                      style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
@@ -1902,7 +1938,7 @@ class _DetailsPageState extends State<DetailsPage> {
                         itemBuilder: (context, index) { 
                           return Padding(
                             padding: const EdgeInsets.only(right: 10), 
-                            child: _buildSeasonTab(index, widget.anime.seasonsList[index].name, primaryColor)
+                            child: _buildSeasonTab(index, widget.anime.seasonsList[index].name, primColor)
                           ); 
                         }
                       )
@@ -1912,7 +1948,7 @@ class _DetailsPageState extends State<DetailsPage> {
 
                   Text(
                     widget.isLatestOnly ? "Latest Episode" : "Episodes", 
-                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)
+                    style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)
                   ),
                   const SizedBox(height: 12),
                   ValueListenableBuilder<List<CWItem>>(
@@ -1945,7 +1981,7 @@ class _DetailsPageState extends State<DetailsPage> {
                               margin: const EdgeInsets.only(bottom: 12), 
                               padding: const EdgeInsets.all(10), 
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1A1A1A), 
+                                color: getCard(context), 
                                 borderRadius: BorderRadius.circular(12)
                               ), 
                               child: Row(
@@ -1967,7 +2003,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                               child: LinearProgressIndicator(
                                                 value: progress, 
                                                 backgroundColor: Colors.black54, 
-                                                valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange), 
+                                                valueColor: AlwaysStoppedAnimation<Color>(primColor), 
                                                 minHeight: 4
                                               )
                                             )
@@ -1982,7 +2018,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                       children:[
                                         Text(
                                           "${actualEpIndex + 1}. ${ep.title}", 
-                                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15), 
+                                          style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 15), 
                                           maxLines: 1, 
                                           overflow: TextOverflow.ellipsis
                                         ), 
@@ -1991,14 +2027,14 @@ class _DetailsPageState extends State<DetailsPage> {
                                           children:[
                                             Text(
                                               ep.duration, 
-                                              style: const TextStyle(color: Colors.white54, fontSize: 12)
+                                              style: TextStyle(color: getSubText(context), fontSize: 12)
                                             ), 
                                             const SizedBox(width: 10), 
-                                            const Icon(Icons.visibility, color: Colors.white54, size: 12), 
+                                            Icon(Icons.visibility, color: getSubText(context), size: 12), 
                                             const SizedBox(width: 4), 
                                             Text(
                                               _episodeViews[actualEpIndex] ?? ep.views, 
-                                              style: const TextStyle(color: Colors.white54, fontSize: 12)
+                                              style: TextStyle(color: getSubText(context), fontSize: 12)
                                             )
                                           ]
                                         )
@@ -2009,9 +2045,9 @@ class _DetailsPageState extends State<DetailsPage> {
                                     padding: const EdgeInsets.all(8), 
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle, 
-                                      color: Colors.white.withOpacity(0.1)
+                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.black12
                                     ), 
-                                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24)
+                                    child: Icon(Icons.play_arrow_rounded, color: getText(context), size: 24)
                                   )
                                 ]
                               )
@@ -2042,13 +2078,13 @@ class _DetailsPageState extends State<DetailsPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
         decoration: BoxDecoration(
-          color: isActive ? primaryColor : const Color(0xFF1A1A1A), 
+          color: isActive ? primaryColor : getCard(context), 
           borderRadius: BorderRadius.circular(8)
         ), 
         child: Center(
           child: Text(
             title, 
-            style: TextStyle(color: isActive ? Colors.white : Colors.white70, fontWeight: FontWeight.bold, fontSize: 13)
+            style: TextStyle(color: isActive ? Colors.white : getSubText(context), fontWeight: FontWeight.bold, fontSize: 13)
           )
         )
       )
@@ -2057,7 +2093,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE
+// FAST LOAD VIDEO PLAYER PAGE 
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -2363,7 +2399,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Colors.orange; 
+    Color primColor = Theme.of(context).primaryColor; 
     final currentSeason = widget.anime.seasonsList[widget.seasonIndex]; 
     final currentEpisode = currentSeason.episodes[widget.episodeIndex]; 
     bool hasNextEpisode = widget.episodeIndex < currentSeason.episodes.length - 1;
@@ -2377,8 +2413,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   child: VideoPlayer(_controller)
                 )
               ) 
-            : const Center(
-                child: CircularProgressIndicator(color: primaryColor)
+            : Center(
+                child: CircularProgressIndicator(color: primColor)
               ),
         
         Align(
@@ -2502,7 +2538,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0)
                                 ), 
                                 child: Slider(
-                                  activeColor: primaryColor, 
+                                  activeColor: primColor, 
                                   inactiveColor: Colors.white24, 
                                   min: 0.0, 
                                   max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
@@ -2564,12 +2600,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     children:[
                       Text(
                         "${currentSeason.name} | Episode ${widget.episodeIndex + 1}", 
-                        style: const TextStyle(color: primaryColor, fontSize: 14, fontWeight: FontWeight.bold)
+                        style: TextStyle(color: primColor, fontSize: 14, fontWeight: FontWeight.bold)
                       ), 
                       const SizedBox(height: 4), 
-                      Text(
-                        widget.anime.title, 
-                        style: const TextStyle(color: Colors.white70, fontSize: 12)
+                      const Text(
+                        "AnimeMX Video Player", 
+                        style: TextStyle(color: Colors.white70, fontSize: 12)
                       ), 
                       const SizedBox(height: 4), 
                       Row(
@@ -2596,7 +2632,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ), 
                       const SizedBox(height: 20),
                       
-                      // SLEEK ACTION BAR (LIKE, DISLIKE, SAVE)
                       Container(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20), 
                         decoration: BoxDecoration(
@@ -2608,12 +2643,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                           children:[
                             GestureDetector(
                               onTap: _toggleLike, 
-                              child: AnimatedContainer( // Magic effect for like button
+                              child: AnimatedContainer( 
                                 duration: const Duration(milliseconds: 150),
                                 transform: Matrix4.identity()..scale(_isLiked ? 1.1 : 1.0),
                                 child: Row(
                                   children:[
-                                    Icon(_isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _isLiked ? Colors.orange : Colors.white, size: 22), 
+                                    Icon(_isLiked ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _isLiked ? primColor : Colors.white, size: 22), 
                                     const SizedBox(width: 8), 
                                     Text(_likesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
                                   ]
@@ -2623,12 +2658,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             Container(width: 1, height: 24, color: Colors.white24), 
                             GestureDetector(
                               onTap: _toggleDislike, 
-                              child: AnimatedContainer( // Magic effect for dislike button
+                              child: AnimatedContainer( 
                                 duration: const Duration(milliseconds: 150),
                                 transform: Matrix4.identity()..scale(_isDisliked ? 1.1 : 1.0),
                                 child: Row(
                                   children:[
-                                    Icon(_isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: _isDisliked ? Colors.orange : Colors.white, size: 22), 
+                                    Icon(_isDisliked ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: _isDisliked ? primColor : Colors.white, size: 22), 
                                     const SizedBox(width: 8), 
                                     Text(_dislikesCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
                                   ]
@@ -2640,7 +2675,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               onTap: _toggleSave, 
                               child: Row(
                                 children:[
-                                  Icon(_isSaved ? Icons.bookmark : Icons.bookmark_border, color: _isSaved ? Colors.orange : Colors.white, size: 22), 
+                                  Icon(_isSaved ? Icons.bookmark : Icons.bookmark_border, color: _isSaved ? primColor : Colors.white, size: 22), 
                                   const SizedBox(width: 8), 
                                   Text(_isSaved ? "Saved" : "Save", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600))
                                 ]
@@ -2704,7 +2739,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                       children:[
                                         Text(
                                           "Episode ${widget.episodeIndex + 2}", 
-                                          style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)
+                                          style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)
                                         ), 
                                         const SizedBox(height: 4), 
                                         Text(
@@ -2745,7 +2780,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 }
 
 // ==========================================
-// FULLY WORKING BROWSE (SEARCH) SCREEN 
+// BROWSE (SEARCH) SCREEN 
 // ==========================================
 class BrowseScreen extends StatefulWidget {
   const BrowseScreen({super.key}); 
@@ -2852,7 +2887,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: getBg(context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
@@ -2861,14 +2896,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
             children:[
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A), 
+                  color: getCard(context), 
                   borderRadius: BorderRadius.circular(12)
                 ), 
                 child: TextField(
                   controller: _searchController, 
                   onChanged: _performSearch, 
                   onSubmitted: _submitSearch, 
-                  style: const TextStyle(color: Colors.white), 
+                  style: TextStyle(color: getText(context)), 
                   decoration: InputDecoration(
                     hintText: "Search anime, movies, episodes...", 
                     hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15), 
@@ -2892,14 +2927,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
               if (_searchController.text.isNotEmpty) ...[
                 Text(
                   "Search Results for '${_searchController.text}'", 
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))
                 ), 
                 const SizedBox(height: 12), 
                 if (_searchResults.isEmpty) 
                   const Center(
                     child: Padding(
                       padding: EdgeInsets.only(top: 20), 
-                      child: Text("No anime found.", style: TextStyle(color: Colors.white54))
+                      child: Text("No anime found.", style: TextStyle(color: Colors.grey))
                     )
                   ) 
                 else 
@@ -2916,15 +2951,15 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     itemBuilder: (context, index) => GridCategoryCard(anime: _searchResults[index], pageTitle: "")
                   )
               ] else ...[
-                const Text(
+                Text(
                   "Recent Searches", 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))
                 ), 
                 const SizedBox(height: 12), 
                 _isLoadingSearches
-                    ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+                    ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
                     : (globalRecentSearches.isEmpty) 
-                        ? const Text("No recent searches.", style: TextStyle(color: Colors.white54)) 
+                        ? const Text("No recent searches.", style: TextStyle(color: Colors.grey)) 
                         : ListView.builder(
                             shrinkWrap: true, 
                             physics: const NeverScrollableScrollPhysics(), 
@@ -2948,7 +2983,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
         margin: const EdgeInsets.only(bottom: 8), 
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A), 
+          color: getCard(context), 
           borderRadius: BorderRadius.circular(10)
         ), 
         child: Row(
@@ -2957,7 +2992,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
             Expanded( 
               child: Text(
                 title, 
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: getText(context)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -2987,20 +3022,21 @@ class DubsScreen extends StatelessWidget {
 
   @override 
   Widget build(BuildContext context) { 
+    Color primColor = Theme.of(context).primaryColor;
     return DefaultTabController(
       length: 2, 
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F0F0F), 
+        backgroundColor: getBg(context), 
         appBar: AppBar(
-          backgroundColor: const Color(0xFF0F0F0F), 
+          backgroundColor: getBg(context), 
           elevation: 0, 
           toolbarHeight: 10, 
-          bottom: const TabBar(
-            indicatorColor: Colors.orange, 
+          bottom: TabBar(
+            indicatorColor: primColor, 
             indicatorWeight: 3, 
-            labelColor: Colors.orange, 
-            unselectedLabelColor: Colors.white70, 
-            tabs:[
+            labelColor: primColor, 
+            unselectedLabelColor: Colors.grey, 
+            tabs: const [
               Tab(text: "DUBBED"), 
               Tab(text: "ORIGINAL")
             ]
@@ -3098,22 +3134,22 @@ class _MyListScreenState extends State<MyListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: getBg(context),
       appBar: AppBar(
-        title: const Text("My List", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-        backgroundColor: Colors.black,
+        title: Text("My List", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)),
+        backgroundColor: getBg(context),
         elevation: 0,
       ),
       body: _isLoadingSavedAnime
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+          ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
           : ValueListenableBuilder<List<SavedEpisode>>(
               valueListenable: myListNotifier,
               builder: (context, savedList, child) {
                 if (savedList.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "Your watch list is empty.", 
-                      style: TextStyle(color: Colors.white54, fontSize: 16)
+                      style: TextStyle(color: getSubText(context), fontSize: 16)
                     ),
                   );
                 }
@@ -3140,16 +3176,217 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN - EXACT MATCH IOS SETTINGS STYLE
+// CHANGE PASSWORD PAGE (NEW FEATURE)
+// ==========================================
+class ChangePasswordPage extends StatefulWidget {
+  const ChangePasswordPage({super.key});
+
+  @override
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final TextEditingController _newPassController = TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _updatePassword() async {
+    if (_newPassController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password must be at least 6 characters")));
+      return;
+    }
+    if (_newPassController.text != _confirmPassController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _newPassController.text.trim()),
+      );
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password changed successfully!")));
+        Navigator.pop(context);
+      }
+    } on AuthException catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if(mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("Change Password", style: TextStyle(color: getText(context))),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Create New Password", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text("Your new password must be different from previous used passwords.", style: TextStyle(color: getSubText(context))),
+            const SizedBox(height: 30),
+            
+            TextField(
+              controller: _newPassController,
+              obscureText: true,
+              style: TextStyle(color: getText(context)),
+              decoration: InputDecoration(
+                hintText: "New Password",
+                hintStyle: TextStyle(color: getSubText(context)),
+                filled: true,
+                fillColor: getCard(context),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _confirmPassController,
+              obscureText: true,
+              style: TextStyle(color: getText(context)),
+              decoration: InputDecoration(
+                hintText: "Confirm Password",
+                hintStyle: TextStyle(color: getSubText(context)),
+                filled: true,
+                fillColor: getCard(context),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
+              ),
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: _isLoading ? null : _updatePassword,
+                child: _isLoading 
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Save Password", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// THEME SETTINGS PAGE (NEW FEATURE)
+// ==========================================
+class ThemeSettingsPage extends StatelessWidget {
+  const ThemeSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("App Theme", style: TextStyle(color: getText(context))),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Display Mode", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)),
+              child: ValueListenableBuilder<ThemeMode>(
+                valueListenable: themeModeNotifier,
+                builder: (context, currentMode, _) {
+                  return SwitchListTile(
+                    activeColor: primColor,
+                    title: Text("Dark Mode", style: TextStyle(color: getText(context), fontWeight: FontWeight.w500)),
+                    value: currentMode == ThemeMode.dark,
+                    onChanged: (bool isDark) {
+                      themeModeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
+                    },
+                  );
+                }
+              ),
+            ),
+            const SizedBox(height: 30),
+            
+            Text("Accent Color", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 15,
+              runSpacing: 15,
+              children: [
+                _buildColorOption(Colors.red, "Red", context),
+                _buildColorOption(Colors.blue, "Blue", context),
+                _buildColorOption(Colors.green, "Green", context),
+                _buildColorOption(Colors.orange, "Orange", context),
+                _buildColorOption(Colors.purple, "Purple", context),
+                _buildColorOption(Colors.pink, "Pink", context),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorOption(Color color, String name, BuildContext context) {
+    return ValueListenableBuilder<Color>(
+      valueListenable: primaryColorNotifier,
+      builder: (context, currentColor, _) {
+        bool isSelected = currentColor == color;
+        return GestureDetector(
+          onTap: () => primaryColorNotifier.value = color,
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: isSelected ? getText(context) : Colors.transparent, width: 3),
+                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)] : []
+                ),
+                child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
+              ),
+              const SizedBox(height: 5),
+              Text(name, style: TextStyle(color: getSubText(context), fontSize: 12))
+            ],
+          ),
+        );
+      }
+    );
+  }
+}
+
+
+// ==========================================
+// PROFILE SCREEN - PERFECT IOS/CLASSIC CLONE
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
 
-  Widget _buildMenuGroup(List<Widget> items) {
+  Widget _buildMenuGroup(List<Widget> items, BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
+      margin: const EdgeInsets.only(bottom: 30),
       decoration: BoxDecoration(
-        color: const Color(0xFF141414), // Exactly like screenshot grey box
+        color: getCard(context),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -3160,7 +3397,7 @@ class ProfileScreen extends StatelessWidget {
           return Column(
             children: [
               item,
-              const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16), // Separator inside box
+              const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16), 
             ],
           );
         }).toList(),
@@ -3168,7 +3405,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGroupedItem({required String title, required VoidCallback onTap, String? trailingText, Color? trailingColor}) {
+  Widget _buildGroupedItem({required String title, required VoidCallback onTap, String? trailingText, Color? trailingColor, BuildContext? context}) {
     return Material(
       color: Colors.transparent, 
       child: InkWell(
@@ -3177,15 +3414,18 @@ class ProfileScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w400)), // Normal text weight
+              Text(title, style: TextStyle(color: getText(context!), fontSize: 16, fontWeight: FontWeight.w500)),
+              Row(
+                children: [
+                  if (trailingText != null) ...[
+                    Text(trailingText, style: TextStyle(color: trailingColor ?? getSubText(context), fontSize: 15)),
+                    const SizedBox(width: 8),
+                  ],
+                  Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14),
+                ],
               ),
-              if (trailingText != null) ...[
-                Text(trailingText, style: TextStyle(color: trailingColor ?? Colors.white54, fontSize: 15)),
-                const SizedBox(width: 8),
-              ],
-              const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 14),
             ],
           ),
         ),
@@ -3196,125 +3436,98 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: getBg(context),
       appBar: AppBar(
-        title: const Text("My Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
-        backgroundColor: Colors.black,
+        title: Text("My Account", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 24)),
+        backgroundColor: getBg(context),
         elevation: 0,
+        centerTitle: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
+          padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children:[
-              // === Header Section (Original Header) ===
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 45,
-                      backgroundColor: getAvatarColor(currentUserName),
-                      child: Text(
-                        getAvatarLetter(currentUserName),
-                        style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.verified, color: Colors.blueAccent, size: 20),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: userActivePlan.isEmpty ? Colors.white12 : Colors.orange.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        userActivePlan.isEmpty ? "FREE PLAN" : userActivePlan.toUpperCase(), 
-                        style: TextStyle(color: userActivePlan.isEmpty ? Colors.white70 : Colors.orange, fontSize: 12, fontWeight: FontWeight.bold)
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              // === iOS Style Menu Sections ===
+              
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Account", style: TextStyle(color: Colors.white54, fontSize: 14)), // Faded section title
-                    ),
-                    _buildMenuGroup([
-                      _buildGroupedItem(
-                        title: "Subscription", 
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), 
-                        trailingText: userActivePlan.isEmpty ? "Upgrade" : userActivePlan, 
-                        trailingColor: userActivePlan.isEmpty ? Colors.orange : Colors.white70
-                      ),
-                      _buildGroupedItem(
-                        title: "Notifications", 
-                        onTap: () {}, 
-                        trailingText: "On"
-                      ),
-                      _buildGroupedItem(
-                        title: "Email", 
-                        onTap: () {}, 
-                        trailingText: currentUserEmail, 
-                      ),
-                    ]),
-
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Payments", style: TextStyle(color: Colors.white54, fontSize: 14)),
-                    ),
-                    _buildMenuGroup([
-                      _buildGroupedItem(
-                        title: "Payment Verification", 
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), 
-                      ),
-                      _buildGroupedItem(
-                        title: "Order History", 
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage())), 
-                      ),
-                    ]),
-
-                    const Padding(
-                      padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Support & Log Out", style: TextStyle(color: Colors.white54, fontSize: 14)),
-                    ),
-                    _buildMenuGroup([
-                      _buildGroupedItem(
-                        title: "Support Center", 
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), 
-                      ),
-                      _buildGroupedItem(
-                        title: "Feedback", 
-                        onTap: () {}, 
-                      ),
-                      _buildGroupedItem(
-                        title: "Log Out", 
-                        onTap: () async {
-                           await Supabase.instance.client.auth.signOut();
-                        }, 
-                      ),
-                    ]),
-                  ],
-                ),
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Text("Account", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
               ),
+              _buildMenuGroup([
+                _buildGroupedItem(
+                  context: context,
+                  title: "Subscription", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), 
+                  trailingText: userActivePlan.isEmpty ? "Upgrade" : userActivePlan, 
+                  trailingColor: Theme.of(context).primaryColor
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "Notifications", 
+                  onTap: () {}, 
+                  trailingText: "On"
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "Email & Password", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage())), 
+                  trailingText: currentUserEmail, 
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "App Theme", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), 
+                  trailingText: "Customize", 
+                ),
+              ], context),
+
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Text("Payments", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+              _buildMenuGroup([
+                _buildGroupedItem(
+                  context: context,
+                  title: "Payment Verification", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), 
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "Order History", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage())), 
+                ),
+              ], context),
+
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Text("Support", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+              _buildMenuGroup([
+                _buildGroupedItem(
+                  context: context,
+                  title: "Support Center", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), 
+                ),
+              ], context),
+
+              // LOG OUT BUTTON - STANDALONE AND RED
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () async {
+                   await Supabase.instance.client.auth.signOut();
+                }, 
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: getCard(context),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text("Log Out", textAlign: TextAlign.center, style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              )
+
             ],
           ),
         ),
@@ -3332,17 +3545,17 @@ class PrivacyPolicyPage extends StatelessWidget {
   @override 
   Widget build(BuildContext context) { 
     return Scaffold(
-      backgroundColor: Colors.black, 
+      backgroundColor: getBg(context), 
       appBar: AppBar(
-        title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+        title: Text("Privacy Policy", style: TextStyle(color: getText(context))), 
+        backgroundColor: getBg(context), 
+        iconTheme: IconThemeData(color: getText(context))
       ), 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16), 
-        child: const Text(
+        child: Text(
           "Privacy Policy\n\nWelcome to AnimeMX. At AnimeMX, we value your privacy. This Privacy Policy outlines how we collect, use, and protect your data.\n\nWe do not sell your personal data to third parties. All user preferences, including recent searches and saved episodes, are stored locally on your device unless connected via cloud synchronization. For more details, please contact our support team.", 
-          style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
+          style: TextStyle(color: getSubText(context), fontSize: 14, height: 1.5)
         )
       )
     ); 
@@ -3355,27 +3568,27 @@ class AboutUsPage extends StatelessWidget {
   @override 
   Widget build(BuildContext context) { 
     return Scaffold(
-      backgroundColor: Colors.black, 
+      backgroundColor: getBg(context), 
       appBar: AppBar(
-        title: const Text("About Us", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+        title: Text("About Us", style: TextStyle(color: getText(context))), 
+        backgroundColor: getBg(context), 
+        iconTheme: IconThemeData(color: getText(context))
       ), 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16), 
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, 
-          children: const [
-            Text("About AnimeMX", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
-            SizedBox(height: 12), 
+          children: [
+            Text("About AnimeMX", style: TextStyle(color: getText(context), fontSize: 20, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 12), 
             Text(
               "Welcome to AnimeMX, your ultimate destination for streaming the best and latest anime! Our mission is to provide an ad-free, high-quality, and seamless viewing experience for anime lovers around the world.\n\nWe offer dubbed anime in Hindi, English, and Japanese languages. Enjoy HD & 4K quality, dubbed & subbed versions, and lightning-fast streaming anywhere, anytime.", 
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)
+              style: TextStyle(color: getSubText(context), fontSize: 14, height: 1.5)
             ), 
-            SizedBox(height: 30), 
-            Text("Contact Us", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
-            SizedBox(height: 12), 
-            Text("Email: animemx.official@gmail.com", style: TextStyle(color: Colors.orange, fontSize: 14, fontWeight: FontWeight.bold))
+            const SizedBox(height: 30), 
+            Text("Contact Us", style: TextStyle(color: getText(context), fontSize: 20, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 12), 
+            Text("Email: animemx.official@gmail.com", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 14, fontWeight: FontWeight.bold))
           ]
         )
       ),
@@ -3384,7 +3597,7 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// PREMIUM PAGE 
+// UPDATED PREMIUM PAGE WITH 5 NEW PLANS
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
@@ -3401,29 +3614,29 @@ class PremiumPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, 
+      backgroundColor: getBg(context), 
       appBar: AppBar(
-        title: const Text("Upgrade Plan", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+        title: Text("Upgrade Plan", style: TextStyle(fontWeight: FontWeight.bold, color: getText(context))), 
+        backgroundColor: getBg(context), 
+        iconTheme: IconThemeData(color: getText(context))
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            const Text("Choose Your Plan", style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)), 
+            Text("Choose Your Plan", style: TextStyle(color: getText(context), fontSize: 28, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 8), 
-            const Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: Colors.white70, fontSize: 15)),
+            Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
             const SizedBox(height: 30),
             
             _buildCompactPlanCard(
               context: context, 
-              title: "Basic Plan", 
+              title: "Starter Plan", 
               price: "₹33", 
               duration: "/month",
               quality: "720p HD", 
-              limit: "50 Minutes",
+              limit: "50 Minutes Daily",
               desc: "Great for quick binges. Ad-free.",
               color: Colors.blueGrey, 
               icon: Icons.flash_on
@@ -3432,11 +3645,11 @@ class PremiumPage extends StatelessWidget {
             
             _buildCompactPlanCard(
               context: context, 
-              title: "Standard Plan", 
+              title: "Lite Plan", 
               price: "₹50", 
               duration: "/month",
               quality: "1080p FHD", 
-              limit: "3 Hours (180 mins)",
+              limit: "180 Mins (3 Hours)",
               desc: "Perfect for casual watchers. Ad-free.",
               color: Colors.orange, 
               icon: Icons.star, 
@@ -3450,7 +3663,7 @@ class PremiumPage extends StatelessWidget {
               price: "₹99", 
               duration: "/month",
               quality: "1080p FHD", 
-              limit: "6 Hours (360 mins)",
+              limit: "360 Mins (6 Hours)",
               desc: "For dedicated anime fans.",
               color: Colors.purpleAccent, 
               icon: Icons.diamond
@@ -3463,7 +3676,7 @@ class PremiumPage extends StatelessWidget {
               price: "₹155", 
               duration: "/month",
               quality: "4K Ultra", 
-              limit: "Unlimited",
+              limit: "Unlimited Daily",
               desc: "Watch without limits. All benefits.",
               color: Colors.pinkAccent, 
               icon: Icons.local_fire_department
@@ -3476,7 +3689,7 @@ class PremiumPage extends StatelessWidget {
               price: "₹450", 
               duration: "/3 months",
               quality: "4K Ultra", 
-              limit: "Unlimited",
+              limit: "Unlimited Daily",
               desc: "Best value! 90 days of unlimited access.",
               color: Colors.tealAccent, 
               icon: Icons.workspace_premium
@@ -3507,7 +3720,7 @@ class PremiumPage extends StatelessWidget {
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A), 
+            color: getCard(context), 
             borderRadius: BorderRadius.circular(16), 
             border: Border.all(color: isPopular ? color : Colors.white12, width: isPopular ? 2 : 1), 
             boxShadow: isPopular ? [BoxShadow(color: color.withOpacity(0.1), blurRadius: 20, spreadRadius: 2)] : []
@@ -3526,11 +3739,11 @@ class PremiumPage extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                          Text(title, style: TextStyle(color: getText(context), fontSize: 20, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 4),
                           Text(quality, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 4),
-                          Text("Daily Limit: $limit", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                          Text("Limit: $limit", style: TextStyle(color: getSubText(context), fontSize: 13)),
                         ],
                       )
                     ]
@@ -3538,14 +3751,14 @@ class PremiumPage extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(price, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)), 
-                      Text(duration, style: const TextStyle(color: Colors.white54, fontSize: 12))
+                      Text(price, style: TextStyle(color: getText(context), fontSize: 26, fontWeight: FontWeight.bold)), 
+                      Text(duration, style: TextStyle(color: getSubText(context), fontSize: 12))
                     ]
                   )
                 ]
               ), 
               const SizedBox(height: 16), 
-              Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              Text(desc, style: TextStyle(color: getSubText(context), fontSize: 14)),
               const SizedBox(height: 20), 
               
               GestureDetector(
@@ -3558,10 +3771,10 @@ class PremiumPage extends StatelessWidget {
                   height: 45, 
                   alignment: Alignment.center, 
                   decoration: BoxDecoration(
-                    color: isPopular ? color : Colors.white12, 
+                    color: isPopular ? color : Theme.of(context).primaryColor, 
                     borderRadius: BorderRadius.circular(10)
                   ), 
-                  child: Text("Select Plan", style: TextStyle(color: isPopular ? Colors.black : Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                  child: const Text("Select Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
                 )
               )
             ],
@@ -3584,7 +3797,7 @@ class PremiumPage extends StatelessWidget {
 }
 
 // ==========================================
-// PAYMENT PROOF PAGE 
+// PAYMENT PROOF PAGE (UPDATED PLANS)
 // ==========================================
 class PaymentProofPage extends StatefulWidget {
   const PaymentProofPage({super.key});
@@ -3600,8 +3813,8 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   bool _isSubmitting = false;
 
   final List<String> _plans = [
-    "Basic Plan - ₹33/mo",
-    "Standard Plan - ₹50/mo",
+    "Starter Plan - ₹33/mo",
+    "Lite Plan - ₹50/mo",
     "Pro Plan - ₹99/mo",
     "Elite Plan - ₹155/mo",
     "Ultimate Plan - ₹450/3mo"
@@ -3622,7 +3835,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: const Color(0xFF1E1E1E), 
+          backgroundColor: getCard(context), 
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0), 
@@ -3635,18 +3848,18 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                     color: Color(0xFF2ECA71), 
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Colors.black, size: 40, weight: 700),
+                  child: const Icon(Icons.check, color: Colors.white, size: 40, weight: 700),
                 ),
                 const SizedBox(height: 16), 
-                const Text(
+                Text(
                   "Submitted!",
-                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold), 
+                  style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold), 
                 ),
                 const SizedBox(height: 8), 
-                const Text(
+                Text(
                   "Your payment proof is submitted. It will be verified shortly.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white70, fontSize: 14), 
+                  style: TextStyle(color: getSubText(context), fontSize: 14), 
                 ),
                 const SizedBox(height: 20), 
                 SizedBox(
@@ -3658,7 +3871,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                       Navigator.pop(context); 
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF07E2B), 
+                      backgroundColor: Theme.of(context).primaryColor, 
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), 
                     ),
                     child: const Text(
@@ -3756,12 +3969,13 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
 
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F), 
+      backgroundColor: getBg(context), 
       appBar: AppBar(
-        title: const Text("Verify Payment", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+        title: Text("Verify Payment", style: TextStyle(color: getText(context))), 
+        backgroundColor: getBg(context), 
+        iconTheme: IconThemeData(color: getText(context))
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -3770,36 +3984,36 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
           children:[
             Container(
               padding: const EdgeInsets.all(15), 
-              decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.orange.withOpacity(0.3))), 
+              decoration: BoxDecoration(color: primColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: primColor.withOpacity(0.3))), 
               child: Row(
-                children: const [
-                  Icon(Icons.info_outline, color: Colors.orange), 
-                  SizedBox(width: 10), 
+                children: [
+                  Icon(Icons.info_outline, color: primColor), 
+                  const SizedBox(width: 10), 
                   Expanded(
-                    child: Text("Provide your payment details below to instantly activate your plan.", style: TextStyle(color: Colors.orange, fontSize: 13))
+                    child: Text("Provide your payment details below to instantly activate your plan.", style: TextStyle(color: primColor, fontSize: 13))
                   )
                 ]
               )
             ),
             const SizedBox(height: 30), 
             
-            const Text("Select Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
+            Text("Select Plan", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A1A),
+                color: getCard(context),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white12)
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   isExpanded: true,
-                  dropdownColor: const Color(0xFF1A1A1A),
-                  hint: const Text("Choose your purchased plan", style: TextStyle(color: Colors.white54)),
+                  dropdownColor: getCard(context),
+                  hint: Text("Choose your purchased plan", style: TextStyle(color: getSubText(context))),
                   value: _selectedPlan,
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white54),
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  icon: Icon(Icons.arrow_drop_down, color: getSubText(context)),
+                  style: TextStyle(color: getText(context), fontSize: 15),
                   items: _plans.map((String plan) {
                     return DropdownMenuItem<String>(
                       value: plan,
@@ -3816,7 +4030,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             ),
             const SizedBox(height: 24),
 
-            const Text("Payment Screenshot", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
+            Text("Payment Screenshot", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             GestureDetector(
               onTap: _pickImage,
@@ -3824,7 +4038,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 width: double.infinity,
                 height: 160,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: getCard(context),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white12, style: BorderStyle.solid),
                 ),
@@ -3835,29 +4049,29 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                       )
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.cloud_upload_outlined, color: Colors.orange, size: 40),
-                          SizedBox(height: 10),
-                          Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 14)),
-                          SizedBox(height: 4),
-                          Text("(JPG, PNG allowed)", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                        children: [
+                          Icon(Icons.cloud_upload_outlined, color: primColor, size: 40),
+                          const SizedBox(height: 10),
+                          Text("Tap to upload screenshot", style: TextStyle(color: getSubText(context), fontSize: 14)),
+                          const SizedBox(height: 4),
+                          Text("(JPG, PNG allowed)", style: TextStyle(color: getSubText(context).withOpacity(0.5), fontSize: 12)),
                         ],
                       ),
               ),
             ),
             const SizedBox(height: 24),
 
-            const Text("Transaction ID (UTR)", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
+            Text("Transaction ID (UTR)", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             TextField(
               controller: _trxController,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: getText(context)),
               decoration: InputDecoration(
                 hintText: "Enter 12-digit UTR or Transaction ID",
-                hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
-                prefixIcon: const Icon(Icons.tag, color: Colors.orange),
+                hintStyle: TextStyle(color: getSubText(context), fontSize: 14),
+                prefixIcon: Icon(Icons.tag, color: primColor),
                 filled: true,
-                fillColor: const Color(0xFF1A1A1A),
+                fillColor: getCard(context),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Colors.white12),
@@ -3868,7 +4082,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Colors.orange),
+                  borderSide: BorderSide(color: primColor),
                 ),
               ),
             ),
@@ -3879,7 +4093,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
               height: 50, 
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange, 
+                  backgroundColor: primColor, 
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 5,
                 ), 
@@ -3902,11 +4116,11 @@ class SupportPage extends StatelessWidget {
   @override 
   Widget build(BuildContext context) { 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F), 
+      backgroundColor: getBg(context), 
       appBar: AppBar(
-        title: const Text("Help Center", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+        title: Text("Help Center", style: TextStyle(color: getText(context))), 
+        backgroundColor: getBg(context), 
+        iconTheme: IconThemeData(color: getText(context))
       ), 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16), 
@@ -3917,7 +4131,7 @@ class SupportPage extends StatelessWidget {
               padding: const EdgeInsets.all(20), 
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16), 
-                gradient: const LinearGradient(colors:[Colors.orangeAccent, Colors.deepOrange])
+                gradient: LinearGradient(colors:[Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.7)])
               ), 
               child: Row(
                 children:[
@@ -3940,7 +4154,7 @@ class SupportPage extends StatelessWidget {
               )
             ), 
             const SizedBox(height: 30), 
-            const Text("Contact Options", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
+            Text("Contact Options", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 16), 
             
             _buildSupportTile(
@@ -3948,6 +4162,7 @@ class SupportPage extends StatelessWidget {
               "Telegram", 
               "Instant Chat Support", 
               Colors.blueAccent, 
+              context,
               onTap: () => launchTelegram("your_telegram_username_here"), 
             ), 
             _buildSupportTile(
@@ -3955,6 +4170,7 @@ class SupportPage extends StatelessWidget {
               "WhatsApp", 
               "Chat Support", 
               Colors.green, 
+              context,
               onTap: () => launchWhatsApp("918987927874"), 
             ), 
             _buildSupportTile(
@@ -3962,11 +4178,12 @@ class SupportPage extends StatelessWidget {
               "Email", 
               "24-hour Response", 
               Colors.orangeAccent, 
+              context,
               onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), 
             ),
             
             const SizedBox(height: 30), 
-            const Text("Social Media", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
+            Text("Social Media", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 16), 
 
             _buildSupportTile(
@@ -3974,6 +4191,7 @@ class SupportPage extends StatelessWidget {
               "YouTube", 
               "Watch trailers and updates", 
               Colors.red, 
+              context,
               onTap: () => launchInBrowser("https://www.youtube.com/@animemxofficial"), 
             ),
             _buildSupportTile(
@@ -3981,6 +4199,7 @@ class SupportPage extends StatelessWidget {
               "Instagram", 
               "Follow for latest posts", 
               Colors.pink, 
+              context,
               onTap: () => launchInBrowser("https://www.instagram.com/animemxofficial"), 
             ),
             _buildSupportTile(
@@ -3988,6 +4207,7 @@ class SupportPage extends StatelessWidget {
               "Facebook", 
               "Like our page", 
               Colors.blue, 
+              context,
               onTap: () => launchInBrowser("https://www.facebook.com/animemxofficial"), 
             ),
             _buildSupportTile(
@@ -3995,6 +4215,7 @@ class SupportPage extends StatelessWidget {
               "Twitter", 
               "Latest news", 
               Colors.lightBlue, 
+              context,
               onTap: () => launchInBrowser("https://twitter.com/animemxofficial"), 
             ),
           ]
@@ -4003,11 +4224,11 @@ class SupportPage extends StatelessWidget {
     ); 
   }
   
-  Widget _buildSupportTile(IconData icon, String title, String sub, Color color, {required VoidCallback onTap}) { 
+  Widget _buildSupportTile(IconData icon, String title, String sub, Color color, BuildContext context, {required VoidCallback onTap}) { 
     return Container(
       margin: const EdgeInsets.only(bottom: 12), 
       child: Material(
-        color: const Color(0xFF1A1A1A),
+        color: getCard(context),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -4026,12 +4247,12 @@ class SupportPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children:[
-                      Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), 
-                      Text(sub, style: const TextStyle(color: Colors.white54, fontSize: 12))
+                      Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 16)), 
+                      Text(sub, style: TextStyle(color: getSubText(context), fontSize: 12))
                     ]
                   )
                 ), 
-                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 16)
+                Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 16)
               ]
             ),
           ),
@@ -4102,16 +4323,16 @@ class _ActivityPageState extends State<ActivityPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, 
+      backgroundColor: getBg(context), 
       appBar: AppBar(
-        title: const Text("Order History", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Colors.black, 
-        iconTheme: const IconThemeData(color: Colors.white)
+        title: Text("Order History", style: TextStyle(color: getText(context))), 
+        backgroundColor: getBg(context), 
+        iconTheme: IconThemeData(color: getText(context))
       ), 
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+        ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
         : _fetchedOrders.isEmpty 
-          ? const Center(child: Text("No recent activity.", style: TextStyle(color: Colors.white54))) 
+          ? Center(child: Text("No recent activity.", style: TextStyle(color: getSubText(context)))) 
           : ListView.builder(
               padding: const EdgeInsets.all(16), 
               itemCount: _fetchedOrders.length, 
@@ -4129,7 +4350,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   margin: const EdgeInsets.only(bottom: 12), 
                   padding: const EdgeInsets.all(16), 
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A1A), 
+                    color: getCard(context), 
                     borderRadius: BorderRadius.circular(12)
                   ), 
                   child: Row(
@@ -4138,15 +4359,15 @@ class _ActivityPageState extends State<ActivityPage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start, 
                         children:[
-                          Text(item.planName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
+                          Text(item.planName, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), 
                           const SizedBox(height: 4), 
-                          Text(item.date, style: const TextStyle(color: Colors.white54, fontSize: 12))
+                          Text(item.date, style: TextStyle(color: getSubText(context), fontSize: 12))
                         ]
                       ), 
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end, 
                         children:[
-                          Text(item.amount, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
+                          Text(item.amount, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), 
                           const SizedBox(height: 4), 
                           Text(item.status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold))
                         ]
