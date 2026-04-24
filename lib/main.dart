@@ -1470,7 +1470,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
                             Text(
-                              widget.anime.views, // Fixed the typo here
+                              widget.anime.views, 
                               style: const TextStyle(color: Colors.white70, fontSize: 10)
                             )
                           ]
@@ -1983,7 +1983,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE - LIKES/DISLIKES
+// FAST LOAD VIDEO PLAYER PAGE - FIX LIKES BUG
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -2044,7 +2044,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   }
 
   // --- Supabase Likes/Dislikes Logic ---
-  // Fetch initial likes/dislikes from Supabase
   Future<void> _fetchLikesDislikes() async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
     try {
@@ -2061,7 +2060,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         });
       }
       
-      // Check if current user has liked/disliked
       final userResponse = await Supabase.instance.client
           .from('user_likes') 
           .select('is_liked, is_disliked')
@@ -2075,78 +2073,59 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           _isDisliked = userResponse['is_disliked'] ?? false; 
         });
       }
-
     } catch (e) {
       print("Error fetching likes/dislikes: $e");
     }
   }
 
-  // Update likes/dislikes in Supabase when button is pressed
-  Future<void> _updateLikesDislikes(bool newLikeStatus, bool newDislikeStatus) async {
+  // Fixed mathematical logic
+  Future<void> _updateLikesDislikes(bool oldLike, bool oldDislike, bool newLike, bool newDislike) async {
     final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${widget.episodeIndex}";
     final userId = Supabase.instance.client.auth.currentUser!.id;
 
     try {
-        // 1. Update user_likes table for current user
         await Supabase.instance.client.from('user_likes').upsert({
           'user_id': userId,
           'episode_id': episodeId,
-          'is_liked': newLikeStatus,
-          'is_disliked': newDislikeStatus,
+          'is_liked': newLike,
+          'is_disliked': newDislike,
         });
 
-        // 2. Fetch current counts again 
         final currentCounts = await Supabase.instance.client
             .from('content_likes')
             .select('likes, dislikes')
             .eq('episode_id', episodeId)
             .maybeSingle();
         
-        int currentLikes = currentCounts?['likes'] ?? 0;
-        int currentDislikes = currentCounts?['dislikes'] ?? 0;
+        int newLikes = currentCounts?['likes'] ?? 0;
+        int newDislikes = currentCounts?['dislikes'] ?? 0;
         
-        // Calculate new counts based on new state
-        int newLikes = currentLikes;
-        int newDislikes = currentDislikes;
-
-        if (newLikeStatus && !_isLiked) { // Liked
+        // Accurate calculations based on past and present states
+        if (newLike && !oldLike) { 
             newLikes++;
-            if (_isDisliked) newDislikes--; 
-        } else if (!newLikeStatus && _isLiked) { // Unliked
+            if (oldDislike) newDislikes--; 
+        } else if (!newLike && oldLike) { 
             newLikes--;
         }
 
-        if (newDislikeStatus && !_isDisliked) { // Disliked
+        if (newDislike && !oldDislike) { 
             newDislikes++;
-            if (_isLiked) newLikes--; 
-        } else if (!newDislikeStatus && _isDisliked) { // Undisliked
+            if (oldLike) newLikes--; 
+        } else if (!newDislike && oldDislike) { 
             newDislikes--;
         }
         
-        // Ensure counts are non-negative
         newLikes = max(0, newLikes);
         newDislikes = max(0, newDislikes);
 
-        // Update counts in database
         await Supabase.instance.client.from('content_likes').upsert({
             'episode_id': episodeId,
             'likes': newLikes,
             'dislikes': newDislikes,
         });
-        
-        if (mounted) {
-            setState(() {
-                _likesCount = newLikes;
-                _dislikesCount = newDislikes;
-            });
-        }
 
     } catch (e) {
         print("Error updating content counts: $e");
-        // Display error if DB update fails (helps with debugging RLS)
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Like/Dislike error: $e")));
-        }
     }
   }
 
@@ -2166,7 +2145,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         list.insert(0, CWItem(anime: widget.anime, seasonIndex: widget.seasonIndex, episodeIndex: widget.episodeIndex, position: pos, totalDuration: dur)); 
       } 
       continueWatchingNotifier.value = list; 
-      // Save Continue Watching list to Supabase (Task 1)
       _saveContinueWatchingToSupabase(list);
     } 
   }
@@ -2214,44 +2192,48 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }); 
   }
 
-  // --- Like/Dislike Button Handlers ---
+  // FIXED LIKES HANDLER
   void _toggleLike() { 
-    final newLikeStatus = !_isLiked;
-    final newDislikeStatus = false;
+    final oldLike = _isLiked;
+    final oldDislike = _isDisliked;
+    final newLike = !_isLiked;
+    final newDislike = false;
     
-    // Update local state immediately for snappy UI
+    // Sync backend with accurate states
+    _updateLikesDislikes(oldLike, oldDislike, newLike, newDislike);
+
+    // Instant local UI update
     setState(() { 
-      if (newLikeStatus) _likesCount++;
-      if (_isLiked) _likesCount--;
-      if (_isDisliked) _dislikesCount--;
+      if (newLike) _likesCount++;
+      if (oldLike) _likesCount--;
+      if (oldDislike) _dislikesCount--;
       
-      _isLiked = newLikeStatus;
+      _isLiked = newLike;
       _isDisliked = false;
     });
-    
-    // Sync to backend
-    _updateLikesDislikes(newLikeStatus, newDislikeStatus);
   }
 
+  // FIXED DISLIKES HANDLER
   void _toggleDislike() { 
-    final newLikeStatus = false;
-    final newDislikeStatus = !_isDisliked;
-    
-    // Update local state immediately for snappy UI
+    final oldLike = _isLiked;
+    final oldDislike = _isDisliked;
+    final newLike = false;
+    final newDislike = !_isDisliked;
+
+    // Sync backend with accurate states
+    _updateLikesDislikes(oldLike, oldDislike, newLike, newDislike);
+
+    // Instant local UI update
     setState(() { 
-      if (newDislikeStatus) _dislikesCount++;
-      if (_isDisliked) _dislikesCount--;
-      if (_isLiked) _likesCount--;
+      if (newDislike) _dislikesCount++;
+      if (oldDislike) _dislikesCount--;
+      if (oldLike) _likesCount--;
       
-      _isDisliked = newDislikeStatus;
+      _isDisliked = newDislike;
       _isLiked = false;
     });
-
-    // Sync to backend
-    _updateLikesDislikes(newLikeStatus, newDislikeStatus);
   }
 
-  // --- My List Save Button Logic ---
   bool get _isSaved { 
     return myListNotifier.value.any((item) => item.anime.title == widget.anime.title && item.seasonIndex == widget.seasonIndex && item.episodeIndex == widget.episodeIndex); 
   }
@@ -2264,7 +2246,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       list.add(SavedEpisode(anime: widget.anime, seasonIndex: widget.seasonIndex, episodeIndex: widget.episodeIndex)); 
     } 
     myListNotifier.value = list; 
-    MyListService(Supabase.instance.client).saveMyList(currentUserEmail, list); // Save to Supabase
+    MyListService(Supabase.instance.client).saveMyList(currentUserEmail, list); 
     setState(() {}); 
   }
 
