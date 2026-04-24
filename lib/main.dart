@@ -1295,7 +1295,7 @@ class OverlayPopularCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12), 
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white, width: 1.5)
+          border: Border.all(color: Colors.white24, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1458,7 +1458,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white, width: 1.5)
+          border: Border.all(color: Colors.white24, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -2036,7 +2036,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                   ), 
                                   Container(
                                     padding: const EdgeInsets.all(8), 
-                                    decoration: BoxDecoration(
+                                    decoration: const BoxDecoration(
                                       shape: BoxShape.circle, 
                                       color: Colors.white12
                                     ), 
@@ -3806,7 +3806,7 @@ class PremiumPage extends StatelessWidget {
 }
 
 // ==========================================
-// PAYMENT PROOF PAGE (UPDATED PLANS)
+// PAYMENT PROOF PAGE (UPDATED VALIDATION & TOAST)
 // ==========================================
 class PaymentProofPage extends StatefulWidget {
   const PaymentProofPage({super.key});
@@ -3838,63 +3838,68 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     }
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: getCard(context), 
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0), 
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+  // MODERN IOS STYLE FLOATING TOAST NOTIFICATION
+  void _showFloatingToast() {
+    OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 60.0,
+        left: 16.0,
+        right: 16.0,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E), // Dark clean background
+              borderRadius: BorderRadius.circular(16.0),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.5),
+                  blurRadius: 15.0,
+                  offset: const Offset(0, 5),
+                )
+              ]
+            ),
+            child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(6),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF2ECA71), 
+                    color: Color(0xFF2ECA71), // Green circle
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 40, weight: 700),
+                  child: const Icon(Icons.check, color: Colors.white, size: 24, weight: 700),
                 ),
-                const SizedBox(height: 16), 
-                Text(
-                  "Submitted!",
-                  style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold), 
-                ),
-                const SizedBox(height: 8), 
-                Text(
-                  "Your payment proof is submitted. It will be verified shortly.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: getSubText(context), fontSize: 14), 
-                ),
-                const SizedBox(height: 20), 
-                SizedBox(
-                  width: double.infinity,
-                  height: 45, 
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); 
-                      Navigator.pop(context); 
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor, 
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), 
-                    ),
-                    child: const Text(
-                      "OK",
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), 
-                    ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text("Payment proof submitted!", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      SizedBox(height: 4),
+                      Text("It will be approved within 24 hours.", style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    ],
                   ),
-                )
+                ),
+                const SizedBox(width: 10),
+                const Icon(Icons.close, color: Colors.white54, size: 20),
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
+
+    Overlay.of(context).insert(overlayEntry);
+
+    // Auto close after 3 seconds and go back
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+      if(mounted) {
+        Navigator.pop(context); // Go back after success
+      }
+    });
   }
 
   Future<void> _submitRequest() async {
@@ -3906,8 +3911,11 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please upload a payment screenshot.")));
       return;
     }
-    if (_trxController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter the Transaction ID.")));
+    
+    // TRANSACTION ID 12-DIGIT VALIDATION (ONLY NUMBERS)
+    String trxId = _trxController.text.trim();
+    if (trxId.length != 12 || !RegExp(r'^[0-9]+$').hasMatch(trxId)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid 12-digit number.")));
       return;
     }
 
@@ -3941,7 +3949,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
         await Supabase.instance.client.from('payment_requests').insert({
           'email': currentUserEmail,
           'plan': _selectedPlan,
-          'transaction_id': _trxController.text.trim(),
+          'transaction_id': trxId,
           'image_path': imageUrl,
           'status': 'Pending',
           'created_at': DateTime.now().toIso8601String(),
@@ -3955,7 +3963,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       }
 
       if (mounted) {
-        _showSuccessDialog();
+        _showFloatingToast(); // Show new floating toast instead of dialog
       }
       
     } catch (e) {
@@ -4074,9 +4082,14 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             const SizedBox(height: 10),
             TextField(
               controller: _trxController,
+              keyboardType: TextInputType.number, // Keyboard for numbers only
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly, // Restrict to numbers only
+                LengthLimitingTextInputFormatter(12), // Max 12 digits
+              ],
               style: TextStyle(color: getText(context)),
               decoration: InputDecoration(
-                hintText: "Enter 12-digit UTR or Transaction ID",
+                hintText: "Enter 12-digit UTR number",
                 hintStyle: TextStyle(color: getSubText(context), fontSize: 14),
                 prefixIcon: Icon(Icons.tag, color: primColor),
                 filled: true,
