@@ -27,13 +27,12 @@ final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({
 
 // --- THEME NOTIFIERS ---
 final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(Colors.orange);
-final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(ThemeMode.dark);
 
-// --- THEME HELPER FUNCTIONS ---
-Color getBg(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white;
-Color getCard(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1A1A1A) : Colors.grey[100]!;
-Color getText(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black;
-Color getSubText(BuildContext context) => Theme.of(context).brightness == Brightness.dark ? Colors.white70 : Colors.black54;
+// --- THEME HELPER FUNCTIONS (FORCED DARK MODE) ---
+Color getBg(BuildContext context) => Colors.black;
+Color getCard(BuildContext context) => const Color(0xFF1A1A1A);
+Color getText(BuildContext context) => Colors.white;
+Color getSubText(BuildContext context) => Colors.white54;
 
 final List<Color> avatarColors = [
   Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
@@ -480,39 +479,33 @@ Future<void> launchTelegram(String username) async {
 }
 
 // ==========================================
-// ROOT APP (WITH THEME SUPPORT)
+// ROOT APP (WITH THEME SUPPORT - DARK ONLY)
 // ==========================================
 class AnimeMX extends StatelessWidget {
   const AnimeMX({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: themeModeNotifier,
-      builder: (context, currentMode, _) {
-        return ValueListenableBuilder<Color>(
-          valueListenable: primaryColorNotifier,
-          builder: (context, currentColor, _) {
-            return MaterialApp(
-              debugShowCheckedModeBanner: false,
-              themeMode: currentMode,
-              theme: ThemeData(
-                brightness: Brightness.light,
-                primaryColor: currentColor,
-                scaffoldBackgroundColor: Colors.white,
-                useMaterial3: true,
-                appBarTheme: const AppBarTheme(backgroundColor: Colors.white, foregroundColor: Colors.black),
-              ),
-              darkTheme: ThemeData(
-                brightness: Brightness.dark,
-                primaryColor: currentColor,
-                scaffoldBackgroundColor: Colors.black,
-                useMaterial3: true,
-                appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white),
-              ),
-              home: const AuthGate(), 
-            );
-          }
+    return ValueListenableBuilder<Color>(
+      valueListenable: primaryColorNotifier,
+      builder: (context, currentColor, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeMode.dark,
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            primaryColor: currentColor,
+            scaffoldBackgroundColor: Colors.black,
+            useMaterial3: true,
+            appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white),
+          ),
+          theme: ThemeData(
+            brightness: Brightness.dark, 
+            primaryColor: currentColor,
+            scaffoldBackgroundColor: Colors.black,
+            useMaterial3: true,
+          ),
+          home: const AuthGate(), 
         );
       }
     );
@@ -617,7 +610,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
-      backgroundColor: getBg(context), 
+      backgroundColor: Colors.white, 
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -626,16 +619,16 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Icon(Icons.play_circle_fill, color: primColor, size: 80),
               const SizedBox(height: 10),
-              Text(
+              const Text(
                 "AnimeMX", 
-                style: TextStyle(color: getText(context), fontSize: 32, fontWeight: FontWeight.bold) 
+                style: TextStyle(color: Colors.black, fontSize: 32, fontWeight: FontWeight.bold) 
               ),
               const SizedBox(height: 40),
               
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(color: getText(context)),
+                style: const TextStyle(color: Colors.black),
                 decoration: _inputDecoration(context, "Email", Icons.email),
               ),
               const SizedBox(height: 16),
@@ -643,7 +636,7 @@ class _LoginScreenState extends State<LoginScreen> {
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                style: TextStyle(color: getText(context)),
+                style: const TextStyle(color: Colors.black),
                 decoration: _inputDecoration(context, "Password", Icons.lock),
               ),
               const SizedBox(height: 30),
@@ -690,10 +683,10 @@ class _LoginScreenState extends State<LoginScreen> {
     Color primColor = Theme.of(context).primaryColor;
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: getSubText(context)),
+      hintStyle: const TextStyle(color: Colors.black54),
       prefixIcon: Icon(icon, color: primColor),
       filled: true,
-      fillColor: getCard(context), 
+      fillColor: const Color(0xFFE0E0E0), 
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide.none,
@@ -790,14 +783,14 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: getBg(context),
       drawer: Drawer(
-        backgroundColor: getBg(context),
+        backgroundColor: getCard(context),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(
-                color: getCard(context), 
-                border: const Border(bottom: BorderSide(color: Colors.white12, width: 1))
+              decoration: const BoxDecoration(
+                color: Colors.black, 
+                border: Border(bottom: BorderSide(color: Colors.white12, width: 1))
               ),
               child: Row(
                 children: [
@@ -1302,7 +1295,7 @@ class OverlayPopularCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12), 
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white24, width: 1.5)
+          border: Border.all(color: Colors.white, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1465,7 +1458,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white24, width: 1.5)
+          border: Border.all(color: Colors.white, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1863,7 +1856,7 @@ class _DetailsPageState extends State<DetailsPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
                         decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white24 : Colors.black12, 
+                          color: Colors.white24, 
                           borderRadius: BorderRadius.circular(12)
                         ), 
                         child: Text(
@@ -2045,7 +2038,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                     padding: const EdgeInsets.all(8), 
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle, 
-                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.black12
+                                      color: Colors.white12
                                     ), 
                                     child: Icon(Icons.play_arrow_rounded, color: getText(context), size: 24)
                                   )
@@ -3285,14 +3278,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
 }
 
 // ==========================================
-// THEME SETTINGS PAGE (NEW FEATURE)
+// THEME SETTINGS PAGE 
 // ==========================================
 class ThemeSettingsPage extends StatelessWidget {
   const ThemeSettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(
@@ -3305,28 +3297,8 @@ class ThemeSettingsPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Display Mode", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)),
-              child: ValueListenableBuilder<ThemeMode>(
-                valueListenable: themeModeNotifier,
-                builder: (context, currentMode, _) {
-                  return SwitchListTile(
-                    activeColor: primColor,
-                    title: Text("Dark Mode", style: TextStyle(color: getText(context), fontWeight: FontWeight.w500)),
-                    value: currentMode == ThemeMode.dark,
-                    onChanged: (bool isDark) {
-                      themeModeNotifier.value = isDark ? ThemeMode.dark : ThemeMode.light;
-                    },
-                  );
-                }
-              ),
-            ),
-            const SizedBox(height: 30),
-            
             Text("Accent Color", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
             Wrap(
               spacing: 15,
               runSpacing: 15,
@@ -3374,7 +3346,6 @@ class ThemeSettingsPage extends StatelessWidget {
     );
   }
 }
-
 
 // ==========================================
 // PROFILE SCREEN - PERFECT IOS/CLASSIC CLONE
@@ -3450,6 +3421,45 @@ class ProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children:[
               
+              // Profile Header Info
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 24, top: 10),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 45,
+                      backgroundColor: getAvatarColor(currentUserName),
+                      child: Text(
+                        getAvatarLetter(currentUserName),
+                        style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.verified, color: Colors.blueAccent, size: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: userActivePlan.isEmpty ? Colors.white12 : Theme.of(context).primaryColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        userActivePlan.isEmpty ? "FREE PLAN" : userActivePlan.toUpperCase(), 
+                        style: TextStyle(color: userActivePlan.isEmpty ? Colors.white70 : Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold)
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
               Padding(
                 padding: const EdgeInsets.only(left: 8, bottom: 8),
                 child: Text("Account", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
@@ -3472,7 +3482,6 @@ class ProfileScreen extends StatelessWidget {
                   context: context,
                   title: "Email & Password", 
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage())), 
-                  trailingText: currentUserEmail, 
                 ),
                 _buildGroupedItem(
                   context: context,
