@@ -1335,7 +1335,6 @@ class OverlayPopularCard extends StatelessWidget {
                           children:[
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
-                            // Realtime Views Builder
                             ValueListenableBuilder<Map<String, int>>(
                               valueListenable: globalAnimeViewsNotifier,
                               builder: (context, viewsMap, child) {
@@ -1499,7 +1498,6 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                           children:[
                             const Icon(Icons.visibility, color: Colors.white70, size: 12), 
                             const SizedBox(width: 4), 
-                            // Realtime Views Builder
                             ValueListenableBuilder<Map<String, int>>(
                               valueListenable: globalAnimeViewsNotifier,
                               builder: (context, viewsMap, child) {
@@ -1539,7 +1537,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
-// LATEST CARD - REALTIME TOTAL VIEWS ADDED
+// LATEST CARD - VIEWS REMOVED
 class ThumbnailLatestCard extends StatelessWidget {
   final Anime anime; 
   final bool isLatestOnly;
@@ -1570,34 +1568,7 @@ class ThumbnailLatestCard extends StatelessWidget {
                   fit: StackFit.expand, 
                   children:[
                     Image.network(anime.image, fit: BoxFit.cover), 
-                    Positioned(
-                      top: 6, 
-                      left: 6, 
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), 
-                        decoration: BoxDecoration(
-                          color: Colors.black54, 
-                          borderRadius: BorderRadius.circular(4)
-                        ), 
-                        child: Row(
-                          children:[
-                            const Icon(Icons.visibility, color: Colors.orange, size: 12), 
-                            const SizedBox(width: 4), 
-                            // Realtime Views Builder
-                            ValueListenableBuilder<Map<String, int>>(
-                              valueListenable: globalAnimeViewsNotifier,
-                              builder: (context, viewsMap, child) {
-                                int totalViews = viewsMap[anime.title] ?? 0;
-                                return Text(
-                                  formatViewsCount(totalViews),
-                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
-                                );
-                              },
-                            )
-                          ]
-                        )
-                      )
-                    ), 
+                    // Views Count Removed from here
                     Positioned(
                       bottom: 6, 
                       right: 6, 
@@ -2091,7 +2062,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE - REALTIME VIEWS FIX
+// FAST LOAD VIDEO PLAYER PAGE 
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -2183,7 +2154,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           'view_count': newViews,
         });
 
-        // Global Notifier me bhi instantly +1 kar do taaki bahar wale cards update ho jayein
         final currentMap = Map<String, int>.from(globalAnimeViewsNotifier.value);
         currentMap[widget.anime.title] = (currentMap[widget.anime.title] ?? 0) + 1;
         globalAnimeViewsNotifier.value = currentMap;
@@ -3290,7 +3260,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     _buildMenuGroup([
                       _buildGroupedItem(
-                        icon: Icons.workspace_premium, 
+                        icon: Icons.stars_rounded, 
                         title: "Subscription", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), 
                         iconColor: Colors.amber, 
@@ -3298,14 +3268,14 @@ class ProfileScreen extends StatelessWidget {
                         trailingColor: userActivePlan.isEmpty ? Colors.amber : Colors.white70
                       ),
                       _buildGroupedItem(
-                        icon: Icons.notifications_none, 
+                        icon: Icons.notifications_active_outlined, 
                         title: "Notifications", 
                         onTap: () {}, 
                         iconColor: Colors.white, 
                         trailingText: "On"
                       ),
                       _buildGroupedItem(
-                        icon: Icons.email_outlined, 
+                        icon: Icons.mail_outline_rounded, 
                         title: "Email", 
                         onTap: () {}, 
                         iconColor: Colors.white, 
@@ -3320,13 +3290,13 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     _buildMenuGroup([
                       _buildGroupedItem(
-                        icon: Icons.verified_user_outlined, 
+                        icon: Icons.shield_outlined, 
                         title: "Payment Verification", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), 
                         iconColor: Colors.greenAccent
                       ),
                       _buildGroupedItem(
-                        icon: Icons.history, 
+                        icon: Icons.receipt_long_rounded, 
                         title: "Order History", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage())), 
                         iconColor: Colors.white
@@ -3335,29 +3305,23 @@ class ProfileScreen extends StatelessWidget {
 
                     const Padding(
                       padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Support & Feedback", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
+                      child: Text("Support & Log Out", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
                     _buildMenuGroup([
                       _buildGroupedItem(
-                        icon: Icons.support_agent, 
+                        icon: Icons.headset_mic_rounded, 
                         title: "Support Center", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), 
                         iconColor: Colors.blueAccent
                       ),
                       _buildGroupedItem(
-                        icon: Icons.feedback_outlined, 
+                        icon: Icons.chat_bubble_outline_rounded, 
                         title: "Feedback", 
                         onTap: () {}, 
                         iconColor: Colors.white
                       ),
                       _buildGroupedItem(
-                        icon: Icons.star_border, 
-                        title: "Rate Us", 
-                        onTap: () {}, 
-                        iconColor: Colors.purpleAccent
-                      ),
-                      _buildGroupedItem(
-                        icon: Icons.logout, 
+                        icon: Icons.power_settings_new_rounded, 
                         title: "Log Out", 
                         onTap: () async {
                            await Supabase.instance.client.auth.signOut();
@@ -3472,22 +3436,24 @@ class PremiumPage extends StatelessWidget {
             
             _buildCompactPlanCard(
               context: context, 
-              title: "Weekly Pass", 
+              title: "Basic Plan", 
               price: "₹33", 
-              duration: "/week",
+              duration: "/month",
               quality: "720p HD", 
+              limit: "50 Minutes",
               desc: "Great for quick binges. Ad-free.",
-              color: Colors.blueAccent, 
-              icon: Icons.bolt
+              color: Colors.blueGrey, 
+              icon: Icons.flash_on
             ), 
             const SizedBox(height: 16),
             
             _buildCompactPlanCard(
               context: context, 
-              title: "Monthly Lite", 
+              title: "Standard Plan", 
               price: "₹50", 
               duration: "/month",
               quality: "1080p FHD", 
+              limit: "3 Hours (180 mins)",
               desc: "Perfect for casual watchers. Ad-free.",
               color: Colors.orange, 
               icon: Icons.star, 
@@ -3497,13 +3463,40 @@ class PremiumPage extends StatelessWidget {
             
             _buildCompactPlanCard(
               context: context, 
-              title: "Monthly Pro", 
+              title: "Pro Plan", 
               price: "₹99", 
               duration: "/month",
-              quality: "4K Ultra", 
-              desc: "Unlimited watching. All premium benefits.",
+              quality: "1080p FHD", 
+              limit: "6 Hours (360 mins)",
+              desc: "For dedicated anime fans.",
               color: Colors.purpleAccent, 
               icon: Icons.diamond
+            ), 
+            const SizedBox(height: 16),
+            
+            _buildCompactPlanCard(
+              context: context, 
+              title: "Elite Plan", 
+              price: "₹155", 
+              duration: "/month",
+              quality: "4K Ultra", 
+              limit: "Unlimited",
+              desc: "Watch without limits. All benefits.",
+              color: Colors.pinkAccent, 
+              icon: Icons.local_fire_department
+            ), 
+            const SizedBox(height: 16),
+            
+            _buildCompactPlanCard(
+              context: context, 
+              title: "Ultimate Plan", 
+              price: "₹450", 
+              duration: "/3 months",
+              quality: "4K Ultra", 
+              limit: "Unlimited",
+              desc: "Best value! 90 days of unlimited access.",
+              color: Colors.tealAccent, 
+              icon: Icons.workspace_premium
             ), 
           ],
         ),
@@ -3517,6 +3510,7 @@ class PremiumPage extends StatelessWidget {
     required String price, 
     required String duration,
     required String quality, 
+    required String limit,
     required String desc,
     required Color color, 
     required IconData icon, 
@@ -3552,6 +3546,8 @@ class PremiumPage extends StatelessWidget {
                           Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 4),
                           Text(quality, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          Text("Daily Limit: $limit", style: const TextStyle(color: Colors.white70, fontSize: 13)),
                         ],
                       )
                     ]
@@ -3621,9 +3617,11 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   bool _isSubmitting = false;
 
   final List<String> _plans = [
-    "Weekly Pass - ₹33",
-    "Monthly Lite - ₹50",
-    "Monthly Pro - ₹99"
+    "Basic Plan - ₹33/mo",
+    "Standard Plan - ₹50/mo",
+    "Pro Plan - ₹99/mo",
+    "Elite Plan - ₹155/mo",
+    "Ultimate Plan - ₹450/3mo"
   ];
 
   Future<void> _pickImage() async {
