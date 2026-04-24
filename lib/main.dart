@@ -696,7 +696,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    fetchGlobalAnimeViews(); // Load global views when app starts
+    fetchGlobalAnimeViews(); 
   }
 
   void _goToSearch() { 
@@ -1255,7 +1255,6 @@ class SeeAllCategoryPage extends StatelessWidget {
   }
 }
 
-// POPULAR CARD - REALTIME TOTAL VIEWS ADDED
 class OverlayPopularCard extends StatelessWidget {
   final Anime anime; 
   const OverlayPopularCard({super.key, required this.anime});
@@ -1360,7 +1359,6 @@ class OverlayPopularCard extends StatelessWidget {
   }
 }
 
-// MAIN ANIME CARD - REALTIME TOTAL VIEWS ADDED
 class GridCategoryCard extends StatefulWidget {
   final Anime anime; 
   final String pageTitle; 
@@ -1537,7 +1535,6 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
-// LATEST CARD - VIEWS REMOVED
 class ThumbnailLatestCard extends StatelessWidget {
   final Anime anime; 
   final bool isLatestOnly;
@@ -1568,7 +1565,6 @@ class ThumbnailLatestCard extends StatelessWidget {
                   fit: StackFit.expand, 
                   children:[
                     Image.network(anime.image, fit: BoxFit.cover), 
-                    // Views Count Removed from here
                     Positioned(
                       bottom: 6, 
                       right: 6, 
@@ -1699,7 +1695,7 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
 }
 
 // ==========================================
-// DETAILS PAGE - LATEST ONLY LOGIC
+// DETAILS PAGE 
 // ==========================================
 class DetailsPage extends StatefulWidget {
   final Anime anime; 
@@ -1776,7 +1772,6 @@ class _DetailsPageState extends State<DetailsPage> {
     Season currentSeason = widget.anime.seasonsList[_selectedSeasonIndex]; 
     List<Episode> episodesList = currentSeason.episodes;
     
-    // LATEST ONLY LOGIC
     if (widget.isLatestOnly && episodesList.isNotEmpty) {
       episodesList = [episodesList.last];
     }
@@ -1866,7 +1861,7 @@ class _DetailsPageState extends State<DetailsPage> {
                           Navigator.push(
                             context, 
                             MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex))
-                          ).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }); // Refresh views globally
+                          ).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }); 
                         }
                       }, 
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
@@ -2062,7 +2057,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE 
+// FAST LOAD VIDEO PLAYER PAGE
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -3145,18 +3140,17 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN
+// PROFILE SCREEN - EXACT MATCH IOS SETTINGS STYLE
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
 
   Widget _buildMenuGroup(List<Widget> items) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFF141414), // Exactly like screenshot grey box
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12, width: 1),
       ),
       child: Column(
         children: items.asMap().entries.map((entry) {
@@ -3166,7 +3160,7 @@ class ProfileScreen extends StatelessWidget {
           return Column(
             children: [
               item,
-              const Divider(color: Colors.white12, height: 1, indent: 56), 
+              const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16), // Separator inside box
             ],
           );
         }).toList(),
@@ -3174,22 +3168,21 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildGroupedItem({required IconData icon, required String title, required VoidCallback onTap, Color iconColor = Colors.white, String? trailingText, Color? trailingColor}) {
+  Widget _buildGroupedItem({required String title, required VoidCallback onTap, String? trailingText, Color? trailingColor}) {
     return Material(
       color: Colors.transparent, 
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           child: Row(
             children: [
-              Icon(icon, color: iconColor, size: 24),
-              const SizedBox(width: 16),
               Expanded(
-                child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w400)), // Normal text weight
               ),
               if (trailingText != null) ...[
-                Text(trailingText, style: TextStyle(color: trailingColor ?? Colors.grey, fontSize: 14)),
+                Text(trailingText, style: TextStyle(color: trailingColor ?? Colors.white54, fontSize: 15)),
                 const SizedBox(width: 8),
               ],
               const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 14),
@@ -3204,11 +3197,17 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text("My Account", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)),
+        backgroundColor: Colors.black,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             children:[
+              // === Header Section (Original Header) ===
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(24),
@@ -3249,6 +3248,7 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: 10),
 
+              // === iOS Style Menu Sections ===
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
@@ -3256,77 +3256,60 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     const Padding(
                       padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Account", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
+                      child: Text("Account", style: TextStyle(color: Colors.white54, fontSize: 14)), // Faded section title
                     ),
                     _buildMenuGroup([
                       _buildGroupedItem(
-                        icon: Icons.stars_rounded, 
                         title: "Subscription", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), 
-                        iconColor: Colors.amber, 
                         trailingText: userActivePlan.isEmpty ? "Upgrade" : userActivePlan, 
-                        trailingColor: userActivePlan.isEmpty ? Colors.amber : Colors.white70
+                        trailingColor: userActivePlan.isEmpty ? Colors.orange : Colors.white70
                       ),
                       _buildGroupedItem(
-                        icon: Icons.notifications_active_outlined, 
                         title: "Notifications", 
                         onTap: () {}, 
-                        iconColor: Colors.white, 
                         trailingText: "On"
                       ),
                       _buildGroupedItem(
-                        icon: Icons.mail_outline_rounded, 
                         title: "Email", 
                         onTap: () {}, 
-                        iconColor: Colors.white, 
                         trailingText: currentUserEmail, 
-                        trailingColor: Colors.white54
                       ),
                     ]),
 
                     const Padding(
                       padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Payments", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
+                      child: Text("Payments", style: TextStyle(color: Colors.white54, fontSize: 14)),
                     ),
                     _buildMenuGroup([
                       _buildGroupedItem(
-                        icon: Icons.shield_outlined, 
                         title: "Payment Verification", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), 
-                        iconColor: Colors.greenAccent
                       ),
                       _buildGroupedItem(
-                        icon: Icons.receipt_long_rounded, 
                         title: "Order History", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage())), 
-                        iconColor: Colors.white
                       ),
                     ]),
 
                     const Padding(
                       padding: EdgeInsets.only(left: 8, bottom: 8),
-                      child: Text("Support & Log Out", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
+                      child: Text("Support & Log Out", style: TextStyle(color: Colors.white54, fontSize: 14)),
                     ),
                     _buildMenuGroup([
                       _buildGroupedItem(
-                        icon: Icons.headset_mic_rounded, 
                         title: "Support Center", 
                         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), 
-                        iconColor: Colors.blueAccent
                       ),
                       _buildGroupedItem(
-                        icon: Icons.chat_bubble_outline_rounded, 
                         title: "Feedback", 
                         onTap: () {}, 
-                        iconColor: Colors.white
                       ),
                       _buildGroupedItem(
-                        icon: Icons.power_settings_new_rounded, 
                         title: "Log Out", 
                         onTap: () async {
                            await Supabase.instance.client.auth.signOut();
                         }, 
-                        iconColor: Colors.redAccent
                       ),
                     ]),
                   ],
