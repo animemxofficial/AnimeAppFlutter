@@ -474,7 +474,7 @@ Future<void> launchTelegram(String contact) async {
 }
 
 // ==========================================
-// ROOT APP (WITH THEME SUPPORT - DARK ONLY)
+// ROOT APP (WITH THEME SUPPORT - DARK ONLY + NO RIPPLE EFFECT)
 // ==========================================
 class AnimeMX extends StatelessWidget {
   const AnimeMX({super.key});
@@ -492,9 +492,10 @@ class AnimeMX extends StatelessWidget {
             primaryColor: currentColor,
             scaffoldBackgroundColor: Colors.black,
             useMaterial3: true,
-            splashColor: Colors.transparent, // Disable splash globally
-            highlightColor: Colors.transparent, // Disable highlight globally
-            splashFactory: NoSplash.splashFactory, // Completely disable ripple
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            splashFactory: NoSplash.splashFactory,
             appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white),
           ),
           theme: ThemeData(
@@ -504,6 +505,7 @@ class AnimeMX extends StatelessWidget {
             useMaterial3: true,
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
+            hoverColor: Colors.transparent,
             splashFactory: NoSplash.splashFactory,
           ),
           home: const AuthGate(), 
@@ -738,32 +740,26 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       extendBody: true,
       body: pages[_index],
-      bottomNavigationBar: Theme(
-        data: Theme.of(context).copyWith(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: getCard(context),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Theme.of(context).primaryColor,
-          unselectedItemColor: Colors.grey[500],
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
-          currentIndex: _index,
-          onTap: (i) { 
-            setState(() { 
-              _index = i; 
-            }); 
-          },
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-            BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "Dub"),
-            BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: getCard(context),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Theme.of(context).primaryColor,
+        unselectedItemColor: Colors.grey[500],
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
+        currentIndex: _index,
+        onTap: (i) { 
+          setState(() { 
+            _index = i; 
+          }); 
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "Dub"),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
+        ],
       ),
     );
   }
@@ -1101,9 +1097,15 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children:[
                       Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12), 
-                          child: Image.network(list[index].image, fit: BoxFit.cover, width: double.infinity)
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10), 
+                            child: Image.network(list[index].image, fit: BoxFit.cover, width: double.infinity)
+                          ),
                         )
                       ), 
                       const SizedBox(height: 8), 
@@ -1302,7 +1304,7 @@ class OverlayPopularCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12), 
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white24, width: 1.5)
+          border: Border.all(color: Colors.white, width: 1.5) // Solid white border
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1458,14 +1460,29 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     final bool isSaved = myListNotifier.value.any((item) => item.anime.title == widget.anime.title);
     
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context, 
-        MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime, isLatestOnly: widget.isLatestOnly))
-      ), 
+      onTap: () {
+        if (widget.isLatestOnly) {
+          if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList.last.episodes.isNotEmpty) {
+            int sIndex = widget.anime.seasonsList.length - 1;
+            int eIndex = widget.anime.seasonsList.last.episodes.length - 1;
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.anime, seasonIndex: sIndex, episodeIndex: eIndex))
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!")));
+          }
+        } else {
+          Navigator.push(
+            context, 
+            MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime, isLatestOnly: widget.isLatestOnly))
+          );
+        }
+      }, 
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white24, width: 1.5)
+          border: Border.all(color: Colors.white, width: 1.5) // Solid white border
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1582,25 +1599,18 @@ class ThumbnailLatestCard extends StatelessWidget {
         : 1;
 
     return GestureDetector(
-      // CLICKING ON LATEST DIRECTLY OPENS VIDEO PLAYER
       onTap: () {
-        int sIndex = anime.seasonsList.length - 1;
-        int eIndex = anime.seasonsList[sIndex].episodes.length - 1;
-        Duration? startPos;
-        try {
-          final cwItem = continueWatchingNotifier.value.firstWhere(
-            (item) => item.anime.title == anime.title && item.seasonIndex == sIndex && item.episodeIndex == eIndex
+        if (anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty) {
+          int sIndex = anime.seasonsList.length - 1;
+          int eIndex = anime.seasonsList.last.episodes.length - 1;
+          Navigator.push(
+            context, 
+            MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIndex, episodeIndex: eIndex))
           );
-          startPos = cwItem.position;
-        } catch(e) {}
-        
-        Navigator.push(
-          context, 
-          MaterialPageRoute(builder: (_) => VideoPlayerPage(
-            anime: anime, seasonIndex: sIndex, episodeIndex: eIndex, startPosition: startPos,
-          ))
-        ).then((_) { fetchGlobalAnimeViews(); });
-      },
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!")));
+        }
+      }, 
       child: Container(
         width: 180, 
         margin: const EdgeInsets.only(right: 14), 
@@ -1610,7 +1620,7 @@ class ThumbnailLatestCard extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12), 
-                border: Border.all(color: Colors.white24, width: 1.5)
+                border: Border.all(color: Colors.white, width: 1.5) // Solid white border
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9, 
@@ -1706,7 +1716,7 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12), 
-                border: Border.all(color: Colors.white24, width: 1.5)
+                border: Border.all(color: Colors.white, width: 1.5) // Solid white border
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9, 
@@ -3203,186 +3213,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// CHANGE PASSWORD PAGE
-// ==========================================
-class ChangePasswordPage extends StatefulWidget {
-  const ChangePasswordPage({super.key});
-
-  @override
-  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
-}
-
-class _ChangePasswordPageState extends State<ChangePasswordPage> {
-  final TextEditingController _newPassController = TextEditingController();
-  final TextEditingController _confirmPassController = TextEditingController();
-  bool _isLoading = false;
-
-  Future<void> _updatePassword() async {
-    if (_newPassController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password must be at least 6 characters")));
-      return;
-    }
-    if (_newPassController.text != _confirmPassController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(password: _newPassController.text.trim()),
-      );
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password changed successfully!")));
-        Navigator.pop(context);
-      }
-    } on AuthException catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    } finally {
-      if(mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(
-        title: Text("Change Password", style: TextStyle(color: getText(context))),
-        backgroundColor: getBg(context),
-        iconTheme: IconThemeData(color: getText(context)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Create New Password", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Text("Your new password must be different from previous used passwords.", style: TextStyle(color: getSubText(context))),
-            const SizedBox(height: 30),
-            
-            TextField(
-              controller: _newPassController,
-              obscureText: true,
-              style: TextStyle(color: getText(context)),
-              decoration: InputDecoration(
-                hintText: "New Password",
-                hintStyle: TextStyle(color: getSubText(context)),
-                filled: true,
-                fillColor: getCard(context),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _confirmPassController,
-              obscureText: true,
-              style: TextStyle(color: getText(context)),
-              decoration: InputDecoration(
-                hintText: "Confirm Password",
-                hintStyle: TextStyle(color: getSubText(context)),
-                filled: true,
-                fillColor: getCard(context),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
-              ),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                onPressed: _isLoading ? null : _updatePassword,
-                child: _isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("Save Password", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// THEME SETTINGS PAGE 
-// ==========================================
-class ThemeSettingsPage extends StatelessWidget {
-  const ThemeSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(
-        title: Text("App Theme", style: TextStyle(color: getText(context))),
-        backgroundColor: getBg(context),
-        iconTheme: IconThemeData(color: getText(context)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Accent Color", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 15,
-              runSpacing: 15,
-              children: [
-                _buildColorOption(Colors.red, "Red", context),
-                _buildColorOption(Colors.blue, "Blue", context),
-                _buildColorOption(Colors.green, "Green", context),
-                _buildColorOption(Colors.orange, "Orange", context),
-                _buildColorOption(Colors.purple, "Purple", context),
-                _buildColorOption(Colors.pink, "Pink", context),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorOption(Color color, String name, BuildContext context) {
-    return ValueListenableBuilder<Color>(
-      valueListenable: primaryColorNotifier,
-      builder: (context, currentColor, _) {
-        bool isSelected = currentColor == color;
-        return GestureDetector(
-          onTap: () => primaryColorNotifier.value = color,
-          child: Column(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: isSelected ? getText(context) : Colors.transparent, width: 3),
-                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)] : []
-                ),
-                child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
-              ),
-              const SizedBox(height: 5),
-              Text(name, style: TextStyle(color: getSubText(context), fontSize: 12))
-            ],
-          ),
-        );
-      }
-    );
-  }
-}
-
-// ==========================================
-// PROFILE SCREEN - PERFECT IOS/CLASSIC CLONE
+// PROFILE SCREEN 
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -3578,6 +3409,185 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // ==========================================
+// CHANGE PASSWORD PAGE
+// ==========================================
+class ChangePasswordPage extends StatefulWidget {
+  const ChangePasswordPage({super.key});
+
+  @override
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final TextEditingController _newPassController = TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _updatePassword() async {
+    if (_newPassController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password must be at least 6 characters")));
+      return;
+    }
+    if (_newPassController.text != _confirmPassController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _newPassController.text.trim()),
+      );
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password changed successfully!")));
+        Navigator.pop(context);
+      }
+    } on AuthException catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if(mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("Change Password", style: TextStyle(color: getText(context))),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Create New Password", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text("Your new password must be different from previous used passwords.", style: TextStyle(color: getSubText(context))),
+            const SizedBox(height: 30),
+            
+            TextField(
+              controller: _newPassController,
+              obscureText: true,
+              style: TextStyle(color: getText(context)),
+              decoration: InputDecoration(
+                hintText: "New Password",
+                hintStyle: TextStyle(color: getSubText(context)),
+                filled: true,
+                fillColor: getCard(context),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _confirmPassController,
+              obscureText: true,
+              style: TextStyle(color: getText(context)),
+              decoration: InputDecoration(
+                hintText: "Confirm Password",
+                hintStyle: TextStyle(color: getSubText(context)),
+                filled: true,
+                fillColor: getCard(context),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
+              ),
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: _isLoading ? null : _updatePassword,
+                child: _isLoading 
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Save Password", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// THEME SETTINGS PAGE 
+// ==========================================
+class ThemeSettingsPage extends StatelessWidget {
+  const ThemeSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("App Theme", style: TextStyle(color: getText(context))),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Accent Color", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 15,
+              runSpacing: 15,
+              children: [
+                _buildColorOption(Colors.red, "Red", context),
+                _buildColorOption(Colors.blue, "Blue", context),
+                _buildColorOption(Colors.green, "Green", context),
+                _buildColorOption(Colors.orange, "Orange", context),
+                _buildColorOption(Colors.purple, "Purple", context),
+                _buildColorOption(Colors.pink, "Pink", context),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorOption(Color color, String name, BuildContext context) {
+    return ValueListenableBuilder<Color>(
+      valueListenable: primaryColorNotifier,
+      builder: (context, currentColor, _) {
+        bool isSelected = currentColor == color;
+        return GestureDetector(
+          onTap: () => primaryColorNotifier.value = color,
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: isSelected ? getText(context) : Colors.transparent, width: 3),
+                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)] : []
+                ),
+                child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
+              ),
+              const SizedBox(height: 5),
+              Text(name, style: TextStyle(color: getSubText(context), fontSize: 12))
+            ],
+          ),
+        );
+      }
+    );
+  }
+}
+
+// ==========================================
 // PLACEHOLDER PAGES FOR MENU OPTIONS
 // ==========================================
 class PrivacyPolicyPage extends StatelessWidget { 
@@ -3638,14 +3648,13 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// UPDATED PREMIUM PAGE WITH IMAGES & EXTRA INFO
+// UPDATED PREMIUM PAGE WITH NEW PLANS
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context), 
       appBar: AppBar(
@@ -3654,95 +3663,309 @@ class PremiumPage extends StatelessWidget {
         iconTheme: IconThemeData(color: getText(context))
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            Text("Choose Your Plan", style: TextStyle(color: getText(context), fontSize: 28, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 8), 
-            Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
-            const SizedBox(height: 30),
-            
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiZhwy1TMD1y_QIkWUgQMWqd-ETOlxzttgWl2ODW9HYGzi0W3-EWr07AkRz5CVxHATOfYzhE9qTuQdEurh9JDWhLrtlzMeffDep4NHnSUkOqlsXJSx5s8Z3h4HjcnRBBcS3d06lhTLUiqeIZCeKYAKZnAZeupUavSK08EKwaYzUwICYlcIXwdMGmVg_iPtt/s1280/IMG-20260424-WA0000.webp", 
-              "Basic Plan - ₹55/mo"
-            ),
-            const SizedBox(height: 20),
-            
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrih9niol1wlRhZ3svKnjBAmMq8Q9fzNPMeCZsiiJChPdvjSdkpHyb6K6OH1dWX8QCw8gIh3pl-6FKhAKB2RxY31r_lMhHkXpwoDst0w76PyWLJPe4VpKxV-q5J5wgX8jspyXjI2TvijxPC4V9eFujxON7cxl80JTGldz3o293N1bqkxNSokm_QZ0oOo0A/s1280/IMG-20260424-WA0002.webp", 
-              "Standard Plan - ₹99/mo"
-            ),
-            const SizedBox(height: 20),
-            
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh6RyYa9CqtnZaJkC2oF1Pf2o8OuEBLJst0h8ucCmtvk5ii1ZOBKn77uTJh0SXLOzOvijklkZEvCEHs0Z-ReqqOkHZEsvmH0q-MaH6r6tbFx6ueZckBChkGYD1Cv3ERZM438Lg4GZzkPvu5PMYB4_VGJECBQHVvLqSj7HBs1gQ4PsFWmekMpQg_M4b76R3Z/s1280/IMG-20260424-WA0001.webp", 
-              "Elite Plan - ₹149/mo"
-            ),
-
-            const SizedBox(height: 40),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: getCard(context),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white12),
-              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Why upgrade to Premium?", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
-                  _buildInfoRow(Icons.hd, "Watch everything in high definition up to 1080p.", context),
-                  _buildInfoRow(Icons.block, "Enjoy your favorite shows totally ad-free.", context),
-                  _buildInfoRow(Icons.devices, "Share your account safely on multiple devices.", context),
-                  _buildInfoRow(Icons.security, "100% safe & secure payment verification.", context),
+                  Text("Choose Your Plan", style: TextStyle(color: getText(context), fontSize: 28, fontWeight: FontWeight.bold)), 
+                  const SizedBox(height: 8), 
+                  Text("Unlock premium features and an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
+            
+            SizedBox(
+              height: 400, // Adjusted height for clear layout
+              child: ListView(
+                scrollDirection: Axis.horizontal, 
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Basic Plan", 
+                    price: "55", 
+                    quality: "720p", 
+                    ads: "No", 
+                    slot: "1", 
+                    earlyAccess: "No", 
+                    support: "24/7 support",
+                    color: Colors.blue.shade800,
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Standard Plan", 
+                    price: "99", 
+                    quality: "720p", 
+                    ads: "No", 
+                    slot: "3", 
+                    earlyAccess: "Yes", 
+                    support: "24/7 support",
+                    color: Colors.deepOrange.shade800,
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Elite Plan", 
+                    price: "149", 
+                    quality: "1080p", 
+                    ads: "No", 
+                    slot: "7", 
+                    earlyAccess: "Yes", 
+                    support: "24/7 support",
+                    color: Colors.purple.shade800,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 30),
+            
+            // Detailed Information Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Why go Premium?", style: TextStyle(color: getText(context), fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  _buildInfoRow(context, Icons.block, "Ad-Free Streaming", "Enjoy anime without any annoying interruptions."),
+                  _buildInfoRow(context, Icons.hd, "High Quality Video", "Watch your favorite shows in crystal clear 720p and 1080p."),
+                  _buildInfoRow(context, Icons.timer, "Early Access", "Watch new episodes before they are available to free users."),
+                  _buildInfoRow(context, Icons.devices, "Multiple Devices", "Share your account with friends and family on multiple slots."),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String text, BuildContext context) {
+  Widget _buildInfoRow(BuildContext context, IconData icon, String title, String desc) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Theme.of(context).primaryColor, size: 20),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text, style: TextStyle(color: getSubText(context), fontSize: 13))),
+          Icon(icon, color: Theme.of(context).primaryColor, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(desc, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.4)),
+              ],
+            ),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildImagePlanCard(BuildContext context, String imageUrl, String planValue) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => PaymentProofPage(initialPlan: planValue)),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          imageUrl,
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
+  Widget _buildNewPlanCard({
+    required BuildContext context, 
+    required String title, 
+    required String price, 
+    required String quality, 
+    required String ads, 
+    required String slot, 
+    required String earlyAccess,
+    required String support,
+    required Color color, 
+  }) {
+    return Container(
+      width: 270, 
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [getCard(context), color.withOpacity(0.2)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(color: color.withOpacity(0.5), width: 1.5), 
+      ), 
+      padding: const EdgeInsets.all(20), 
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        children: [
+          Text(title.toUpperCase(), style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2)), 
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline, 
+            textBaseline: TextBaseline.alphabetic, 
+            children: [
+              Text("₹$price", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), 
+              const Text("/month", style: TextStyle(color: Colors.white54, fontSize: 14))
+            ]
+          ),
+          const SizedBox(height: 20), 
+          const Divider(color: Colors.white12, height: 1), 
+          const SizedBox(height: 20), 
+          
+          _buildGridRow("Quality", quality, Icons.tv), 
+          _buildGridRow("Ads", ads, Icons.block), 
+          _buildGridRow("Early Access", earlyAccess, Icons.timelapse), 
+          _buildGridRow("Device Slot", slot, Icons.devices), 
+          _buildGridRow("Support", support, Icons.headset_mic), 
+          
+          const Spacer(), 
+          
+          GestureDetector(
+            onTap: () { 
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => QRCodePaymentPage(planName: title, price: price)),
+              );
+            }, 
+            child: Container(
+              height: 45, 
+              alignment: Alignment.center, 
+              decoration: BoxDecoration(
+                color: color, 
+                borderRadius: BorderRadius.circular(10)
+              ), 
+              child: const Text("Choose Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+            )
+          )
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildGridRow(String feature, String value, IconData icon) { 
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12), 
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white54, size: 16),
+          const SizedBox(width: 8),
+          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 14)), 
+          const Spacer(),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))
+        ]
+      )
+    ); 
+  }
+}
+
+// ==========================================
+// NEW QR CODE PAYMENT PAGE
+// ==========================================
+class QRCodePaymentPage extends StatelessWidget {
+  final String planName;
+  final String price;
+
+  const QRCodePaymentPage({super.key, required this.planName, required this.price});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    
+    // Using a dynamic API to generate an actual functional UPI QR Code with exact details!
+    String upiId = "wicvlox.i@oksbi";
+    String upiUrl = "upi://pay?pa=$upiId&pn=AnimeMX&am=$price&cu=INR";
+    String qrImageUrl = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${Uri.encodeComponent(upiUrl)}";
+
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("Scan to Pay", style: TextStyle(color: getText(context))),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Payment for $planName",
+                style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Amount to Pay: ₹$price",
+                style: TextStyle(color: primColor, fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 40),
+              
+              // QR Code Display
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white, // Keep background white so QR is easily scannable
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: primColor.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)
+                  ]
+                ),
+                child: Image.network(
+                  qrImageUrl,
+                  width: 220,
+                  height: 220,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return const SizedBox(
+                      width: 220, height: 220, 
+                      child: Center(child: CircularProgressIndicator())
+                    );
+                  },
+                ),
+              ),
+              
+              const SizedBox(height: 40),
+              Text(
+                "Scan the QR Code to make the payment.",
+                style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "After successful payment, click below to submit your payment screenshot and plan details for verification.",
+                style: TextStyle(color: getSubText(context), fontSize: 14, height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primColor, 
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ),
+                  onPressed: () {
+                    // Navigate to PaymentProofPage and auto-select the plan
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => PaymentProofPage(initialPlan: "$planName - ₹$price/mo")),
+                    );
+                  },
+                  child: const Text("Go to Verification Page", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
 
 // ==========================================
 // PAYMENT PROOF PAGE (UPDATED VALIDATION & TOAST)
@@ -3856,6 +4079,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       return;
     }
     
+    // TRANSACTION ID 12-DIGIT VALIDATION (ONLY NUMBERS)
     String trxId = _trxController.text.trim();
     if (trxId.length != 12 || !RegExp(r'^[0-9]+$').hasMatch(trxId)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid 12-digit number.")));
@@ -4025,9 +4249,9 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             const SizedBox(height: 10),
             TextField(
               controller: _trxController,
-              keyboardType: TextInputType.number, 
+              keyboardType: TextInputType.number,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, 
+                FilteringTextInputFormatter.digitsOnly,
                 LengthLimitingTextInputFormatter(12), 
               ],
               style: TextStyle(color: getText(context)),
@@ -4119,27 +4343,6 @@ class SupportPage extends StatelessWidget {
               )
             ), 
             const SizedBox(height: 30), 
-
-            // ADDED SUPPORT GUIDELINES INFO
-            Text("Support Guidelines", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: getCard(context),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Column(
-                children: [
-                  _buildInfoRow(Icons.access_time, "Our support team is available 24/7.", context),
-                  _buildInfoRow(Icons.quickreply, "Average response time is 1-2 hours.", context),
-                  _buildInfoRow(Icons.receipt_long, "Keep your Transaction ID ready for payment queries.", context),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30), 
-
             Text("Contact Options", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 16), 
             
@@ -4167,28 +4370,21 @@ class SupportPage extends StatelessWidget {
               context,
               onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), 
             ),
+
+            const SizedBox(height: 30),
+            // More Information Added to Support Page
+            Text("Frequently Asked Questions", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 16), 
             
-            const SizedBox(height: 30), 
+            _buildFaqItem(context, "How do I activate my Premium Plan?", "After scanning the QR code and making the payment, submit your 12-digit UTR in the Payment Verification page. Your account will be upgraded within 24 hours."),
+            _buildFaqItem(context, "What is Early Access?", "Early Access allows Premium users to watch the latest episodes immediately as they are released, before free users."),
+            _buildFaqItem(context, "How many devices can I use?", "Basic Plan allows 1 device, Standard allows 3 devices, and Elite allows up to 7 devices simultaneously."),
           ]
         )
       ), 
     ); 
   }
   
-  Widget _buildInfoRow(IconData icon, String text, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Theme.of(context).primaryColor, size: 20),
-          const SizedBox(width: 10),
-          Expanded(child: Text(text, style: TextStyle(color: getSubText(context), fontSize: 13))),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSupportTile(IconData icon, String title, String sub, Color color, BuildContext context, {required VoidCallback onTap}) { 
     return Container(
       margin: const EdgeInsets.only(bottom: 12), 
@@ -4224,6 +4420,26 @@ class SupportPage extends StatelessWidget {
         ),
       ),
     ); 
+  }
+
+  Widget _buildFaqItem(BuildContext context, String question, String answer) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: getCard(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12)
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(question, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 15, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text(answer, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.4)),
+        ],
+      ),
+    );
   }
 }
 
