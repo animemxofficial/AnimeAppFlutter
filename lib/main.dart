@@ -464,17 +464,12 @@ Future<void> launchWhatsApp(String number) async {
   }
 }
 
-Future<void> launchTelegram(String username) async {
-  final Uri uri = Uri.parse("tg://resolve?domain=$username");
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+Future<void> launchTelegram(String contact) async {
+  final Uri webUri = Uri.parse("https://t.me/$contact");
+  if (await canLaunchUrl(webUri)) {
+    await launchUrl(webUri, mode: LaunchMode.externalApplication);
   } else {
-    final webUri = Uri.parse("https://t.me/$username");
-    if (await canLaunchUrl(webUri)) {
-      await launchUrl(webUri, mode: LaunchMode.externalApplication);
-    } else {
-      print("Telegram not installed");
-    }
+    print("Telegram link failed");
   }
 }
 
@@ -1295,7 +1290,7 @@ class OverlayPopularCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12), 
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white24, width: 1.5)
+          border: Border.all(color: Colors.white, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1458,7 +1453,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white24, width: 1.5)
+          border: Border.all(color: Colors.white, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1569,7 +1564,6 @@ class ThumbnailLatestCard extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     int latestEpNum = anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty 
         ? anime.seasonsList.last.episodes.length 
         : 1;
@@ -1585,32 +1579,38 @@ class ThumbnailLatestCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, 
           children:[
-            AspectRatio(
-              aspectRatio: 16 / 9, 
-              child: ClipRRect(
+            Container(
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12), 
-                child: Stack(
-                  fit: StackFit.expand, 
-                  children:[
-                    Image.network(anime.image, fit: BoxFit.cover), 
-                    Positioned(
-                      bottom: 6, 
-                      right: 6, 
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), 
-                        decoration: BoxDecoration(
-                          color: Colors.black87, 
-                          borderRadius: BorderRadius.circular(4)
-                        ), 
-                        child: Text(
-                          "Ep $latestEpNum", 
-                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                border: Border.all(color: Colors.white, width: 1.5)
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9, 
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10), 
+                  child: Stack(
+                    fit: StackFit.expand, 
+                    children:[
+                      Image.network(anime.image, fit: BoxFit.cover), 
+                      Positioned(
+                        bottom: 6, 
+                        right: 6, 
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), 
+                          decoration: BoxDecoration(
+                            color: Colors.black87, 
+                            borderRadius: BorderRadius.circular(4)
+                          ), 
+                          child: Text(
+                            "Ep $latestEpNum", 
+                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                          )
                         )
                       )
-                    )
-                  ]
+                    ]
+                  )
                 )
-              )
+              ),
             ), 
             const SizedBox(height: 8), 
             Text(
@@ -1675,35 +1675,41 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, 
           children:[
-            AspectRatio(
-              aspectRatio: 16 / 9, 
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10), 
-                child: Stack(
-                  fit: StackFit.expand, 
-                  children: [
-                    Image.network(
-                      widget.item.anime.seasonsList[widget.item.seasonIndex].episodes[widget.item.episodeIndex].image, 
-                      fit: BoxFit.cover
-                    ), 
-                    Container(color: Colors.black38), 
-                    const Center(
-                      child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)
-                    ), 
-                    Positioned(
-                      bottom: 0, 
-                      left: 0, 
-                      right: 0, 
-                      child: LinearProgressIndicator(
-                        value: progress, 
-                        backgroundColor: Colors.white24, 
-                        valueColor: AlwaysStoppedAnimation<Color>(primColor), 
-                        minHeight: 4
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12), 
+                border: Border.all(color: Colors.white, width: 1.5)
+              ),
+              child: AspectRatio(
+                aspectRatio: 16 / 9, 
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10), 
+                  child: Stack(
+                    fit: StackFit.expand, 
+                    children: [
+                      Image.network(
+                        widget.item.anime.seasonsList[widget.item.seasonIndex].episodes[widget.item.episodeIndex].image, 
+                        fit: BoxFit.cover
+                      ), 
+                      Container(color: Colors.black38), 
+                      const Center(
+                        child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)
+                      ), 
+                      Positioned(
+                        bottom: 0, 
+                        left: 0, 
+                        right: 0, 
+                        child: LinearProgressIndicator(
+                          value: progress, 
+                          backgroundColor: Colors.white24, 
+                          valueColor: AlwaysStoppedAnimation<Color>(primColor), 
+                          minHeight: 4
+                        )
                       )
-                    )
-                  ]
+                    ]
+                  )
                 )
-              )
+              ),
             ), 
             const SizedBox(height: 8), 
             Text(
@@ -3169,185 +3175,6 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// CHANGE PASSWORD PAGE (NEW FEATURE)
-// ==========================================
-class ChangePasswordPage extends StatefulWidget {
-  const ChangePasswordPage({super.key});
-
-  @override
-  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
-}
-
-class _ChangePasswordPageState extends State<ChangePasswordPage> {
-  final TextEditingController _newPassController = TextEditingController();
-  final TextEditingController _confirmPassController = TextEditingController();
-  bool _isLoading = false;
-
-  Future<void> _updatePassword() async {
-    if (_newPassController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password must be at least 6 characters")));
-      return;
-    }
-    if (_newPassController.text != _confirmPassController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(password: _newPassController.text.trim()),
-      );
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password changed successfully!")));
-        Navigator.pop(context);
-      }
-    } on AuthException catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    } finally {
-      if(mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(
-        title: Text("Change Password", style: TextStyle(color: getText(context))),
-        backgroundColor: getBg(context),
-        iconTheme: IconThemeData(color: getText(context)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Create New Password", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Text("Your new password must be different from previous used passwords.", style: TextStyle(color: getSubText(context))),
-            const SizedBox(height: 30),
-            
-            TextField(
-              controller: _newPassController,
-              obscureText: true,
-              style: TextStyle(color: getText(context)),
-              decoration: InputDecoration(
-                hintText: "New Password",
-                hintStyle: TextStyle(color: getSubText(context)),
-                filled: true,
-                fillColor: getCard(context),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _confirmPassController,
-              obscureText: true,
-              style: TextStyle(color: getText(context)),
-              decoration: InputDecoration(
-                hintText: "Confirm Password",
-                hintStyle: TextStyle(color: getSubText(context)),
-                filled: true,
-                fillColor: getCard(context),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
-              ),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                onPressed: _isLoading ? null : _updatePassword,
-                child: _isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("Save Password", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// THEME SETTINGS PAGE 
-// ==========================================
-class ThemeSettingsPage extends StatelessWidget {
-  const ThemeSettingsPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(
-        title: Text("App Theme", style: TextStyle(color: getText(context))),
-        backgroundColor: getBg(context),
-        iconTheme: IconThemeData(color: getText(context)),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Accent Color", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 15,
-              runSpacing: 15,
-              children: [
-                _buildColorOption(Colors.red, "Red", context),
-                _buildColorOption(Colors.blue, "Blue", context),
-                _buildColorOption(Colors.green, "Green", context),
-                _buildColorOption(Colors.orange, "Orange", context),
-                _buildColorOption(Colors.purple, "Purple", context),
-                _buildColorOption(Colors.pink, "Pink", context),
-              ],
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorOption(Color color, String name, BuildContext context) {
-    return ValueListenableBuilder<Color>(
-      valueListenable: primaryColorNotifier,
-      builder: (context, currentColor, _) {
-        bool isSelected = currentColor == color;
-        return GestureDetector(
-          onTap: () => primaryColorNotifier.value = color,
-          child: Column(
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: isSelected ? getText(context) : Colors.transparent, width: 3),
-                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)] : []
-                ),
-                child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
-              ),
-              const SizedBox(height: 5),
-              Text(name, style: TextStyle(color: getSubText(context), fontSize: 12))
-            ],
-          ),
-        );
-      }
-    );
-  }
-}
-
-// ==========================================
 // PROFILE SCREEN - PERFECT IOS/CLASSIC CLONE
 // ==========================================
 class ProfileScreen extends StatelessWidget {
@@ -3546,6 +3373,185 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // ==========================================
+// CHANGE PASSWORD PAGE (NEW FEATURE)
+// ==========================================
+class ChangePasswordPage extends StatefulWidget {
+  const ChangePasswordPage({super.key});
+
+  @override
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final TextEditingController _newPassController = TextEditingController();
+  final TextEditingController _confirmPassController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _updatePassword() async {
+    if (_newPassController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password must be at least 6 characters")));
+      return;
+    }
+    if (_newPassController.text != _confirmPassController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: _newPassController.text.trim()),
+      );
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password changed successfully!")));
+        Navigator.pop(context);
+      }
+    } on AuthException catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if(mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("Change Password", style: TextStyle(color: getText(context))),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Create New Password", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            Text("Your new password must be different from previous used passwords.", style: TextStyle(color: getSubText(context))),
+            const SizedBox(height: 30),
+            
+            TextField(
+              controller: _newPassController,
+              obscureText: true,
+              style: TextStyle(color: getText(context)),
+              decoration: InputDecoration(
+                hintText: "New Password",
+                hintStyle: TextStyle(color: getSubText(context)),
+                filled: true,
+                fillColor: getCard(context),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _confirmPassController,
+              obscureText: true,
+              style: TextStyle(color: getText(context)),
+              decoration: InputDecoration(
+                hintText: "Confirm Password",
+                hintStyle: TextStyle(color: getSubText(context)),
+                filled: true,
+                fillColor: getCard(context),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
+              ),
+            ),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: _isLoading ? null : _updatePassword,
+                child: _isLoading 
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Save Password", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// THEME SETTINGS PAGE 
+// ==========================================
+class ThemeSettingsPage extends StatelessWidget {
+  const ThemeSettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("App Theme", style: TextStyle(color: getText(context))),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Accent Color", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 15,
+              runSpacing: 15,
+              children: [
+                _buildColorOption(Colors.red, "Red", context),
+                _buildColorOption(Colors.blue, "Blue", context),
+                _buildColorOption(Colors.green, "Green", context),
+                _buildColorOption(Colors.orange, "Orange", context),
+                _buildColorOption(Colors.purple, "Purple", context),
+                _buildColorOption(Colors.pink, "Pink", context),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorOption(Color color, String name, BuildContext context) {
+    return ValueListenableBuilder<Color>(
+      valueListenable: primaryColorNotifier,
+      builder: (context, currentColor, _) {
+        bool isSelected = currentColor == color;
+        return GestureDetector(
+          onTap: () => primaryColorNotifier.value = color,
+          child: Column(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: isSelected ? getText(context) : Colors.transparent, width: 3),
+                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)] : []
+                ),
+                child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
+              ),
+              const SizedBox(height: 5),
+              Text(name, style: TextStyle(color: getSubText(context), fontSize: 12))
+            ],
+          ),
+        );
+      }
+    );
+  }
+}
+
+// ==========================================
 // PLACEHOLDER PAGES FOR MENU OPTIONS
 // ==========================================
 class PrivacyPolicyPage extends StatelessWidget { 
@@ -3606,19 +3612,10 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// UPDATED PREMIUM PAGE WITH 5 NEW PLANS
+// UPDATED PREMIUM PAGE WITH IMAGES
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
-
-  void _launchUPI(BuildContext context, String amount, String plan) async {
-    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan");
-    if (await canLaunchUrl(uri)) { 
-      await launchUrl(uri, mode: LaunchMode.externalApplication); 
-    } else { 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!"))); 
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -3639,168 +3636,47 @@ class PremiumPage extends StatelessWidget {
             Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
             const SizedBox(height: 30),
             
-            _buildCompactPlanCard(
-              context: context, 
-              title: "Starter Plan", 
-              price: "₹33", 
-              duration: "/month",
-              quality: "720p HD", 
-              limit: "50 Minutes Daily",
-              desc: "Great for quick binges. Ad-free.",
-              color: Colors.blueGrey, 
-              icon: Icons.flash_on
-            ), 
-            const SizedBox(height: 16),
+            _buildImagePlanCard(
+              context, 
+              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiZhwy1TMD1y_QIkWUgQMWqd-ETOlxzttgWl2ODW9HYGzi0W3-EWr07AkRz5CVxHATOfYzhE9qTuQdEurh9JDWhLrtlzMeffDep4NHnSUkOqlsXJSx5s8Z3h4HjcnRBBcS3d06lhTLUiqeIZCeKYAKZnAZeupUavSK08EKwaYzUwICYlcIXwdMGmVg_iPtt/s1280/IMG-20260424-WA0000.webp", 
+              "Starter Plan - ₹33/mo"
+            ),
+            const SizedBox(height: 20),
             
-            _buildCompactPlanCard(
-              context: context, 
-              title: "Lite Plan", 
-              price: "₹50", 
-              duration: "/month",
-              quality: "1080p FHD", 
-              limit: "180 Mins (3 Hours)",
-              desc: "Perfect for casual watchers. Ad-free.",
-              color: Colors.orange, 
-              icon: Icons.star, 
-              isPopular: true
-            ), 
-            const SizedBox(height: 16),
+            _buildImagePlanCard(
+              context, 
+              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrih9niol1wlRhZ3svKnjBAmMq8Q9fzNPMeCZsiiJChPdvjSdkpHyb6K6OH1dWX8QCw8gIh3pl-6FKhAKB2RxY31r_lMhHkXpwoDst0w76PyWLJPe4VpKxV-q5J5wgX8jspyXjI2TvijxPC4V9eFujxON7cxl80JTGldz3o293N1bqkxNSokm_QZ0oOo0A/s1280/IMG-20260424-WA0002.webp", 
+              "Lite Plan - ₹50/mo"
+            ),
+            const SizedBox(height: 20),
             
-            _buildCompactPlanCard(
-              context: context, 
-              title: "Pro Plan", 
-              price: "₹99", 
-              duration: "/month",
-              quality: "1080p FHD", 
-              limit: "360 Mins (6 Hours)",
-              desc: "For dedicated anime fans.",
-              color: Colors.purpleAccent, 
-              icon: Icons.diamond
-            ), 
-            const SizedBox(height: 16),
-            
-            _buildCompactPlanCard(
-              context: context, 
-              title: "Elite Plan", 
-              price: "₹155", 
-              duration: "/month",
-              quality: "4K Ultra", 
-              limit: "Unlimited Daily",
-              desc: "Watch without limits. All benefits.",
-              color: Colors.pinkAccent, 
-              icon: Icons.local_fire_department
-            ), 
-            const SizedBox(height: 16),
-            
-            _buildCompactPlanCard(
-              context: context, 
-              title: "Ultimate Plan", 
-              price: "₹450", 
-              duration: "/3 months",
-              quality: "4K Ultra", 
-              limit: "Unlimited Daily",
-              desc: "Best value! 90 days of unlimited access.",
-              color: Colors.tealAccent, 
-              icon: Icons.workspace_premium
-            ), 
+            _buildImagePlanCard(
+              context, 
+              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh6RyYa9CqtnZaJkC2oF1Pf2o8OuEBLJst0h8ucCmtvk5ii1ZOBKn77uTJh0SXLOzOvijklkZEvCEHs0Z-ReqqOkHZEsvmH0q-MaH6r6tbFx6ueZckBChkGYD1Cv3ERZM438Lg4GZzkPvu5PMYB4_VGJECBQHVvLqSj7HBs1gQ4PsFWmekMpQg_M4b76R3Z/s1280/IMG-20260424-WA0001.webp", 
+              "Elite Plan - ₹155/mo"
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCompactPlanCard({
-    required BuildContext context, 
-    required String title, 
-    required String price, 
-    required String duration,
-    required String quality, 
-    required String limit,
-    required String desc,
-    required Color color, 
-    required IconData icon, 
-    bool isPopular = false
-  }) {
-    String cleanPrice = price.replaceAll("₹", "");
-    
-    return Stack(
-      clipBehavior: Clip.none, 
-      children: [
-        Container(
+  Widget _buildImagePlanCard(BuildContext context, String imageUrl, String planValue) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => PaymentProofPage(initialPlan: planValue)),
+        );
+      },
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(
+          imageUrl,
           width: double.infinity,
-          decoration: BoxDecoration(
-            color: getCard(context), 
-            borderRadius: BorderRadius.circular(16), 
-            border: Border.all(color: isPopular ? color : Colors.white12, width: isPopular ? 2 : 1), 
-            boxShadow: isPopular ? [BoxShadow(color: color.withOpacity(0.1), blurRadius: 20, spreadRadius: 2)] : []
-          ), 
-          padding: const EdgeInsets.all(20), 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                children: [
-                  Row(
-                    children: [
-                      Icon(icon, color: color, size: 28), 
-                      const SizedBox(width: 12), 
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, style: TextStyle(color: getText(context), fontSize: 20, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          Text(quality, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          Text("Limit: $limit", style: TextStyle(color: getSubText(context), fontSize: 13)),
-                        ],
-                      )
-                    ]
-                  ), 
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(price, style: TextStyle(color: getText(context), fontSize: 26, fontWeight: FontWeight.bold)), 
-                      Text(duration, style: TextStyle(color: getSubText(context), fontSize: 12))
-                    ]
-                  )
-                ]
-              ), 
-              const SizedBox(height: 16), 
-              Text(desc, style: TextStyle(color: getSubText(context), fontSize: 14)),
-              const SizedBox(height: 20), 
-              
-              GestureDetector(
-                onTap: () { 
-                  userActivePlan = title; 
-                  _launchUPI(context, cleanPrice, title.replaceAll(" ", "")); 
-                }, 
-                child: Container(
-                  width: double.infinity,
-                  height: 45, 
-                  alignment: Alignment.center, 
-                  decoration: BoxDecoration(
-                    color: isPopular ? color : Theme.of(context).primaryColor, 
-                    borderRadius: BorderRadius.circular(10)
-                  ), 
-                  child: const Text("Select Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
-                )
-              )
-            ],
-          ),
+          fit: BoxFit.fitWidth,
         ),
-        
-        if (isPopular) 
-          Positioned(
-            top: -12, 
-            right: 20, 
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), 
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)), 
-              child: const Text("MOST POPULAR", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold))
-            )
-          ),
-      ],
+      ),
     );
   }
 }
@@ -3809,7 +3685,8 @@ class PremiumPage extends StatelessWidget {
 // PAYMENT PROOF PAGE (UPDATED VALIDATION & TOAST)
 // ==========================================
 class PaymentProofPage extends StatefulWidget {
-  const PaymentProofPage({super.key});
+  final String? initialPlan;
+  const PaymentProofPage({super.key, this.initialPlan});
 
   @override 
   State<PaymentProofPage> createState() => _PaymentProofPageState();
@@ -3829,6 +3706,14 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     "Ultimate Plan - ₹450/3mo"
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPlan != null && _plans.contains(widget.initialPlan)) {
+      _selectedPlan = widget.initialPlan;
+    }
+  }
+
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -3838,7 +3723,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
     }
   }
 
-  // MODERN IOS STYLE FLOATING TOAST NOTIFICATION
   void _showFloatingToast() {
     OverlayEntry overlayEntry;
     overlayEntry = OverlayEntry(
@@ -3851,7 +3735,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E), // Dark clean background
+              color: const Color(0xFF1E1E1E), 
               borderRadius: BorderRadius.circular(16.0),
               boxShadow: [
                 BoxShadow(
@@ -3866,7 +3750,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF2ECA71), // Green circle
+                    color: Color(0xFF2ECA71), 
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check, color: Colors.white, size: 24, weight: 700),
@@ -3893,11 +3777,10 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
 
     Overlay.of(context).insert(overlayEntry);
 
-    // Auto close after 3 seconds and go back
     Future.delayed(const Duration(seconds: 3), () {
       overlayEntry.remove();
       if(mounted) {
-        Navigator.pop(context); // Go back after success
+        Navigator.pop(context); 
       }
     });
   }
@@ -3912,7 +3795,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       return;
     }
     
-    // TRANSACTION ID 12-DIGIT VALIDATION (ONLY NUMBERS)
     String trxId = _trxController.text.trim();
     if (trxId.length != 12 || !RegExp(r'^[0-9]+$').hasMatch(trxId)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid 12-digit number.")));
@@ -3963,7 +3845,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       }
 
       if (mounted) {
-        _showFloatingToast(); // Show new floating toast instead of dialog
+        _showFloatingToast(); 
       }
       
     } catch (e) {
@@ -4082,10 +3964,10 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             const SizedBox(height: 10),
             TextField(
               controller: _trxController,
-              keyboardType: TextInputType.number, // Keyboard for numbers only
+              keyboardType: TextInputType.number,
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly, // Restrict to numbers only
-                LengthLimitingTextInputFormatter(12), // Max 12 digits
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(12), 
               ],
               style: TextStyle(color: getText(context)),
               decoration: InputDecoration(
@@ -4185,7 +4067,7 @@ class SupportPage extends StatelessWidget {
               "Instant Chat Support", 
               Colors.blueAccent, 
               context,
-              onTap: () => launchTelegram("your_telegram_username_here"), 
+              onTap: () => launchTelegram("+918987927874"), 
             ), 
             _buildSupportTile(
               Icons.chat, 
@@ -4193,7 +4075,7 @@ class SupportPage extends StatelessWidget {
               "Chat Support", 
               Colors.green, 
               context,
-              onTap: () => launchWhatsApp("918987927874"), 
+              onTap: () => launchWhatsApp("+918987927874"), 
             ), 
             _buildSupportTile(
               Icons.email, 
@@ -4202,43 +4084,6 @@ class SupportPage extends StatelessWidget {
               Colors.orangeAccent, 
               context,
               onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), 
-            ),
-            
-            const SizedBox(height: 30), 
-            Text("Social Media", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 16), 
-
-            _buildSupportTile(
-              Icons.ondemand_video, 
-              "YouTube", 
-              "Watch trailers and updates", 
-              Colors.red, 
-              context,
-              onTap: () => launchInBrowser("https://www.youtube.com/@animemxofficial"), 
-            ),
-            _buildSupportTile(
-              Icons.camera_alt, 
-              "Instagram", 
-              "Follow for latest posts", 
-              Colors.pink, 
-              context,
-              onTap: () => launchInBrowser("https://www.instagram.com/animemxofficial"), 
-            ),
-            _buildSupportTile(
-              Icons.facebook, 
-              "Facebook", 
-              "Like our page", 
-              Colors.blue, 
-              context,
-              onTap: () => launchInBrowser("https://www.facebook.com/animemxofficial"), 
-            ),
-            _buildSupportTile(
-              Icons.public, 
-              "Twitter", 
-              "Latest news", 
-              Colors.lightBlue, 
-              context,
-              onTap: () => launchInBrowser("https://twitter.com/animemxofficial"), 
             ),
           ]
         )
