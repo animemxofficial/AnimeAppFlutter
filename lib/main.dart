@@ -492,6 +492,9 @@ class AnimeMX extends StatelessWidget {
             primaryColor: currentColor,
             scaffoldBackgroundColor: Colors.black,
             useMaterial3: true,
+            splashColor: Colors.transparent, // Disable splash globally
+            highlightColor: Colors.transparent, // Disable highlight globally
+            splashFactory: NoSplash.splashFactory, // Completely disable ripple
             appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white),
           ),
           theme: ThemeData(
@@ -499,6 +502,9 @@ class AnimeMX extends StatelessWidget {
             primaryColor: currentColor,
             scaffoldBackgroundColor: Colors.black,
             useMaterial3: true,
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            splashFactory: NoSplash.splashFactory,
           ),
           home: const AuthGate(), 
         );
@@ -732,26 +738,32 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       extendBody: true,
       body: pages[_index],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: getCard(context),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey[500],
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
-        currentIndex: _index,
-        onTap: (i) { 
-          setState(() { 
-            _index = i; 
-          }); 
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "Dub"),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
-        ],
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: getCard(context),
+          type: BottomNavigationBarType.fixed,
+          selectedItemColor: Theme.of(context).primaryColor,
+          unselectedItemColor: Colors.grey[500],
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
+          currentIndex: _index,
+          onTap: (i) { 
+            setState(() { 
+              _index = i; 
+            }); 
+          },
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+            BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "Dub"),
+            BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
+          ],
+        ),
       ),
     );
   }
@@ -1290,7 +1302,7 @@ class OverlayPopularCard extends StatelessWidget {
         margin: const EdgeInsets.only(right: 12), 
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white, width: 1.5)
+          border: Border.all(color: Colors.white24, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1453,7 +1465,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12), 
-          border: Border.all(color: Colors.white, width: 1.5)
+          border: Border.all(color: Colors.white24, width: 1.5)
         ), 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10), 
@@ -1564,15 +1576,31 @@ class ThumbnailLatestCard extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     int latestEpNum = anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty 
         ? anime.seasonsList.last.episodes.length 
         : 1;
 
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context, 
-        MaterialPageRoute(builder: (_) => DetailsPage(anime: anime, isLatestOnly: isLatestOnly))
-      ), 
+      // CLICKING ON LATEST DIRECTLY OPENS VIDEO PLAYER
+      onTap: () {
+        int sIndex = anime.seasonsList.length - 1;
+        int eIndex = anime.seasonsList[sIndex].episodes.length - 1;
+        Duration? startPos;
+        try {
+          final cwItem = continueWatchingNotifier.value.firstWhere(
+            (item) => item.anime.title == anime.title && item.seasonIndex == sIndex && item.episodeIndex == eIndex
+          );
+          startPos = cwItem.position;
+        } catch(e) {}
+        
+        Navigator.push(
+          context, 
+          MaterialPageRoute(builder: (_) => VideoPlayerPage(
+            anime: anime, seasonIndex: sIndex, episodeIndex: eIndex, startPosition: startPos,
+          ))
+        ).then((_) { fetchGlobalAnimeViews(); });
+      },
       child: Container(
         width: 180, 
         margin: const EdgeInsets.only(right: 14), 
@@ -1582,7 +1610,7 @@ class ThumbnailLatestCard extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12), 
-                border: Border.all(color: Colors.white, width: 1.5)
+                border: Border.all(color: Colors.white24, width: 1.5)
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9, 
@@ -1678,7 +1706,7 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12), 
-                border: Border.all(color: Colors.white, width: 1.5)
+                border: Border.all(color: Colors.white24, width: 1.5)
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9, 
@@ -3175,205 +3203,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN - PERFECT IOS/CLASSIC CLONE
-// ==========================================
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key}); 
-
-  Widget _buildMenuGroup(List<Widget> items, BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 30),
-      decoration: BoxDecoration(
-        color: getCard(context),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: items.asMap().entries.map((entry) {
-          int idx = entry.key;
-          Widget item = entry.value;
-          if (idx == items.length - 1) return item;
-          return Column(
-            children: [
-              item,
-              const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16), 
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildGroupedItem({required String title, required VoidCallback onTap, String? trailingText, Color? trailingColor, BuildContext? context}) {
-    return Material(
-      color: Colors.transparent, 
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: TextStyle(color: getText(context!), fontSize: 16, fontWeight: FontWeight.w500)),
-              Row(
-                children: [
-                  if (trailingText != null) ...[
-                    Text(trailingText, style: TextStyle(color: trailingColor ?? getSubText(context), fontSize: 15)),
-                    const SizedBox(width: 8),
-                  ],
-                  Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(
-        title: Text("My Account", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 24)),
-        backgroundColor: getBg(context),
-        elevation: 0,
-        centerTitle: false,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
-              
-              // Profile Header Info
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.only(bottom: 24, top: 10),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      radius: 45,
-                      backgroundColor: getAvatarColor(currentUserName),
-                      child: Text(
-                        getAvatarLetter(currentUserName),
-                        style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.verified, color: Colors.blueAccent, size: 20),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: userActivePlan.isEmpty ? Colors.white12 : Theme.of(context).primaryColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        userActivePlan.isEmpty ? "FREE PLAN" : userActivePlan.toUpperCase(), 
-                        style: TextStyle(color: userActivePlan.isEmpty ? Colors.white70 : Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold)
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 8),
-                child: Text("Account", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
-              ),
-              _buildMenuGroup([
-                _buildGroupedItem(
-                  context: context,
-                  title: "Subscription", 
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), 
-                  trailingText: userActivePlan.isEmpty ? "Upgrade" : userActivePlan, 
-                  trailingColor: Theme.of(context).primaryColor
-                ),
-                _buildGroupedItem(
-                  context: context,
-                  title: "Notifications", 
-                  onTap: () {}, 
-                  trailingText: "On"
-                ),
-                _buildGroupedItem(
-                  context: context,
-                  title: "Email & Password", 
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage())), 
-                ),
-                _buildGroupedItem(
-                  context: context,
-                  title: "App Theme", 
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), 
-                  trailingText: "Customize", 
-                ),
-              ], context),
-
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 8),
-                child: Text("Payments", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
-              ),
-              _buildMenuGroup([
-                _buildGroupedItem(
-                  context: context,
-                  title: "Payment Verification", 
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), 
-                ),
-                _buildGroupedItem(
-                  context: context,
-                  title: "Order History", 
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage())), 
-                ),
-              ], context),
-
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 8),
-                child: Text("Support", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
-              ),
-              _buildMenuGroup([
-                _buildGroupedItem(
-                  context: context,
-                  title: "Support Center", 
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), 
-                ),
-              ], context),
-
-              // LOG OUT BUTTON - STANDALONE AND RED
-              const SizedBox(height: 10),
-              GestureDetector(
-                onTap: () async {
-                   await Supabase.instance.client.auth.signOut();
-                }, 
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: getCard(context),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Text("Log Out", textAlign: TextAlign.center, style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              )
-
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// CHANGE PASSWORD PAGE (NEW FEATURE)
+// CHANGE PASSWORD PAGE
 // ==========================================
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -3552,6 +3382,202 @@ class ThemeSettingsPage extends StatelessWidget {
 }
 
 // ==========================================
+// PROFILE SCREEN - PERFECT IOS/CLASSIC CLONE
+// ==========================================
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key}); 
+
+  Widget _buildMenuGroup(List<Widget> items, BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 30),
+      decoration: BoxDecoration(
+        color: getCard(context),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: items.asMap().entries.map((entry) {
+          int idx = entry.key;
+          Widget item = entry.value;
+          if (idx == items.length - 1) return item;
+          return Column(
+            children: [
+              item,
+              const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16), 
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildGroupedItem({required String title, required VoidCallback onTap, String? trailingText, Color? trailingColor, BuildContext? context}) {
+    return Material(
+      color: Colors.transparent, 
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: TextStyle(color: getText(context!), fontSize: 16, fontWeight: FontWeight.w500)),
+              Row(
+                children: [
+                  if (trailingText != null) ...[
+                    Text(trailingText, style: TextStyle(color: trailingColor ?? getSubText(context), fontSize: 15)),
+                    const SizedBox(width: 8),
+                  ],
+                  Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("My Account", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 24)),
+        backgroundColor: getBg(context),
+        elevation: 0,
+        centerTitle: false,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children:[
+              
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.only(bottom: 24, top: 10),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 45,
+                      backgroundColor: getAvatarColor(currentUserName),
+                      child: Text(
+                        getAvatarLetter(currentUserName),
+                        style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.verified, color: Colors.blueAccent, size: 20),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: userActivePlan.isEmpty ? Colors.white12 : Theme.of(context).primaryColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        userActivePlan.isEmpty ? "FREE PLAN" : userActivePlan.toUpperCase(), 
+                        style: TextStyle(color: userActivePlan.isEmpty ? Colors.white70 : Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold)
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Text("Account", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+              _buildMenuGroup([
+                _buildGroupedItem(
+                  context: context,
+                  title: "Subscription", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), 
+                  trailingText: userActivePlan.isEmpty ? "Upgrade" : userActivePlan, 
+                  trailingColor: Theme.of(context).primaryColor
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "Notifications", 
+                  onTap: () {}, 
+                  trailingText: "On"
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "Email & Password", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage())), 
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "App Theme", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), 
+                  trailingText: "Customize", 
+                ),
+              ], context),
+
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Text("Payments", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+              _buildMenuGroup([
+                _buildGroupedItem(
+                  context: context,
+                  title: "Payment Verification", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage())), 
+                ),
+                _buildGroupedItem(
+                  context: context,
+                  title: "Order History", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage())), 
+                ),
+              ], context),
+
+              Padding(
+                padding: const EdgeInsets.only(left: 8, bottom: 8),
+                child: Text("Support", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+              _buildMenuGroup([
+                _buildGroupedItem(
+                  context: context,
+                  title: "Support Center", 
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())), 
+                ),
+              ], context),
+
+              const SizedBox(height: 10),
+              GestureDetector(
+                onTap: () async {
+                   await Supabase.instance.client.auth.signOut();
+                }, 
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: getCard(context),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text("Log Out", textAlign: TextAlign.center, style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              )
+
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
 // PLACEHOLDER PAGES FOR MENU OPTIONS
 // ==========================================
 class PrivacyPolicyPage extends StatelessWidget { 
@@ -3612,13 +3638,14 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// UPDATED PREMIUM PAGE WITH IMAGES
+// UPDATED PREMIUM PAGE WITH IMAGES & EXTRA INFO
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context), 
       appBar: AppBar(
@@ -3639,24 +3666,60 @@ class PremiumPage extends StatelessWidget {
             _buildImagePlanCard(
               context, 
               "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiZhwy1TMD1y_QIkWUgQMWqd-ETOlxzttgWl2ODW9HYGzi0W3-EWr07AkRz5CVxHATOfYzhE9qTuQdEurh9JDWhLrtlzMeffDep4NHnSUkOqlsXJSx5s8Z3h4HjcnRBBcS3d06lhTLUiqeIZCeKYAKZnAZeupUavSK08EKwaYzUwICYlcIXwdMGmVg_iPtt/s1280/IMG-20260424-WA0000.webp", 
-              "Starter Plan - ₹33/mo"
+              "Basic Plan - ₹55/mo"
             ),
             const SizedBox(height: 20),
             
             _buildImagePlanCard(
               context, 
               "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrih9niol1wlRhZ3svKnjBAmMq8Q9fzNPMeCZsiiJChPdvjSdkpHyb6K6OH1dWX8QCw8gIh3pl-6FKhAKB2RxY31r_lMhHkXpwoDst0w76PyWLJPe4VpKxV-q5J5wgX8jspyXjI2TvijxPC4V9eFujxON7cxl80JTGldz3o293N1bqkxNSokm_QZ0oOo0A/s1280/IMG-20260424-WA0002.webp", 
-              "Lite Plan - ₹50/mo"
+              "Standard Plan - ₹99/mo"
             ),
             const SizedBox(height: 20),
             
             _buildImagePlanCard(
               context, 
               "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh6RyYa9CqtnZaJkC2oF1Pf2o8OuEBLJst0h8ucCmtvk5ii1ZOBKn77uTJh0SXLOzOvijklkZEvCEHs0Z-ReqqOkHZEsvmH0q-MaH6r6tbFx6ueZckBChkGYD1Cv3ERZM438Lg4GZzkPvu5PMYB4_VGJECBQHVvLqSj7HBs1gQ4PsFWmekMpQg_M4b76R3Z/s1280/IMG-20260424-WA0001.webp", 
-              "Elite Plan - ₹155/mo"
+              "Elite Plan - ₹149/mo"
             ),
+
+            const SizedBox(height: 40),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: getCard(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Why upgrade to Premium?", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 15),
+                  _buildInfoRow(Icons.hd, "Watch everything in high definition up to 1080p.", context),
+                  _buildInfoRow(Icons.block, "Enjoy your favorite shows totally ad-free.", context),
+                  _buildInfoRow(Icons.devices, "Share your account safely on multiple devices.", context),
+                  _buildInfoRow(Icons.security, "100% safe & secure payment verification.", context),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text, BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: TextStyle(color: getSubText(context), fontSize: 13))),
+        ],
       ),
     );
   }
@@ -3699,11 +3762,9 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
   bool _isSubmitting = false;
 
   final List<String> _plans = [
-    "Starter Plan - ₹33/mo",
-    "Lite Plan - ₹50/mo",
-    "Pro Plan - ₹99/mo",
-    "Elite Plan - ₹155/mo",
-    "Ultimate Plan - ₹450/3mo"
+    "Basic Plan - ₹55/mo",
+    "Standard Plan - ₹99/mo",
+    "Elite Plan - ₹149/mo"
   ];
 
   @override
@@ -3964,9 +4025,9 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             const SizedBox(height: 10),
             TextField(
               controller: _trxController,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.number, 
               inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
+                FilteringTextInputFormatter.digitsOnly, 
                 LengthLimitingTextInputFormatter(12), 
               ],
               style: TextStyle(color: getText(context)),
@@ -4058,6 +4119,27 @@ class SupportPage extends StatelessWidget {
               )
             ), 
             const SizedBox(height: 30), 
+
+            // ADDED SUPPORT GUIDELINES INFO
+            Text("Support Guidelines", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: getCard(context),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Column(
+                children: [
+                  _buildInfoRow(Icons.access_time, "Our support team is available 24/7.", context),
+                  _buildInfoRow(Icons.quickreply, "Average response time is 1-2 hours.", context),
+                  _buildInfoRow(Icons.receipt_long, "Keep your Transaction ID ready for payment queries.", context),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30), 
+
             Text("Contact Options", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 16), 
             
@@ -4085,12 +4167,28 @@ class SupportPage extends StatelessWidget {
               context,
               onTap: () => launchInBrowser("mailto:animemx.official@gmail.com"), 
             ),
+            
+            const SizedBox(height: 30), 
           ]
         )
       ), 
     ); 
   }
   
+  Widget _buildInfoRow(IconData icon, String text, BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: TextStyle(color: getSubText(context), fontSize: 13))),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSupportTile(IconData icon, String title, String sub, Color color, BuildContext context, {required VoidCallback onTap}) { 
     return Container(
       margin: const EdgeInsets.only(bottom: 12), 
