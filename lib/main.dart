@@ -27,7 +27,7 @@ final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
 // --- THEME NOTIFIERS ---
-final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(Colors.blue); // Changed default color
+final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(Colors.blue); 
 
 // --- THEME HELPER FUNCTIONS (FORCED DARK MODE) ---
 Color getBg(BuildContext context) => Colors.black;
@@ -452,25 +452,18 @@ Future<void> launchInBrowser(String url) async {
 }
 
 Future<void> launchWhatsApp(String number) async {
-  final Uri uri = Uri.parse("whatsapp://send?phone=$number");
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  } else {
-    final webUri = Uri.parse("https://api.whatsapp.com/send?phone=$number");
-    if (await canLaunchUrl(webUri)) {
-      await launchUrl(webUri, mode: LaunchMode.externalApplication);
-    } else {
-      print("WhatsApp not installed");
-    }
+  final cleanNumber = number.replaceAll(RegExp(r'\D'), '');
+  final Uri uri = Uri.parse("https://wa.me/$cleanNumber");
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    print("Could not launch WhatsApp");
   }
 }
 
 Future<void> launchTelegram(String contact) async {
-  final Uri webUri = Uri.parse("https://t.me/$contact");
-  if (await canLaunchUrl(webUri)) {
-    await launchUrl(webUri, mode: LaunchMode.externalApplication);
-  } else {
-    print("Telegram link failed");
+  final cleanContact = contact.replaceAll(RegExp(r'\s+'), '');
+  final Uri uri = Uri.parse("https://t.me/$cleanContact");
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    print("Could not launch Telegram");
   }
 }
 
@@ -720,6 +713,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     fetchGlobalAnimeViews(); 
+    _fetchUserPreferences(); // FETCH PREFS ON STARTUP
     
     // Show Cookies Banner on login
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -727,6 +721,44 @@ class _MainScreenState extends State<MainScreen> {
         _showCookieBanner(context);
       }
     });
+  }
+
+  // --- NEW FIX: Load Continue Watching and Saved List from Supabase on App Start ---
+  Future<void> _fetchUserPreferences() async {
+    try {
+      final response = await Supabase.instance.client
+          .from('user_preferences')
+          .select('continue_watching, saved_anime')
+          .eq('email', currentUserEmail)
+          .maybeSingle();
+
+      if (response != null) {
+        if (response['continue_watching'] != null) {
+          final List<dynamic> cwData = response['continue_watching'];
+          continueWatchingNotifier.value = cwData.map((data) => CWItem.fromJson(data)).toList();
+        }
+        if (response['saved_anime'] != null) {
+          final List<dynamic> savedData = response['saved_anime'];
+          final List<SavedEpisode> fetchedList = [];
+          for (var data in savedData) {
+            final animeTitle = data['animeTitle'];
+            try {
+              final animeMatch = animeData.firstWhere((anime) => anime.title == animeTitle);
+              fetchedList.add(SavedEpisode(
+                anime: animeMatch,
+                seasonIndex: data['seasonIndex'] ?? 0,
+                episodeIndex: data['episodeIndex'] ?? 0,
+              ));
+            } catch (e) {
+              // Anime missing from dummy data
+            }
+          }
+          myListNotifier.value = fetchedList;
+        }
+      }
+    } catch (e) {
+      print("Error fetching user preferences on startup: $e");
+    }
   }
 
   void _showCookieBanner(BuildContext context) {
@@ -1286,12 +1318,15 @@ class HomeScreen extends StatelessWidget {
               ), 
               GestureDetector(
                 onTap: () { 
-                  List<Anime> listToPass = isCW ? cwList!.map((cw) => cw.anime).toList() : animeList!; 
-                  bool isLatest = title == "Latest Episodes";
-                  Navigator.push(
-                    context, 
-                    MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: listToPass, isLatestOnly: isLatest))
-                  ); 
+                  if (isCW) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => CWSeeAllPage(cwList: cwList!)));
+                  } else {
+                    bool isLatest = title == "Latest Episodes";
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: animeList!, isLatestOnly: isLatest))
+                    ); 
+                  }
                 }, 
                 child: Text(
                   "See All", 
@@ -1319,6 +1354,132 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+}
+
+// ==========================================
+// CONTINUE WATCHING "SEE ALL" PAGE (VERTICAL CARDS)
+// ==========================================
+class CWSeeAllPage extends StatelessWidget {
+  final List<CWItem> cwList;
+  const CWSeeAllPage({super.key, required this.cwList});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("Continue Watching", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold)),
+        backgroundColor: getBg(context),
+        iconTheme: IconThemeData(color: getText(context)),
+        elevation: 0,
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        itemCount: cwList.length,
+        itemBuilder: (context, index) {
+          final item = cwList[index];
+          double progress = 0.0;
+          if (item.totalDuration.inMilliseconds > 0) {
+            progress = item.position.inMilliseconds / item.totalDuration.inMilliseconds;
+          }
+          final ep = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex];
+
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context, 
+                MaterialPageRoute(
+                  builder: (_) => VideoPlayerPage(
+                    anime: item.anime, 
+                    seasonIndex: item.seasonIndex, 
+                    episodeIndex: item.episodeIndex, 
+                    startPosition: item.position
+                  )
+                )
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              height: 110,
+              decoration: BoxDecoration(
+                color: getCard(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white12),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))
+                ]
+              ),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 160,
+                    height: double.infinity,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(ep.image, fit: BoxFit.cover),
+                          Container(color: Colors.black38),
+                          const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                          if (progress > 0.0)
+                            Positioned(
+                              bottom: 0, left: 0, right: 0,
+                              child: LinearProgressIndicator(
+                                value: progress,
+                                backgroundColor: Colors.black54,
+                                valueColor: AlwaysStoppedAnimation<Color>(primColor),
+                                minHeight: 4,
+                              )
+                            )
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            item.anime.title,
+                            style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "Episode ${item.episodeIndex + 1}: ${ep.title}",
+                            style: TextStyle(color: getSubText(context), fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(Icons.access_time, color: primColor, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                "${(progress * 100).toInt()}% Watched",
+                                style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
