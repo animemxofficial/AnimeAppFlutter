@@ -17,6 +17,7 @@ String currentUserName = "Guest User";
 String currentUserEmail = "";
 String userMobileNumber = ""; 
 String userActivePlan = ""; 
+bool hasAcceptedCookies = false; // Global Tracker for Cookie Banner
 
 List<String> globalRecentSearches = [];
 
@@ -719,6 +720,84 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     fetchGlobalAnimeViews(); 
+    
+    // Show Cookies Banner on login
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!hasAcceptedCookies) {
+        _showCookieBanner(context);
+      }
+    });
+  }
+
+  void _showCookieBanner(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: getCard(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.cookie, color: primColor, size: 28),
+                const SizedBox(width: 10),
+                const Text("Cookie Policy", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 15),
+            const Text(
+              "We use cookies to enhance your browsing experience, serve personalized content, and analyze our traffic. By clicking 'Accept All', you consent to our use of cookies.", 
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)
+            ),
+            const SizedBox(height: 25),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: primColor),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 14)
+                    ),
+                    onPressed: () {
+                      hasAcceptedCookies = true;
+                      Navigator.pop(context);
+                    },
+                    child: Text("Decline", style: TextStyle(color: primColor, fontWeight: FontWeight.bold)),
+                  )
+                ),
+                const SizedBox(width: 15),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 14)
+                    ),
+                    onPressed: () {
+                      hasAcceptedCookies = true;
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Accept All", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  )
+                ),
+              ],
+            )
+          ],
+        )
+      )
+    );
   }
 
   void _goToSearch() { 
@@ -3212,7 +3291,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN 
+// PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -3285,7 +3364,6 @@ class ProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children:[
               
-              // Profile Header Info
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.only(bottom: 24, top: 10),
@@ -3648,7 +3726,7 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// UPDATED PREMIUM PAGE WITH IMAGES
+// UPDATED PREMIUM PAGE WITH NEW PLANS
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
@@ -3663,36 +3741,86 @@ class PremiumPage extends StatelessWidget {
         iconTheme: IconThemeData(color: getText(context))
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            Text("Choose Your Plan", style: TextStyle(color: getText(context), fontSize: 28, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 8), 
-            Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Choose Your Plan", style: TextStyle(color: getText(context), fontSize: 28, fontWeight: FontWeight.bold)), 
+                  const SizedBox(height: 8), 
+                  Text("Unlock premium features and an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
+                ],
+              ),
+            ),
             const SizedBox(height: 30),
             
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiZhwy1TMD1y_QIkWUgQMWqd-ETOlxzttgWl2ODW9HYGzi0W3-EWr07AkRz5CVxHATOfYzhE9qTuQdEurh9JDWhLrtlzMeffDep4NHnSUkOqlsXJSx5s8Z3h4HjcnRBBcS3d06lhTLUiqeIZCeKYAKZnAZeupUavSK08EKwaYzUwICYlcIXwdMGmVg_iPtt/s1280/IMG-20260424-WA0000.webp", 
-              "Basic Plan - ₹55/mo",
-              "55"
+            SizedBox(
+              height: 400, 
+              child: ListView(
+                scrollDirection: Axis.horizontal, 
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Basic Plan", 
+                    price: "55", 
+                    quality: "720p", 
+                    ads: "No", 
+                    slot: "1", 
+                    earlyAccess: "No", 
+                    support: "24/7 support",
+                    color: Colors.blue.shade800,
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Standard Plan", 
+                    price: "99", 
+                    quality: "720p", 
+                    ads: "No", 
+                    slot: "3", 
+                    earlyAccess: "Yes", 
+                    support: "24/7 support",
+                    color: Colors.deepOrange.shade800,
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Elite Plan", 
+                    price: "149", 
+                    quality: "1080p", 
+                    ads: "No", 
+                    slot: "7", 
+                    earlyAccess: "Yes", 
+                    support: "24/7 support",
+                    color: Colors.purple.shade800,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 30),
             
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrih9niol1wlRhZ3svKnjBAmMq8Q9fzNPMeCZsiiJChPdvjSdkpHyb6K6OH1dWX8QCw8gIh3pl-6FKhAKB2RxY31r_lMhHkXpwoDst0w76PyWLJPe4VpKxV-q5J5wgX8jspyXjI2TvijxPC4V9eFujxON7cxl80JTGldz3o293N1bqkxNSokm_QZ0oOo0A/s1280/IMG-20260424-WA0002.webp", 
-              "Standard Plan - ₹99/mo",
-              "99"
-            ),
-            const SizedBox(height: 20),
-            
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh6RyYa9CqtnZaJkC2oF1Pf2o8OuEBLJst0h8ucCmtvk5ii1ZOBKn77uTJh0SXLOzOvijklkZEvCEHs0Z-ReqqOkHZEsvmH0q-MaH6r6tbFx6ueZckBChkGYD1Cv3ERZM438Lg4GZzkPvu5PMYB4_VGJECBQHVvLqSj7HBs1gQ4PsFWmekMpQg_M4b76R3Z/s1280/IMG-20260424-WA0001.webp", 
-              "Elite Plan - ₹149/mo",
-              "149"
+            // Detailed Information Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Why go Premium?", style: TextStyle(color: getText(context), fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  _buildInfoRow(context, Icons.block, "Ad-Free Streaming", "Enjoy anime without any annoying interruptions."),
+                  _buildInfoRow(context, Icons.hd, "High Quality Video", "Watch your favorite shows in crystal clear 720p and 1080p."),
+                  _buildInfoRow(context, Icons.timer, "Early Access", "Watch new episodes before they are available to free users."),
+                  _buildInfoRow(context, Icons.devices, "Multiple Devices", "Share your account with friends and family on multiple slots."),
+                ],
+              ),
             ),
           ],
         ),
@@ -3700,28 +3828,117 @@ class PremiumPage extends StatelessWidget {
     );
   }
 
-  Widget _buildImagePlanCard(BuildContext context, String imageUrl, String planValue, String price) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => QRCodePaymentPage(planName: planValue, price: price)),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          imageUrl,
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        ),
+  Widget _buildInfoRow(BuildContext context, IconData icon, String title, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(desc, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.4)),
+              ],
+            ),
+          )
+        ],
       ),
     );
+  }
+
+  Widget _buildNewPlanCard({
+    required BuildContext context, 
+    required String title, 
+    required String price, 
+    required String quality, 
+    required String ads, 
+    required String slot, 
+    required String earlyAccess,
+    required String support,
+    required Color color, 
+  }) {
+    return Container(
+      width: 270, 
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [getCard(context), color.withOpacity(0.2)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(color: color.withOpacity(0.5), width: 1.5), 
+      ), 
+      padding: const EdgeInsets.all(20), 
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        children: [
+          Text(title.toUpperCase(), style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2)), 
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline, 
+            textBaseline: TextBaseline.alphabetic, 
+            children: [
+              Text("₹$price", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), 
+              const Text("/month", style: TextStyle(color: Colors.white54, fontSize: 14))
+            ]
+          ),
+          const SizedBox(height: 20), 
+          const Divider(color: Colors.white12, height: 1), 
+          const SizedBox(height: 20), 
+          
+          _buildGridRow("Quality", quality, Icons.tv), 
+          _buildGridRow("Ads", ads, Icons.block), 
+          _buildGridRow("Early Access", earlyAccess, Icons.timelapse), 
+          _buildGridRow("Device Slot", slot, Icons.devices), 
+          _buildGridRow("Support", support, Icons.headset_mic), 
+          
+          const Spacer(), 
+          
+          GestureDetector(
+            onTap: () { 
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => QRCodePaymentPage(planName: title, price: price)),
+              );
+            }, 
+            child: Container(
+              height: 45, 
+              alignment: Alignment.center, 
+              decoration: BoxDecoration(
+                color: color, 
+                borderRadius: BorderRadius.circular(10)
+              ), 
+              child: const Text("Choose Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+            )
+          )
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildGridRow(String feature, String value, IconData icon) { 
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12), 
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white54, size: 16),
+          const SizedBox(width: 8),
+          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 14)), 
+          const Spacer(),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))
+        ]
+      )
+    ); 
   }
 }
 
 // ==========================================
-// NEW QR CODE PAYMENT PAGE
+// NEW QR CODE PAYMENT PAGE (WITH UPI BUTTON)
 // ==========================================
 class QRCodePaymentPage extends StatelessWidget {
   final String planName;
@@ -3729,8 +3946,9 @@ class QRCodePaymentPage extends StatelessWidget {
 
   const QRCodePaymentPage({super.key, required this.planName, required this.price});
 
-  void _launchUPI(BuildContext context, String amount, String plan) async {
-    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$amount&cu=INR&tn=Buy%20$plan");
+  void _launchUPIApp(BuildContext context) async {
+    String cleanPrice = price.replaceAll("₹", "");
+    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
     if (await canLaunchUrl(uri)) { 
       await launchUrl(uri, mode: LaunchMode.externalApplication); 
     } else { 
@@ -3742,6 +3960,9 @@ class QRCodePaymentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     
+    // Fixed Custom QR Image provided by User
+    String qrImageUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
+
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(
@@ -3756,7 +3977,7 @@ class QRCodePaymentPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Payment for ${planName.split(' - ')[0]}",
+                "Payment for $planName",
                 style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -3767,7 +3988,7 @@ class QRCodePaymentPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               
-              // QR Code Display Custom Image
+              // QR Code Display (Clean Shape)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -3780,74 +4001,65 @@ class QRCodePaymentPage extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp",
-                    width: 220,
-                    height: 220,
+                    qrImageUrl,
+                    width: 250,
+                    height: 250,
                     fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const SizedBox(
-                        width: 220, height: 220, 
-                        child: Center(child: CircularProgressIndicator())
-                      );
-                    },
                   ),
                 ),
               ),
               
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               
-              // UPI ID Text & Copy Button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "UPI ID: wicvlox.i@oksbi",
-                    style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.copy, size: 18, color: primColor),
-                    onPressed: () {
-                      Clipboard.setData(const ClipboardData(text: "wicvlox.i@oksbi"));
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID Copied!")));
-                    },
-                  )
-                ]
+              // UPI ID DISPLAY
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: getCard(context),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12)
+                ),
+                child: Column(
+                  children: [
+                    Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)),
+                    const SizedBox(height: 4),
+                    const Text("wicvlox.i@oksbi", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
-
-              // Pay Now Button
+              
+              // PAY NOW BUTTON
               SizedBox(
-                width: 200,
-                height: 45,
+                width: double.infinity,
+                height: 50,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green, 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                   ),
+                  onPressed: () => _launchUPIApp(context),
                   icon: const Icon(Icons.payment, color: Colors.white),
-                  label: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  onPressed: () {
-                      String cleanPrice = price.replaceAll(RegExp(r'[^0-9]'), '');
-                      _launchUPI(context, cleanPrice, planName.split(' - ')[0].replaceAll(" ", ""));
-                  },
+                  label: const Text("Pay Now via UPI App", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
 
               const SizedBox(height: 40),
+              
+              // ENGLISH INSTRUCTIONS
               Text(
-                "Scan the QR Code to make the payment.",
+                "Scan the QR Code or click Pay Now.",
                 style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                "After successful payment, go to the Payment Verification page to submit your payment screenshot and plan details.",
+                "After successful payment, click below to submit your payment screenshot and plan details for verification.",
                 style: TextStyle(color: getSubText(context), fontSize: 14, height: 1.5),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 30),
               
               SizedBox(
                 width: double.infinity,
@@ -3860,7 +4072,7 @@ class QRCodePaymentPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => PaymentProofPage(initialPlan: planName)),
+                      MaterialPageRoute(builder: (context) => PaymentProofPage(initialPlan: "$planName - ₹$price/mo")),
                     );
                   },
                   child: const Text("Go to Verification Page", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
@@ -3875,7 +4087,7 @@ class QRCodePaymentPage extends StatelessWidget {
 }
 
 // ==========================================
-// PAYMENT PROOF PAGE
+// PAYMENT PROOF PAGE (UPDATED VALIDATION & TOAST)
 // ==========================================
 class PaymentProofPage extends StatefulWidget {
   final String? initialPlan;
@@ -3986,6 +4198,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
       return;
     }
     
+    // TRANSACTION ID 12-DIGIT VALIDATION (ONLY NUMBERS)
     String trxId = _trxController.text.trim();
     if (trxId.length != 12 || !RegExp(r'^[0-9]+$').hasMatch(trxId)) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid 12-digit number.")));
