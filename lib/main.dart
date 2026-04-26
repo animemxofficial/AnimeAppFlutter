@@ -26,8 +26,8 @@ final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
-// --- THEME NOTIFIERS (Default Changed to Blue) ---
-final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(Colors.blueAccent);
+// --- THEME NOTIFIERS ---
+final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(Colors.blue); // Changed default color
 
 // --- THEME HELPER FUNCTIONS (FORCED DARK MODE) ---
 Color getBg(BuildContext context) => Colors.black;
@@ -2532,26 +2532,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 child: CircularProgressIndicator(color: primColor)
               ),
               
-        // WATERMARK 
-        Positioned(
-          top: _isFullScreen ? 40 : 15, 
-          left: _isFullScreen ? 40 : 15,
-          child: IgnorePointer(
+        if (_controller.value.isInitialized)
+          Positioned(
+            top: 20,
+            left: 20,
             child: Opacity(
-              opacity: 0.35, 
+              opacity: 0.3,
               child: Text(
-                "AnimeMX", 
+                "AnimeMX",
                 style: TextStyle(
-                  color: Colors.white, 
-                  fontSize: _isFullScreen ? 22 : 14, 
-                  fontWeight: FontWeight.w900, 
-                  letterSpacing: 2.0,
-                  shadows: const [Shadow(color: Colors.black, blurRadius: 4)]
-                )
-              )
-            )
-          )
-        ),
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)]
+                ),
+              ),
+            ),
+          ),
         
         Align(
           alignment: Alignment.centerLeft, 
@@ -3312,7 +3309,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN 
+// PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -3747,7 +3744,7 @@ class AboutUsPage extends StatelessWidget {
 }
 
 // ==========================================
-// UPDATED PREMIUM PAGE WITH IMAGES
+// UPDATED PREMIUM PAGE WITH NEW PLANS
 // ==========================================
 class PremiumPage extends StatelessWidget {
   const PremiumPage({super.key});
@@ -3762,33 +3759,86 @@ class PremiumPage extends StatelessWidget {
         iconTheme: IconThemeData(color: getText(context))
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            Text("Choose Your Plan", style: TextStyle(color: getText(context), fontSize: 28, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 8), 
-            Text("Unlock exclusive content & an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Choose Your Plan", style: TextStyle(color: getText(context), fontSize: 28, fontWeight: FontWeight.bold)), 
+                  const SizedBox(height: 8), 
+                  Text("Unlock premium features and an ad-free experience.", style: TextStyle(color: getSubText(context), fontSize: 15)),
+                ],
+              ),
+            ),
             const SizedBox(height: 30),
             
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiZhwy1TMD1y_QIkWUgQMWqd-ETOlxzttgWl2ODW9HYGzi0W3-EWr07AkRz5CVxHATOfYzhE9qTuQdEurh9JDWhLrtlzMeffDep4NHnSUkOqlsXJSx5s8Z3h4HjcnRBBcS3d06lhTLUiqeIZCeKYAKZnAZeupUavSK08EKwaYzUwICYlcIXwdMGmVg_iPtt/s1280/IMG-20260424-WA0000.webp", 
-              "Basic Plan - ₹55/mo"
+            SizedBox(
+              height: 400, 
+              child: ListView(
+                scrollDirection: Axis.horizontal, 
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                children: [
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Basic Plan", 
+                    price: "55", 
+                    quality: "720p", 
+                    ads: "No", 
+                    slot: "1", 
+                    earlyAccess: "No", 
+                    support: "24/7 support",
+                    color: Colors.blue.shade800,
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Standard Plan", 
+                    price: "99", 
+                    quality: "720p", 
+                    ads: "No", 
+                    slot: "3", 
+                    earlyAccess: "Yes", 
+                    support: "24/7 support",
+                    color: Colors.deepOrange.shade800,
+                  ), 
+                  const SizedBox(width: 16),
+                  
+                  _buildNewPlanCard(
+                    context: context, 
+                    title: "Elite Plan", 
+                    price: "149", 
+                    quality: "1080p", 
+                    ads: "No", 
+                    slot: "7", 
+                    earlyAccess: "Yes", 
+                    support: "24/7 support",
+                    color: Colors.purple.shade800,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 20),
+
+            const SizedBox(height: 30),
             
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjrih9niol1wlRhZ3svKnjBAmMq8Q9fzNPMeCZsiiJChPdvjSdkpHyb6K6OH1dWX8QCw8gIh3pl-6FKhAKB2RxY31r_lMhHkXpwoDst0w76PyWLJPe4VpKxV-q5J5wgX8jspyXjI2TvijxPC4V9eFujxON7cxl80JTGldz3o293N1bqkxNSokm_QZ0oOo0A/s1280/IMG-20260424-WA0002.webp", 
-              "Standard Plan - ₹99/mo"
-            ),
-            const SizedBox(height: 20),
-            
-            _buildImagePlanCard(
-              context, 
-              "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh6RyYa9CqtnZaJkC2oF1Pf2o8OuEBLJst0h8ucCmtvk5ii1ZOBKn77uTJh0SXLOzOvijklkZEvCEHs0Z-ReqqOkHZEsvmH0q-MaH6r6tbFx6ueZckBChkGYD1Cv3ERZM438Lg4GZzkPvu5PMYB4_VGJECBQHVvLqSj7HBs1gQ4PsFWmekMpQg_M4b76R3Z/s1280/IMG-20260424-WA0001.webp", 
-              "Elite Plan - ₹149/mo"
+            // Detailed Information Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Why go Premium?", style: TextStyle(color: getText(context), fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  _buildInfoRow(context, Icons.block, "Ad-Free Streaming", "Enjoy anime without any annoying interruptions."),
+                  _buildInfoRow(context, Icons.hd, "High Quality Video", "Watch your favorite shows in crystal clear 720p and 1080p."),
+                  _buildInfoRow(context, Icons.timer, "Early Access", "Watch new episodes before they are available to free users."),
+                  _buildInfoRow(context, Icons.devices, "Multiple Devices", "Share your account with friends and family on multiple slots."),
+                ],
+              ),
             ),
           ],
         ),
@@ -3796,28 +3846,117 @@ class PremiumPage extends StatelessWidget {
     );
   }
 
-  Widget _buildImagePlanCard(BuildContext context, String imageUrl, String planValue) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => QRCodePaymentPage(planName: planValue.split(' - ')[0], price: planValue.split('₹')[1].split('/')[0])),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          imageUrl,
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-        ),
+  Widget _buildInfoRow(BuildContext context, IconData icon, String title, String desc) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Theme.of(context).primaryColor, size: 28),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(desc, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.4)),
+              ],
+            ),
+          )
+        ],
       ),
     );
+  }
+
+  Widget _buildNewPlanCard({
+    required BuildContext context, 
+    required String title, 
+    required String price, 
+    required String quality, 
+    required String ads, 
+    required String slot, 
+    required String earlyAccess,
+    required String support,
+    required Color color, 
+  }) {
+    return Container(
+      width: 270, 
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [getCard(context), color.withOpacity(0.2)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(color: color.withOpacity(0.5), width: 1.5), 
+      ), 
+      padding: const EdgeInsets.all(20), 
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        children: [
+          Text(title.toUpperCase(), style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2)), 
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline, 
+            textBaseline: TextBaseline.alphabetic, 
+            children: [
+              Text("₹$price", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), 
+              const Text("/month", style: TextStyle(color: Colors.white54, fontSize: 14))
+            ]
+          ),
+          const SizedBox(height: 20), 
+          const Divider(color: Colors.white12, height: 1), 
+          const SizedBox(height: 20), 
+          
+          _buildGridRow("Quality", quality, Icons.tv), 
+          _buildGridRow("Ads", ads, Icons.block), 
+          _buildGridRow("Early Access", earlyAccess, Icons.timelapse), 
+          _buildGridRow("Device Slot", slot, Icons.devices), 
+          _buildGridRow("Support", support, Icons.headset_mic), 
+          
+          const Spacer(), 
+          
+          GestureDetector(
+            onTap: () { 
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => QRCodePaymentPage(planName: title, price: price)),
+              );
+            }, 
+            child: Container(
+              height: 45, 
+              alignment: Alignment.center, 
+              decoration: BoxDecoration(
+                color: color, 
+                borderRadius: BorderRadius.circular(10)
+              ), 
+              child: const Text("Choose Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+            )
+          )
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildGridRow(String feature, String value, IconData icon) { 
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12), 
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white54, size: 16),
+          const SizedBox(width: 8),
+          Text(feature, style: const TextStyle(color: Colors.white70, fontSize: 14)), 
+          const Spacer(),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))
+        ]
+      )
+    ); 
   }
 }
 
 // ==========================================
-// NEW QR CODE PAYMENT PAGE
+// NEW QR CODE PAYMENT PAGE (WITH UPI BUTTON)
 // ==========================================
 class QRCodePaymentPage extends StatelessWidget {
   final String planName;
@@ -3839,6 +3978,7 @@ class QRCodePaymentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     
+    // Fixed Custom QR Image provided by User
     String qrImageUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 
     return Scaffold(
@@ -3866,6 +4006,7 @@ class QRCodePaymentPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               
+              // QR Code Display (Clean Shape)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -3888,32 +4029,38 @@ class QRCodePaymentPage extends StatelessWidget {
               
               const SizedBox(height: 20),
               
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                margin: const EdgeInsets.symmetric(horizontal: 40), 
-                decoration: BoxDecoration(
-                  color: getCard(context),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white12)
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min, 
-                  children: [
-                    Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)),
-                    const SizedBox(height: 4),
-                    const Text("wicvlox.i@oksbi", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  ],
-                ),
+              // UPI ID DISPLAY
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: getCard(context),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white12)
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)),
+                        const SizedBox(height: 4),
+                        const Text("wicvlox.i@oksbi", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 20),
               
+              // PAY NOW BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent, 
+                    backgroundColor: Colors.blue, // specified color 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                   ),
                   onPressed: () => _launchUPIApp(context),
@@ -3924,6 +4071,7 @@ class QRCodePaymentPage extends StatelessWidget {
 
               const SizedBox(height: 40),
               
+              // ENGLISH INSTRUCTIONS
               Text(
                 "Scan the QR Code or click Pay Now.",
                 style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold),
@@ -3961,7 +4109,6 @@ class QRCodePaymentPage extends StatelessWidget {
     );
   }
 }
-
 
 // ==========================================
 // PAYMENT PROOF PAGE (UPDATED VALIDATION & TOAST)
