@@ -26,7 +26,7 @@ final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
-// --- THEME NOTIFIERS (Changed Default from Orange to BlueAccent) ---
+// --- THEME NOTIFIERS (Default Changed to Blue) ---
 final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(Colors.blueAccent);
 
 // --- THEME HELPER FUNCTIONS (FORCED DARK MODE) ---
@@ -2531,31 +2531,28 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             : Center(
                 child: CircularProgressIndicator(color: primColor)
               ),
-        
-        // WATERMARK "AnimeMX"
+              
+        // WATERMARK 
         Positioned(
-          top: 0, left: 0,
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: 0.4,
-                  child: const Text(
-                    "AnimeMX",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          top: _isFullScreen ? 40 : 15, 
+          left: _isFullScreen ? 40 : 15,
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: 0.35, 
+              child: Text(
+                "AnimeMX", 
+                style: TextStyle(
+                  color: Colors.white, 
+                  fontSize: _isFullScreen ? 22 : 14, 
+                  fontWeight: FontWeight.w900, 
+                  letterSpacing: 2.0,
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 4)]
+                )
+              )
+            )
+          )
         ),
-
+        
         Align(
           alignment: Alignment.centerLeft, 
           child: Padding(
@@ -3804,7 +3801,7 @@ class PremiumPage extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => QRCodePaymentPage(planName: planValue)),
+          MaterialPageRoute(builder: (context) => QRCodePaymentPage(planName: planValue.split(' - ')[0], price: planValue.split('₹')[1].split('/')[0])),
         );
       },
       child: ClipRRect(
@@ -3824,8 +3821,19 @@ class PremiumPage extends StatelessWidget {
 // ==========================================
 class QRCodePaymentPage extends StatelessWidget {
   final String planName;
+  final String price;
 
-  const QRCodePaymentPage({super.key, required this.planName});
+  const QRCodePaymentPage({super.key, required this.planName, required this.price});
+
+  void _launchUPIApp(BuildContext context) async {
+    String cleanPrice = price.replaceAll("₹", "");
+    final Uri uri = Uri.parse("upi://pay?pa=wicvlox.i@oksbi&pn=AnimeMX&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
+    if (await canLaunchUrl(uri)) { 
+      await launchUrl(uri, mode: LaunchMode.externalApplication); 
+    } else { 
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!"))); 
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3847,21 +3855,19 @@ class QRCodePaymentPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Payment for",
-                style: TextStyle(color: getSubText(context), fontSize: 16),
+                "Payment for $planName",
+                style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 8),
               Text(
-                planName,
-                style: TextStyle(color: primColor, fontSize: 22, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+                "Amount to Pay: ₹$price",
+                style: TextStyle(color: primColor, fontSize: 20, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 40),
               
-              // QR Code Display
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white, 
                   borderRadius: BorderRadius.circular(16),
@@ -3869,35 +3875,32 @@ class QRCodePaymentPage extends StatelessWidget {
                     BoxShadow(color: primColor.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)
                   ]
                 ),
-                child: Image.network(
-                  qrImageUrl,
-                  width: 220,
-                  height: 220,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const SizedBox(
-                      width: 220, height: 220, 
-                      child: Center(child: CircularProgressIndicator())
-                    );
-                  },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    qrImageUrl,
+                    width: 250,
+                    height: 250,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               
               const SizedBox(height: 20),
               
-              // UPI ID DISPLAY
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                margin: const EdgeInsets.symmetric(horizontal: 40), 
                 decoration: BoxDecoration(
                   color: getCard(context),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white12)
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, 
                   children: [
-                    Text("UPI ID: ", style: TextStyle(color: getSubText(context), fontSize: 14)),
+                    Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)),
+                    const SizedBox(height: 4),
                     const Text("wicvlox.i@oksbi", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
                   ],
                 ),
@@ -3905,18 +3908,15 @@ class QRCodePaymentPage extends StatelessWidget {
 
               const SizedBox(height: 20),
               
-              // PAY NOW BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, 
+                    backgroundColor: Colors.blueAccent, 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                   ),
-                  onPressed: () {
-                    // Logic to launch UPI app would go here
-                  },
+                  onPressed: () => _launchUPIApp(context),
                   icon: const Icon(Icons.payment, color: Colors.white),
                   label: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
@@ -3925,7 +3925,7 @@ class QRCodePaymentPage extends StatelessWidget {
               const SizedBox(height: 40),
               
               Text(
-                "Scan the QR Code to make the payment.",
+                "Scan the QR Code or click Pay Now.",
                 style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -3948,7 +3948,7 @@ class QRCodePaymentPage extends StatelessWidget {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => PaymentProofPage(initialPlan: planName)),
+                      MaterialPageRoute(builder: (context) => PaymentProofPage(initialPlan: "$planName - ₹$price/mo")),
                     );
                   },
                   child: const Text("Go to Verification Page", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
@@ -3964,7 +3964,7 @@ class QRCodePaymentPage extends StatelessWidget {
 
 
 // ==========================================
-// PAYMENT PROOF PAGE
+// PAYMENT PROOF PAGE (UPDATED VALIDATION & TOAST)
 // ==========================================
 class PaymentProofPage extends StatefulWidget {
   final String? initialPlan;
