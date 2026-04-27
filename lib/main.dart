@@ -692,8 +692,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     RichText(
                       text: const TextSpan(
                         children: [
-                          TextSpan(text: "Mera Anime ", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                          TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          TextSpan(text: "Anime ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                         ],
                       ),
                     ),
@@ -706,9 +706,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     
                     // Input Fields
                     _buildInputField(
-                      label: "Email or Username", 
-                      hint: "Email or Username", 
-                      prefixIcon: Icons.person_outline, 
+                      label: "Email Address", 
+                      hint: "Email Address", 
+                      prefixIcon: Icons.email_outlined, 
                       controller: _emailController
                     ),
                     const SizedBox(height: 20),
@@ -2805,8 +2805,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
               
         if (_controller.value.isInitialized)
           Positioned(
-            top: 20,
-            left: 20,
+            top: _isFullScreen ? 10 : 8,
+            left: _isFullScreen ? 45 : 8,
             child: Opacity(
               opacity: 0.3,
               child: Text(
@@ -3691,10 +3691,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
 
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 8),
-                child: Text("Account", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
-              ),
+              // Saare options ek hi single group me daal diye hain, koi sections nahi
               _buildMenuGroup([
                 _buildGroupedItem(
                   context: context,
@@ -3720,13 +3717,6 @@ class ProfileScreen extends StatelessWidget {
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), 
                   trailingText: "Customize", 
                 ),
-              ], context),
-
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 8),
-                child: Text("Payments", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
-              ),
-              _buildMenuGroup([
                 _buildGroupedItem(
                   context: context,
                   title: "Payment Verification", 
@@ -3737,13 +3727,6 @@ class ProfileScreen extends StatelessWidget {
                   title: "Order History", 
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage())), 
                 ),
-              ], context),
-
-              Padding(
-                padding: const EdgeInsets.only(left: 8, bottom: 8),
-                child: Text("Support", style: TextStyle(color: getSubText(context), fontSize: 14, fontWeight: FontWeight.bold)),
-              ),
-              _buildMenuGroup([
                 _buildGroupedItem(
                   context: context,
                   title: "Support Center", 
@@ -3752,18 +3735,31 @@ class ProfileScreen extends StatelessWidget {
               ], context),
 
               const SizedBox(height: 10),
-              GestureDetector(
-                onTap: () async {
-                   await Supabase.instance.client.auth.signOut();
-                }, 
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    color: getCard(context),
-                    borderRadius: BorderRadius.circular(16),
+              
+              // Chota, left-aligned Log Out Button
+              Align(
+                alignment: Alignment.centerLeft,
+                child: InkWell(
+                  onTap: () async {
+                    await Supabase.instance.client.auth.signOut();
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.logout, color: Colors.redAccent, size: 18),
+                        SizedBox(width: 8),
+                        Text("Log Out", style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
                   ),
-                  child: const Text("Log Out", textAlign: TextAlign.center, style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               )
 
