@@ -27,8 +27,8 @@ final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
 // --- THEME NOTIFIERS ---
-// Changed default color to AnimeMX Logo's Neon Purple theme
-const Color animeMxPurple = Color(0xFF9D00FF); 
+// Neon Purple theme applied across the app
+const Color animeMxPurple = Color(0xFF8A2BE2); 
 final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
 
 // --- THEME HELPER FUNCTIONS (FORCED DARK MODE) ---
@@ -541,7 +541,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN (CLEAN & SPACIOUS UI)
+// LOGIN SCREEN (NEW MODERN PREMIUM UI)
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -606,238 +606,201 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  InputDecoration _inputDecoration(BuildContext context, String hint, IconData icon, {Widget? suffixIcon}) {
-    Color primColor = Theme.of(context).primaryColor;
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white54, fontSize: 16), // Increased hint text size
-      prefixIcon: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Icon(icon, color: primColor, size: 24), // Increased icon size slightly
-      ),
-      suffixIcon: suffixIcon,
-      filled: true,
-      fillColor: const Color(0xFF121212), 
-      // Increased vertical padding to make text fields taller and spacious
-      contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.white12),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.white12),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: primColor, width: 1.5),
-      ),
+  Widget _buildInputField({
+    required String label,
+    required String hint,
+    required IconData prefixIcon,
+    required TextEditingController controller,
+    bool isPassword = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          obscureText: isPassword ? _obscurePassword : false,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+            prefixIcon: Icon(prefixIcon, color: Colors.white54, size: 20),
+            suffixIcon: isPassword
+                ? IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white54, size: 20),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  )
+                : null,
+            filled: true,
+            fillColor: const Color(0xFF0F0F13), // Deep dark minimal fill
+            contentPadding: const EdgeInsets.symmetric(vertical: 18),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF2A2A35)), // Clean subtle border
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFF8A2BE2), width: 1.5), // Neon purple highlight
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: Colors.black, 
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Top Custom Logo Placeholder
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: primColor, width: 2),
-                      ),
-                      child: const Icon(Icons.change_history, color: Colors.white, size: 36), // Slightly bigger
-                    ),
-                    const SizedBox(width: 14),
-                    const Text(
-                      "ANIMEMX", 
-                      style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 2) 
-                    ),
+      body: Stack(
+        children: [
+          // Subtle Dark Purple Glowing Background Aura
+          Positioned(
+            top: -50,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 400,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF8A2BE2).withOpacity(0.15), 
+                    Colors.transparent,
                   ],
+                  radius: 0.8,
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  "STREAM YOUR ANIME WORLD", 
-                  style: TextStyle(color: Colors.white54, fontSize: 11, letterSpacing: 3, fontWeight: FontWeight.bold)
-                ),
-                
-                const SizedBox(height: 50), // Increased spacing before box
-                
-                // Login Box Container - Clean and Spacious
-                Container(
-                  padding: const EdgeInsets.all(32), // Increased padding inside the box
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0C0C0C), // Very dark grey, almost black
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: primColor.withOpacity(0.3), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: primColor.withOpacity(0.08), 
-                        blurRadius: 30, 
-                        spreadRadius: 2
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _isLoginMode ? "Welcome Back!" : "Create Account", 
-                                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _isLoginMode ? "Login to continue your anime adventure" : "Sign up to start your adventure", 
-                                  style: const TextStyle(color: Colors.white54, fontSize: 14)
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: primColor.withOpacity(0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.ac_unit, color: primColor, size: 24), // Placeholder icon
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 40), // Increased spacing
-                      
-                      TextField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                        decoration: _inputDecoration(context, "Email Address", Icons.person_outline),
-                      ),
-                      const SizedBox(height: 24), // Increased spacing between fields
-                      
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        style: const TextStyle(color: Colors.white, fontSize: 16),
-                        decoration: _inputDecoration(
-                          context, 
-                          "Password", 
-                          Icons.lock_outline,
-                          suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white54, size: 22),
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                          )
-                        ),
-                      ),
-                      
-                      if (_isLoginMode) ...[
-                        const SizedBox(height: 16),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text("Forgot Password?", style: TextStyle(color: primColor, fontSize: 14, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                      const SizedBox(height: 36), // Increased spacing before button
-                      
-                      if (_isLoading)
-                        Center(child: CircularProgressIndicator(color: primColor))
-                      else
-                        SizedBox(
-                          width: double.infinity,
-                          height: 60, // Taller button
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primColor,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              elevation: 10,
-                              shadowColor: primColor.withOpacity(0.5),
-                            ),
-                            onPressed: _isLoginMode ? _signIn : _signUp,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _isLoginMode ? "LOGIN" : "SIGN UP", 
-                                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)
-                                ),
-                                const SizedBox(width: 10),
-                                const Icon(Icons.arrow_forward, color: Colors.white, size: 24),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 40), // Spacing before footer
-                
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isLoginMode = !_isLoginMode;
-                    });
-                  },
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white12),
-                          color: Colors.white.withOpacity(0.05),
-                        ),
-                        child: Icon(Icons.pets, color: primColor, size: 24), 
-                      ),
-                      const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _isLoginMode ? "Don't have an account?" : "Already have an account?",
-                            style: const TextStyle(color: Colors.white54, fontSize: 14),
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Text(
-                                _isLoginMode ? "Sign Up" : "Log In",
-                                style: TextStyle(color: primColor, fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(width: 6),
-                              Icon(Icons.arrow_forward, color: primColor, size: 16),
-                            ],
-                          )
-                        ],
-                      )
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          
+          SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Main Logo
+                    Image.network(
+                      'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiFzvJT7KpnCHDQckDOecr6TEu9HUcVPgdS5BOzz5ls1LoEKDjIX-F54jeXoVEaa3JpHA4hOwfncf03-6bC95v5MHp7tLEOhDd4rsq8zngT0jKI0J02rlTKKgZVau6YGIBYax2MO-GILv-tsamob8AzWw8LAuvGfV8Mif5P-WZ76nEIdHUoQEnsdyT-E5c/s1254/IMG-20260426-WA0001.webp',
+                      height: 120,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Title
+                    RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(text: "Mera Anime ", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                          TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    
+                    // Subtitle
+                    const Text("Watch Anime, Anytime", style: TextStyle(color: Colors.white54, fontSize: 14)),
+                    
+                    const SizedBox(height: 40),
+                    
+                    // Input Fields
+                    _buildInputField(
+                      label: "Email or Username", 
+                      hint: "Email or Username", 
+                      prefixIcon: Icons.person_outline, 
+                      controller: _emailController
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    _buildInputField(
+                      label: "Password", 
+                      hint: "Password", 
+                      prefixIcon: Icons.lock_outline, 
+                      controller: _passwordController, 
+                      isPassword: true
+                    ),
+                    
+                    // Forgot Password (Only shown in Login mode)
+                    if (_isLoginMode) ...[
+                      const SizedBox(height: 12),
+                      const Align(
+                        alignment: Alignment.centerRight,
+                        child: Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+
+                    const SizedBox(height: 30),
+
+                    // Login / Signup Gradient Button
+                    Container(
+                      width: double.infinity,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF8A2BE2).withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: _isLoading ? null : (_isLoginMode ? _signIn : _signUp),
+                        child: _isLoading 
+                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                            : Text(_isLoginMode ? "Login" : "Sign Up", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      ),
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // Minimal Separator
+                    Row(
+                      children: const [
+                        Expanded(child: Divider(color: Color(0xFF2A2A35), thickness: 1)),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text("OR", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                        ),
+                        Expanded(child: Divider(color: Color(0xFF2A2A35), thickness: 1)),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Toggle Login / Signup state
+                    GestureDetector(
+                      onTap: () => setState(() => _isLoginMode = !_isLoginMode),
+                      child: RichText(
+                        text: TextSpan(
+                          text: _isLoginMode ? "Don't have an account? " : "Already have an account? ",
+                          style: const TextStyle(color: Colors.white54, fontSize: 14),
+                          children: [
+                            TextSpan(
+                              text: _isLoginMode ? "Sign Up" : "Login",
+                              style: const TextStyle(color: Color(0xFF8A2BE2), fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
