@@ -541,7 +541,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN (UPDATED PREMIUM UI)
+// LOGIN SCREEN (CLEAN & SPACIOUS UI)
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -610,12 +610,16 @@ class _LoginScreenState extends State<LoginScreen> {
     Color primColor = Theme.of(context).primaryColor;
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
-      prefixIcon: Icon(icon, color: primColor, size: 20),
+      hintStyle: const TextStyle(color: Colors.white54, fontSize: 16), // Increased hint text size
+      prefixIcon: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Icon(icon, color: primColor, size: 24), // Increased icon size slightly
+      ),
       suffixIcon: suffixIcon,
       filled: true,
       fillColor: const Color(0xFF121212), 
-      contentPadding: const EdgeInsets.symmetric(vertical: 18),
+      // Increased vertical padding to make text fields taller and spacious
+      contentPadding: const EdgeInsets.symmetric(vertical: 22, horizontal: 20),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: Colors.white12),
@@ -643,7 +647,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Top Custom Logo Placeholder matching the design
+                // Top Custom Logo Placeholder
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -653,26 +657,37 @@ class _LoginScreenState extends State<LoginScreen> {
                         shape: BoxShape.circle,
                         border: Border.all(color: primColor, width: 2),
                       ),
-                      child: const Icon(Icons.change_history, color: Colors.white, size: 30), 
+                      child: const Icon(Icons.change_history, color: Colors.white, size: 36), // Slightly bigger
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     const Text(
                       "ANIMEMX", 
-                      style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2) 
+                      style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: 2) 
                     ),
                   ],
                 ),
-                const SizedBox(height: 5),
-                const Text("STREAM YOUR ANIME WORLD", style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 3, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 40),
+                const SizedBox(height: 8),
+                const Text(
+                  "STREAM YOUR ANIME WORLD", 
+                  style: TextStyle(color: Colors.white54, fontSize: 11, letterSpacing: 3, fontWeight: FontWeight.bold)
+                ),
                 
-                // Login Box Container with Glow Border
+                const SizedBox(height: 50), // Increased spacing before box
+                
+                // Login Box Container - Clean and Spacious
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(32), // Increased padding inside the box
                   decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: primColor.withOpacity(0.4), width: 1.5),
+                    color: const Color(0xFF0C0C0C), // Very dark grey, almost black
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(color: primColor.withOpacity(0.3), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primColor.withOpacity(0.08), 
+                        blurRadius: 30, 
+                        spreadRadius: 2
+                      )
+                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,50 +695,52 @@ class _LoginScreenState extends State<LoginScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _isLoginMode ? "Welcome Back!" : "Create Account", 
-                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _isLoginMode ? "Login to continue your anime adventure" : "Sign up to start your adventure", 
-                                style: const TextStyle(color: Colors.white54, fontSize: 12)
-                              ),
-                            ],
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _isLoginMode ? "Welcome Back!" : "Create Account", 
+                                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  _isLoginMode ? "Login to continue your anime adventure" : "Sign up to start your adventure", 
+                                  style: const TextStyle(color: Colors.white54, fontSize: 14)
+                                ),
+                              ],
+                            ),
                           ),
                           Container(
-                            padding: const EdgeInsets.all(10),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: primColor.withOpacity(0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(Icons.ac_unit, color: primColor, size: 20), // Star/Shuriken placeholder
+                            child: Icon(Icons.ac_unit, color: primColor, size: 24), // Placeholder icon
                           )
                         ],
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 40), // Increased spacing
                       
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(context, "Email / Username", Icons.person_outline),
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        decoration: _inputDecoration(context, "Email Address", Icons.person_outline),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24), // Increased spacing between fields
                       
                       TextField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
                         decoration: _inputDecoration(
                           context, 
                           "Password", 
                           Icons.lock_outline,
                           suffixIcon: IconButton(
-                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white54, size: 20),
+                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white54, size: 22),
                             onPressed: () {
                               setState(() {
                                 _obscurePassword = !_obscurePassword;
@@ -734,20 +751,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       
                       if (_isLoginMode) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: Text("Forgot Password?", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                          child: Text("Forgot Password?", style: TextStyle(color: primColor, fontSize: 14, fontWeight: FontWeight.bold)),
                         ),
                       ],
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 36), // Increased spacing before button
                       
                       if (_isLoading)
                         Center(child: CircularProgressIndicator(color: primColor))
                       else
                         SizedBox(
                           width: double.infinity,
-                          height: 55,
+                          height: 60, // Taller button
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primColor,
@@ -759,63 +776,21 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(_isLoginMode ? "LOGIN" : "SIGN UP", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                                Text(
+                                  _isLoginMode ? "LOGIN" : "SIGN UP", 
+                                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.5)
+                                ),
+                                const SizedBox(width: 10),
+                                const Icon(Icons.arrow_forward, color: Colors.white, size: 24),
                               ],
                             ),
                           ),
                         ),
-                        
-                      const SizedBox(height: 24),
-                      
-                      Row(
-                        children: [
-                          const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: Text("OR", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ),
-                          const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 24),
-                      
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                side: const BorderSide(color: Colors.white12)
-                              ),
-                              onPressed: () {},
-                              icon: const Icon(Icons.g_mobiledata, color: Colors.redAccent),
-                              label: const Text("Google", style: TextStyle(color: Colors.white, fontSize: 13))
-                            )
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                side: const BorderSide(color: Colors.white12)
-                              ),
-                              onPressed: () {},
-                              icon: const Icon(Icons.apple, color: Colors.white),
-                              label: const Text("Apple", style: TextStyle(color: Colors.white, fontSize: 13))
-                            )
-                          ),
-                        ],
-                      )
                     ],
                   ),
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 40), // Spacing before footer
                 
                 GestureDetector(
                   onTap: () {
@@ -827,30 +802,31 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white12),
                           color: Colors.white.withOpacity(0.05),
                         ),
-                        child: Icon(Icons.pets, color: primColor, size: 22), 
+                        child: Icon(Icons.pets, color: primColor, size: 24), 
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             _isLoginMode ? "Don't have an account?" : "Already have an account?",
-                            style: const TextStyle(color: Colors.white54, fontSize: 13),
+                            style: const TextStyle(color: Colors.white54, fontSize: 14),
                           ),
+                          const SizedBox(height: 2),
                           Row(
                             children: [
                               Text(
                                 _isLoginMode ? "Sign Up" : "Log In",
-                                style: TextStyle(color: primColor, fontSize: 15, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: primColor, fontSize: 16, fontWeight: FontWeight.bold),
                               ),
-                              const SizedBox(width: 4),
-                              Icon(Icons.arrow_forward, color: primColor, size: 14),
+                              const SizedBox(width: 6),
+                              Icon(Icons.arrow_forward, color: primColor, size: 16),
                             ],
                           )
                         ],
