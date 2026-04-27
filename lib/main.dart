@@ -1,6 +1,5 @@
 import 'dart:io'; 
 import 'dart:math';
-import 'dart:ui'; // ADDED FOR GLASSMORPHISM BLUR
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -27,19 +26,20 @@ final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
-// --- THEME NOTIFIERS (NEON PURPLE THEME) ---
-// Changed default color to Neon Purple
-final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(const Color(0xFF9D4EDD)); 
+// --- THEME NOTIFIERS ---
+// Changed default color to AnimeMX Logo's Neon Purple theme
+const Color animeMxPurple = Color(0xFF9D00FF); 
+final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
 
 // --- THEME HELPER FUNCTIONS (FORCED DARK MODE) ---
-Color getBg(BuildContext context) => const Color(0xFF0D0D0D); // Pure Dark Black/Grey
-Color getCard(BuildContext context) => const Color(0xFF151515); // Dark grey for cards
-Color getText(BuildContext context) => const Color(0xFFFFFFFF); // White text
-Color getSubText(BuildContext context) => const Color(0xFFB0B0B0); // Light grey text
+Color getBg(BuildContext context) => Colors.black;
+Color getCard(BuildContext context) => const Color(0xFF1A1A1A);
+Color getText(BuildContext context) => Colors.white;
+Color getSubText(BuildContext context) => Colors.white54;
 
 final List<Color> avatarColors = [
-  const Color(0xFF9D4EDD), const Color(0xFFC77DFF), Colors.blueAccent, Colors.teal, 
-  Colors.purpleAccent, Colors.indigo, Colors.pinkAccent, Colors.deepPurple
+  Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
+  Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo,
 ];
 
 Color getAvatarColor(String inputString) {
@@ -333,7 +333,7 @@ class Anime {
     this.season = "Season 1", 
     this.status = "Ongoing", 
     this.views = "0", 
-    this.dubColor = const Color(0xFF9D4EDD), 
+    this.dubColor = const Color(0xFFFF4D4D), 
     required this.seasonsList,
     this.isNew = false, 
   });
@@ -389,13 +389,13 @@ List<Season> generateClassroomOfEliteSeasons() {
 }
 
 final List<Anime> animeData = [
-  Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFF9D4EDD), season: "S1", seasonsList: generateDummySeasons(), isNew: true),
-  Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", status: "Completed", views: "0", dubStatus: "MIX", dubColor: const Color(0xFFC77DFF), season: "S3", seasonsList: generateClassroomOfEliteSeasons()),
-  Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFFC77DFF), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "0", dubStatus: "ORIGINAL", dubColor: const Color(0xFF9D4EDD), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Demon Slayer", genre: "Action", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "0", dubStatus: "MIX", dubColor: const Color(0xFF9D4EDD), season: "S2", seasonsList: generateDummySeasons()),
-  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFFC77DFF), season: "S1", seasonsList: generateDummySeasons()),
-  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "0", dubStatus: "MIX", dubColor: const Color(0xFF9D4EDD), season: "Movie", seasonsList: generateDummySeasons()),
+  Anime(title: "Solo Leveling", genre: "Action", image: "https://i.ibb.co/C3rhjGv3/images-1.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFFFF4D4D), season: "S1", seasonsList: generateDummySeasons(), isNew: true),
+  Anime(title: "Classroom of the Elite", genre: "Thriller", image: "https://i.ibb.co/vxJtwkcX/k.jpg", status: "Completed", views: "0", dubStatus: "MIX", dubColor: const Color(0xFF4DA6FF), season: "S3", seasonsList: generateClassroomOfEliteSeasons()),
+  Anime(title: "One Piece", genre: "Adventure", image: "https://i.ibb.co/jvVk3XSY/g.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFF4DA6FF), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Naruto", genre: "Action", image: "https://i.ibb.co/YFg2hKvf/j.jpg", views: "0", dubStatus: "ORIGINAL", dubColor: const Color(0xFFFF9F43), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Demon Slayer", genre: "Action", image: "https://i.ibb.co/yFRNxJbG/o.jpg", views: "0", dubStatus: "MIX", dubColor: const Color(0xFF00C853), season: "S2", seasonsList: generateDummySeasons()),
+  Anime(title: "Death Note", genre: "Mystery", image: "https://i.ibb.co/L0x9WvY/the-eminence-in-shadow.jpg", views: "0", dubStatus: "DUB", dubColor: const Color(0xFF7A5CFF), season: "S1", seasonsList: generateDummySeasons()),
+  Anime(title: "Your Name", genre: "Romance", image: "https://i.ibb.co/rW2Zk9B/images.jpg", views: "0", dubStatus: "MIX", dubColor: const Color(0xFFFF4D4D), season: "Movie", seasonsList: generateDummySeasons()),
   Anime(title: "Bleach: Thousand-Year Blood War", genre: "Action", image: "https://i.ibb.co/DDDJNsFX/images-3.jpg", status: "Coming Soon", views: "0", dubStatus: "ORIGINAL", dubColor: Colors.grey, season: "S3", seasonsList: []),
 ];
 
@@ -432,7 +432,7 @@ void main() async {
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.light,
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
     ),
   );
   SystemChrome.setPreferredOrientations([
@@ -486,19 +486,18 @@ class AnimeMX extends StatelessWidget {
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             primaryColor: currentColor,
-            scaffoldBackgroundColor: const Color(0xFF0D0D0D),
+            scaffoldBackgroundColor: Colors.black,
             useMaterial3: true,
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
             hoverColor: Colors.transparent,
             splashFactory: NoSplash.splashFactory,
-            appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF0D0D0D), foregroundColor: Colors.white),
-            fontFamily: 'Roboto', // Change to any modern font if you have one
+            appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white),
           ),
           theme: ThemeData(
             brightness: Brightness.dark, 
             primaryColor: currentColor,
-            scaffoldBackgroundColor: const Color(0xFF0D0D0D),
+            scaffoldBackgroundColor: Colors.black,
             useMaterial3: true,
             splashColor: Colors.transparent,
             highlightColor: Colors.transparent,
@@ -542,7 +541,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN - FULLY REDESIGNED (NEON/GLASSMORPHISM)
+// LOGIN SCREEN (UPDATED PREMIUM UI)
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -556,10 +555,11 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isLoginMode = true; 
+  bool _obscurePassword = true;
 
   Future<void> _signIn() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password", style: TextStyle(color: Colors.white))));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
       return;
     }
     setState(() => _isLoading = true);
@@ -569,9 +569,9 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
     } on AuthException catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message, style: const TextStyle(color: Colors.white))));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e", style: const TextStyle(color: Colors.white))));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -579,7 +579,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signUp() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password", style: TextStyle(color: Colors.white))));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
       return;
     }
     setState(() => _isLoading = true);
@@ -588,12 +588,12 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.", style: TextStyle(color: Colors.white))));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.")));
       setState(() => _isLoginMode = true); 
     } on AuthException catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message, style: const TextStyle(color: Colors.white))));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e", style: const TextStyle(color: Colors.white))));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -606,323 +606,262 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  InputDecoration _inputDecoration(BuildContext context, String hint, IconData icon, {Widget? suffixIcon}) {
+    Color primColor = Theme.of(context).primaryColor;
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
+      prefixIcon: Icon(icon, color: primColor, size: 20),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: const Color(0xFF121212), 
+      contentPadding: const EdgeInsets.symmetric(vertical: 18),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.white12),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Colors.white12),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: primColor, width: 1.5),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
-    Color softViolet = const Color(0xFFC77DFF);
-
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D), 
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Background Aesthetic Anime Image
-          // You can replace this network image with your local asset: AssetImage('assets/background.png')
-          Image.network(
-            'https://i.ibb.co/3s6q54Z/anime-dark-bg.jpg', // Placeholder for Sasuke/Neon Anime background
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF0D0D0D)),
-          ),
-          
-          // Dark Gradient Overlay
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF0D0D0D).withOpacity(0.95),
-                  const Color(0xFF0D0D0D).withOpacity(0.6),
-                  const Color(0xFF0D0D0D).withOpacity(0.95),
-                ],
-                begin: Alignment.bottomCenter,
-                end: Alignment.topCenter,
-              ),
-            ),
-          ),
-          
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 40),
-                  
-                  // Logo Area
-                  // You can replace this with your logo Image.asset('assets/logo.png')
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.change_history, color: Colors.white, size: 40), // Simulating your logo icon
-                      const SizedBox(width: 10),
-                      Text(
-                        "ANIMEMX", 
-                        style: TextStyle(
-                          color: Colors.white, 
-                          fontSize: 32, 
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2,
-                          shadows: [Shadow(color: primColor, blurRadius: 10)]
-                        ) 
+      backgroundColor: Colors.black, 
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Top Custom Logo Placeholder matching the design
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: primColor, width: 2),
                       ),
+                      child: const Icon(Icons.change_history, color: Colors.white, size: 30), 
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "ANIMEMX", 
+                      style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 2) 
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                const Text("STREAM YOUR ANIME WORLD", style: TextStyle(color: Colors.white54, fontSize: 10, letterSpacing: 3, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 40),
+                
+                // Login Box Container with Glow Border
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: primColor.withOpacity(0.4), width: 1.5),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _isLoginMode ? "Welcome Back!" : "Create Account", 
+                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                _isLoginMode ? "Login to continue your anime adventure" : "Sign up to start your adventure", 
+                                style: const TextStyle(color: Colors.white54, fontSize: 12)
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: primColor.withOpacity(0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.ac_unit, color: primColor, size: 20), // Star/Shuriken placeholder
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 30),
+                      
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDecoration(context, "Email / Username", Icons.person_outline),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: _inputDecoration(
+                          context, 
+                          "Password", 
+                          Icons.lock_outline,
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white54, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
+                          )
+                        ),
+                      ),
+                      
+                      if (_isLoginMode) ...[
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text("Forgot Password?", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      
+                      if (_isLoading)
+                        Center(child: CircularProgressIndicator(color: primColor))
+                      else
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primColor,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 10,
+                              shadowColor: primColor.withOpacity(0.5),
+                            ),
+                            onPressed: _isLoginMode ? _signIn : _signUp,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(_isLoginMode ? "LOGIN" : "SIGN UP", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+                              ],
+                            ),
+                          ),
+                        ),
+                        
+                      const SizedBox(height: 24),
+                      
+                      Row(
+                        children: [
+                          const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: Text("OR", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
+                          const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: const BorderSide(color: Colors.white12)
+                              ),
+                              onPressed: () {},
+                              icon: const Icon(Icons.g_mobiledata, color: Colors.redAccent),
+                              label: const Text("Google", style: TextStyle(color: Colors.white, fontSize: 13))
+                            )
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: const BorderSide(color: Colors.white12)
+                              ),
+                              onPressed: () {},
+                              icon: const Icon(Icons.apple, color: Colors.white),
+                              label: const Text("Apple", style: TextStyle(color: Colors.white, fontSize: 13))
+                            )
+                          ),
+                        ],
+                      )
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "STREAM YOUR ANIME WORLD",
-                    style: TextStyle(color: getSubText(context), fontSize: 12, letterSpacing: 3, fontWeight: FontWeight.w600),
-                  ),
-                  
-                  const SizedBox(height: 50),
-                  
-                  // Glassmorphism Login Container
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
+                ),
+                
+                const SizedBox(height: 30),
+                
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isLoginMode = !_isLoginMode;
+                    });
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.4),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: primColor.withOpacity(0.3), width: 1.5),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white12),
+                          color: Colors.white.withOpacity(0.05),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _isLoginMode ? "Welcome Back!" : "Create Account", 
-                                      style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      _isLoginMode ? "Login to continue your anime adventure" : "Sign up to start your journey", 
-                                      style: TextStyle(color: getSubText(context), fontSize: 13)
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: primColor.withOpacity(0.2),
-                                    boxShadow: [BoxShadow(color: primColor.withOpacity(0.5), blurRadius: 15)]
-                                  ),
-                                  child: const Icon(Icons.star, color: Colors.white, size: 24), // Placeholder for top right ninja star
-                                )
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 30),
-                            
-                            // Email Field
-                            _buildNeonTextField(
-                              context: context,
-                              controller: _emailController,
-                              hint: "Email / Username",
-                              icon: Icons.person_outline,
-                            ),
-                            const SizedBox(height: 20),
-                            
-                            // Password Field
-                            _buildNeonTextField(
-                              context: context,
-                              controller: _passwordController,
-                              hint: "Password",
-                              icon: Icons.lock_outline,
-                              isPassword: true,
-                            ),
-                            
-                            const SizedBox(height: 12),
-                            if (_isLoginMode)
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  "Forgot Password?",
-                                  style: TextStyle(color: softViolet, fontSize: 13, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              
-                            const SizedBox(height: 30),
-                            
-                            // Login / Sign Up Button
-                            if (_isLoading)
-                              Center(child: CircularProgressIndicator(color: primColor))
-                            else
-                              GestureDetector(
-                                onTap: _isLoginMode ? _signIn : _signUp,
-                                child: Container(
-                                  width: double.infinity,
-                                  height: 55,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(16),
-                                    gradient: LinearGradient(
-                                      colors: [primColor, softViolet],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(color: primColor.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 5))
-                                    ]
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        _isLoginMode ? "LOGIN" : "SIGN UP", 
-                                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)
-                                      ),
-                                      const SizedBox(width: 10),
-                                      const Icon(Icons.arrow_forward, color: Colors.white, size: 20)
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              
-                            const SizedBox(height: 30),
-                            
-                            // OR Divider
-                            Row(
-                              children: [
-                                Expanded(child: Divider(color: Colors.white.withOpacity(0.2), thickness: 1)),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text("OR", style: TextStyle(color: getSubText(context), fontSize: 12)),
-                                ),
-                                Expanded(child: Divider(color: Colors.white.withOpacity(0.2), thickness: 1)),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 30),
-                            
-                            // Social Buttons
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _buildSocialButton(
-                                    icon: Icons.g_mobiledata, 
-                                    text: "Google", 
-                                    color: Colors.redAccent
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildSocialButton(
-                                    icon: Icons.apple, 
-                                    text: "Apple", 
-                                    color: Colors.white
-                                  ),
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
+                        child: Icon(Icons.pets, color: primColor, size: 22), 
                       ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // Bottom Switch Mode
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isLoginMode = !_isLoginMode;
-                      });
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black.withOpacity(0.5),
-                            border: Border.all(color: primColor.withOpacity(0.5))
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _isLoginMode ? "Don't have an account?" : "Already have an account?",
+                            style: const TextStyle(color: Colors.white54, fontSize: 13),
                           ),
-                          child: Icon(Icons.pets, color: softViolet, size: 20), // Placeholder for bottom left mask
-                        ),
-                        const SizedBox(width: 15),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _isLoginMode ? "Don't have an account?" : "Already have an account?",
-                              style: TextStyle(color: getSubText(context), fontSize: 13),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Text(
-                                  _isLoginMode ? "Sign Up" : "Log In",
-                                  style: TextStyle(color: softViolet, fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(width: 5),
-                                Icon(Icons.arrow_forward, color: softViolet, size: 16)
-                              ],
-                            )
-                          ],
-                        )
-                      ],
-                    ),
+                          Row(
+                            children: [
+                              Text(
+                                _isLoginMode ? "Sign Up" : "Log In",
+                                style: TextStyle(color: primColor, fontSize: 15, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(Icons.arrow_forward, color: primColor, size: 14),
+                            ],
+                          )
+                        ],
+                      )
+                    ],
                   ),
-                  
-                  const SizedBox(height: 20),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ],
-      )
-    );
-  }
-  
-  Widget _buildNeonTextField({required BuildContext context, required TextEditingController controller, required String hint, required IconData icon, bool isPassword = false}) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.15)),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: isPassword,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: TextStyle(color: getSubText(context), fontSize: 14),
-          prefixIcon: Icon(icon, color: primColor),
-          suffixIcon: isPassword ? Icon(Icons.visibility_outlined, color: getSubText(context)) : null,
-          filled: true,
-          fillColor: Colors.transparent, 
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18),
         ),
-      ),
-    );
-  }
-  
-  Widget _buildSocialButton({required IconData icon, required String text, required Color color}) {
-    return Container(
-      height: 50,
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: 8),
-          Text(text, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-        ],
       ),
     );
   }
@@ -945,7 +884,7 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     fetchGlobalAnimeViews(); 
-    _fetchUserPreferences(); // FETCH PREFS ON STARTUP
+    _fetchUserPreferences(); 
     
     // Show Cookies Banner on login
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -955,7 +894,7 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  // --- NEW FIX: Load Continue Watching and Saved List from Supabase on App Start ---
+  // Fetch Continue Watching and Saved List from Supabase on App Start
   Future<void> _fetchUserPreferences() async {
     try {
       final response = await Supabase.instance.client
@@ -1005,8 +944,8 @@ class _MainScreenState extends State<MainScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: getCard(context),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          border: Border.all(color: primColor.withOpacity(0.3), width: 1.5),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: Colors.white12),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1031,7 +970,7 @@ class _MainScreenState extends State<MainScreen> {
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: primColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 14)
                     ),
                     onPressed: () {
@@ -1043,25 +982,17 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(width: 15),
                 Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(colors: [primColor, const Color(0xFFC77DFF)]),
-                      boxShadow: [BoxShadow(color: primColor.withOpacity(0.4), blurRadius: 10)]
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 14)
                     ),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14)
-                      ),
-                      onPressed: () {
-                        hasAcceptedCookies = true;
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Accept All", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
+                    onPressed: () {
+                      hasAcceptedCookies = true;
+                      Navigator.pop(context);
+                    },
+                    child: const Text("Accept All", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   )
                 ),
               ],
@@ -1088,52 +1019,29 @@ class _MainScreenState extends State<MainScreen> {
       const ProfileScreen()
     ];
 
-    Color primColor = Theme.of(context).primaryColor;
-
     return Scaffold(
       extendBody: true,
       body: pages[_index],
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: primColor.withOpacity(0.2), width: 1))
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: getBg(context),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: primColor,
-          unselectedItemColor: Colors.grey[600],
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
-          currentIndex: _index,
-          elevation: 0,
-          onTap: (i) { 
-            setState(() { 
-              _index = i; 
-            }); 
-          },
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_filled, shadows: _index == 0 ? [Shadow(color: primColor, blurRadius: 10)] : null), 
-              label: "Home"
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.search, shadows: _index == 1 ? [Shadow(color: primColor, blurRadius: 10)] : null), 
-              label: "Search"
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.headphones, shadows: _index == 2 ? [Shadow(color: primColor, blurRadius: 10)] : null), 
-              label: "Dub"
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list_alt, shadows: _index == 3 ? [Shadow(color: primColor, blurRadius: 10)] : null), 
-              label: "My List"
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person, shadows: _index == 4 ? [Shadow(color: primColor, blurRadius: 10)] : null), 
-              label: "Account"
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: getCard(context),
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Theme.of(context).primaryColor,
+        unselectedItemColor: Colors.grey[500],
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
+        currentIndex: _index,
+        onTap: (i) { 
+          setState(() { 
+            _index = i; 
+          }); 
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
+          BottomNavigationBarItem(icon: Icon(Icons.headphones), label: "Dub"),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
+        ],
       ),
     );
   }
@@ -1165,24 +1073,18 @@ class HomeScreen extends StatelessWidget {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.black, 
-                border: Border(bottom: BorderSide(color: primColor.withOpacity(0.3), width: 1))
+                border: Border(bottom: BorderSide(color: Colors.white12, width: 1))
               ),
               child: Row(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: primColor.withOpacity(0.5), blurRadius: 15)]
-                    ),
-                    child: CircleAvatar(
-                      radius: 30,
-                      backgroundColor: getAvatarColor(currentUserName),
-                      child: Text(
-                        getAvatarLetter(currentUserName),
-                        style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
-                      ),
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: getAvatarColor(currentUserName),
+                    child: Text(
+                      getAvatarLetter(currentUserName),
+                      style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold),
                     ),
                   ),
                   const SizedBox(width: 15),
@@ -1293,13 +1195,7 @@ class HomeScreen extends StatelessWidget {
         ),
         title: Text(
           "AnimeMX", 
-          style: TextStyle(
-            color: Colors.white, 
-            fontWeight: FontWeight.w900, 
-            fontSize: 22, 
-            letterSpacing: 1,
-            shadows: [Shadow(color: primColor, blurRadius: 10)]
-          )
+          style: TextStyle(color: primColor, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)
         ),
         actions:[
           IconButton(
@@ -1365,8 +1261,7 @@ class HomeScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), 
                           decoration: BoxDecoration(
                             color: Colors.black54, 
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: primColor.withOpacity(0.5))
+                            borderRadius: BorderRadius.circular(12)
                           ), 
                           child: Text(
                             "${i + 1}/${sliderItems.length}", 
@@ -1394,8 +1289,7 @@ class HomeScreen extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
                               decoration: BoxDecoration(
                                 color: tagColor, 
-                                borderRadius: BorderRadius.circular(4),
-                                boxShadow: [BoxShadow(color: tagColor.withOpacity(0.5), blurRadius: 5)]
+                                borderRadius: BorderRadius.circular(4)
                               ), 
                               child: Text(
                                 tag, 
@@ -1487,11 +1381,11 @@ class HomeScreen extends StatelessWidget {
                       Expanded(
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: primColor.withOpacity(0.4), width: 1.5),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white, width: 1.5),
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14), 
+                            borderRadius: BorderRadius.circular(10), 
                             child: Image.network(list[index].image, fit: BoxFit.cover, width: double.infinity)
                           ),
                         )
@@ -1636,7 +1530,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ==========================================
-// CONTINUE WATCHING "SEE ALL" PAGE (VERTICAL CARDS NEON STYLE)
+// CONTINUE WATCHING "SEE ALL" PAGE (VERTICAL CARDS)
 // ==========================================
 class CWSeeAllPage extends StatelessWidget {
   final List<CWItem> cwList;
@@ -1682,11 +1576,11 @@ class CWSeeAllPage extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               height: 110,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
+                color: getCard(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: primColor.withOpacity(0.4), width: 1.5),
+                border: Border.all(color: Colors.white12),
                 boxShadow: [
-                  BoxShadow(color: primColor.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+                  BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))
                 ]
               ),
               child: Row(
@@ -1695,12 +1589,12 @@ class CWSeeAllPage extends StatelessWidget {
                     width: 160,
                     height: double.infinity,
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(14), bottomLeft: Radius.circular(14)),
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
                           Image.network(ep.image, fit: BoxFit.cover),
-                          Container(color: Colors.black45),
+                          Container(color: Colors.black38),
                           const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
                           if (progress > 0.0)
                             Positioned(
@@ -1811,7 +1705,6 @@ class OverlayPopularCard extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return GestureDetector(
       onTap: () => Navigator.push(
         context, 
@@ -1821,11 +1714,11 @@ class OverlayPopularCard extends StatelessWidget {
         width: 140, 
         margin: const EdgeInsets.only(right: 12), 
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16), 
-          border: Border.all(color: primColor.withOpacity(0.4), width: 1.5) 
+          borderRadius: BorderRadius.circular(12), 
+          border: Border.all(color: Colors.white, width: 1.5) 
         ), 
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14), 
+          borderRadius: BorderRadius.circular(10), 
           child: Stack(
             children:[
               Image.network(
@@ -1852,8 +1745,7 @@ class OverlayPopularCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), 
                   decoration: BoxDecoration(
                     color: Colors.cyan, 
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [BoxShadow(color: Colors.cyan.withOpacity(0.5), blurRadius: 5)]
+                    borderRadius: BorderRadius.circular(4)
                   ), 
                   child: const Text(
                     "POPULAR", 
@@ -2000,11 +1892,11 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       }, 
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16), 
-          border: Border.all(color: primColor.withOpacity(0.4), width: 1.5) 
+          borderRadius: BorderRadius.circular(12), 
+          border: Border.all(color: Colors.white, width: 1.5) 
         ), 
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14), 
+          borderRadius: BorderRadius.circular(10), 
           child: Stack(
             children:[
               Image.network(
@@ -2032,8 +1924,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4), 
                     decoration: BoxDecoration(
                       color: tagBgColor, 
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: [BoxShadow(color: tagBgColor!.withOpacity(0.5), blurRadius: 5)]
+                      borderRadius: BorderRadius.circular(4)
                     ), 
                     child: Text(
                       tagText, 
@@ -2113,7 +2004,6 @@ class ThumbnailLatestCard extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     int latestEpNum = anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty 
         ? anime.seasonsList.last.episodes.length 
         : 1;
@@ -2139,13 +2029,13 @@ class ThumbnailLatestCard extends StatelessWidget {
           children:[
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16), 
-                border: Border.all(color: primColor.withOpacity(0.4), width: 1.5) 
+                borderRadius: BorderRadius.circular(12), 
+                border: Border.all(color: Colors.white, width: 1.5) 
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9, 
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14), 
+                  borderRadius: BorderRadius.circular(10), 
                   child: Stack(
                     fit: StackFit.expand, 
                     children:[
@@ -2157,7 +2047,7 @@ class ThumbnailLatestCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), 
                           decoration: BoxDecoration(
                             color: Colors.black87, 
-                            borderRadius: BorderRadius.circular(8)
+                            borderRadius: BorderRadius.circular(4)
                           ), 
                           child: Text(
                             "Ep $latestEpNum", 
@@ -2235,13 +2125,13 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
           children:[
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16), 
-                border: Border.all(color: primColor.withOpacity(0.4), width: 1.5) 
+                borderRadius: BorderRadius.circular(12), 
+                border: Border.all(color: Colors.white, width: 1.5) 
               ),
               child: AspectRatio(
                 aspectRatio: 16 / 9, 
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14), 
+                  borderRadius: BorderRadius.circular(10), 
                   child: Stack(
                     fit: StackFit.expand, 
                     children: [
@@ -2420,13 +2310,12 @@ class _DetailsPageState extends State<DetailsPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
                         decoration: BoxDecoration(
-                          color: primColor.withOpacity(0.2), 
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: primColor.withOpacity(0.5))
+                          color: Colors.white24, 
+                          borderRadius: BorderRadius.circular(12)
                         ), 
                         child: Text(
                           widget.anime.rating, 
-                          style: TextStyle(color: primColor, fontSize: 11, fontWeight: FontWeight.bold)
+                          style: TextStyle(color: getText(context), fontSize: 11, fontWeight: FontWeight.bold)
                         )
                       ), 
                       const SizedBox(width: 10), 
@@ -2442,34 +2331,27 @@ class _DetailsPageState extends State<DetailsPage> {
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity, 
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: LinearGradient(colors: [primColor, const Color(0xFFC77DFF)]),
-                        boxShadow: [BoxShadow(color: primColor.withOpacity(0.5), blurRadius: 10)]
-                      ),
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent, 
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(vertical: 14), 
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), 
-                        ), 
-                        onPressed: () { 
-                          if (episodesList.isNotEmpty) {
-                            int playIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : 0;
-                            Navigator.push(
-                              context, 
-                              MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex))
-                            ).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }); 
-                          }
-                        }, 
-                        icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
-                        label: const Text(
-                          "Play Now", 
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
-                        )
-                      ),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primColor, 
+                        padding: const EdgeInsets.symmetric(vertical: 14), 
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
+                        elevation: 5
+                      ), 
+                      onPressed: () { 
+                        if (episodesList.isNotEmpty) {
+                          int playIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : 0;
+                          Navigator.push(
+                            context, 
+                            MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex))
+                          ).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }); 
+                        }
+                      }, 
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
+                      label: const Text(
+                        "Play Now", 
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+                      )
                     )
                   ),
                   const SizedBox(height: 24),
@@ -2547,8 +2429,7 @@ class _DetailsPageState extends State<DetailsPage> {
                               padding: const EdgeInsets.all(10), 
                               decoration: BoxDecoration(
                                 color: getCard(context), 
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: primColor.withOpacity(0.2))
+                                borderRadius: BorderRadius.circular(12)
                               ), 
                               child: Row(
                                 children:[
@@ -2556,7 +2437,7 @@ class _DetailsPageState extends State<DetailsPage> {
                                     width: 120, 
                                     height: 70, 
                                     child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(12), 
+                                      borderRadius: BorderRadius.circular(8), 
                                       child: Stack(
                                         fit: StackFit.expand, 
                                         children:[
@@ -2609,11 +2490,11 @@ class _DetailsPageState extends State<DetailsPage> {
                                   ), 
                                   Container(
                                     padding: const EdgeInsets.all(8), 
-                                    decoration: BoxDecoration(
+                                    decoration: const BoxDecoration(
                                       shape: BoxShape.circle, 
-                                      color: primColor.withOpacity(0.2)
+                                      color: Colors.white12
                                     ), 
-                                    child: Icon(Icons.play_arrow_rounded, color: primColor, size: 24)
+                                    child: Icon(Icons.play_arrow_rounded, color: getText(context), size: 24)
                                   )
                                 ]
                               )
@@ -2645,8 +2526,7 @@ class _DetailsPageState extends State<DetailsPage> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
         decoration: BoxDecoration(
           color: isActive ? primaryColor : getCard(context), 
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isActive ? Colors.transparent : Colors.white12)
+          borderRadius: BorderRadius.circular(8)
         ), 
         child: Center(
           child: Text(
@@ -3221,8 +3101,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20), 
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.05), 
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: primColor.withOpacity(0.2))
+                          borderRadius: BorderRadius.circular(16)
                         ), 
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround, 
@@ -3287,9 +3166,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                           }, 
                           child: Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF151515), 
+                              color: const Color(0xFF1A1A1A), 
                               borderRadius: BorderRadius.circular(16), 
-                              border: Border.all(color: primColor.withOpacity(0.3)), 
+                              border: Border.all(color: Colors.white12), 
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.5), 
@@ -3304,12 +3183,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                   width: 140, 
                                   height: 90, 
                                   child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(15), bottomLeft: Radius.circular(15)), 
+                                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)), 
                                     child: Stack(
                                       fit: StackFit.expand, 
                                       children:[
                                         Image.network(currentSeason.episodes[widget.episodeIndex + 1].image, fit: BoxFit.cover), 
-                                        Container(color: Colors.black45), 
+                                        Container(color: Colors.black38), 
                                         const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40))
                                       ]
                                     )
@@ -3472,7 +3351,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context),
       body: SafeArea(
@@ -3484,8 +3362,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: getCard(context), 
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: primColor.withOpacity(0.3))
+                  borderRadius: BorderRadius.circular(12)
                 ), 
                 child: TextField(
                   controller: _searchController, 
@@ -3495,7 +3372,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
                   decoration: InputDecoration(
                     hintText: "Search anime, movies, episodes...", 
                     hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15), 
-                    prefixIcon: Icon(Icons.search, color: primColor), 
+                    prefixIcon: Icon(Icons.search, color: Colors.grey[500]), 
                     suffixIcon: _searchController.text.isNotEmpty 
                       ? IconButton(
                           icon: Icon(Icons.cancel, color: Colors.grey[600]), 
@@ -3572,8 +3449,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
         decoration: BoxDecoration(
           color: getCard(context), 
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12)
+          borderRadius: BorderRadius.circular(10)
         ), 
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween, 
@@ -3771,13 +3647,11 @@ class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
 
   Widget _buildMenuGroup(List<Widget> items, BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Container(
       margin: const EdgeInsets.only(bottom: 30),
       decoration: BoxDecoration(
         color: getCard(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primColor.withOpacity(0.2))
       ),
       child: Column(
         children: items.asMap().entries.map((entry) {
@@ -3825,7 +3699,6 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(
@@ -3846,18 +3719,12 @@ class ProfileScreen extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 24, top: 10),
                 child: Column(
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: primColor.withOpacity(0.5), blurRadius: 20)]
-                      ),
-                      child: CircleAvatar(
-                        radius: 45,
-                        backgroundColor: getAvatarColor(currentUserName),
-                        child: Text(
-                          getAvatarLetter(currentUserName),
-                          style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
-                        ),
+                    CircleAvatar(
+                      radius: 45,
+                      backgroundColor: getAvatarColor(currentUserName),
+                      child: Text(
+                        getAvatarLetter(currentUserName),
+                        style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -3866,20 +3733,19 @@ class ProfileScreen extends StatelessWidget {
                       children: [
                         Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                         const SizedBox(width: 6),
-                        Icon(Icons.verified, color: primColor, size: 20),
+                        const Icon(Icons.verified, color: Colors.blueAccent, size: 20),
                       ],
                     ),
                     const SizedBox(height: 10),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: userActivePlan.isEmpty ? Colors.white12 : primColor.withOpacity(0.2),
+                        color: userActivePlan.isEmpty ? Colors.white12 : Theme.of(context).primaryColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: primColor.withOpacity(0.4))
                       ),
                       child: Text(
                         userActivePlan.isEmpty ? "FREE PLAN" : userActivePlan.toUpperCase(), 
-                        style: TextStyle(color: userActivePlan.isEmpty ? Colors.white70 : primColor, fontSize: 12, fontWeight: FontWeight.bold)
+                        style: TextStyle(color: userActivePlan.isEmpty ? Colors.white70 : Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold)
                       ),
                     ),
                   ],
@@ -3896,7 +3762,7 @@ class ProfileScreen extends StatelessWidget {
                   title: "Subscription", 
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), 
                   trailingText: userActivePlan.isEmpty ? "Upgrade" : userActivePlan, 
-                  trailingColor: primColor
+                  trailingColor: Theme.of(context).primaryColor
                 ),
                 _buildGroupedItem(
                   context: context,
@@ -3957,7 +3823,6 @@ class ProfileScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: getCard(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.3))
                   ),
                   child: const Text("Log Out", textAlign: TextAlign.center, style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
@@ -4043,8 +3908,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 hintStyle: TextStyle(color: getSubText(context)),
                 filled: true,
                 fillColor: getCard(context),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primColor, width: 2)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
               ),
             ),
             const SizedBox(height: 20),
@@ -4057,27 +3922,20 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 hintStyle: TextStyle(color: getSubText(context)),
                 filled: true,
                 fillColor: getCard(context),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primColor, width: 2)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primColor, width: 2)),
               ),
             ),
             const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
               height: 50,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(colors: [primColor, const Color(0xFFC77DFF)]),
-                  boxShadow: [BoxShadow(color: primColor.withOpacity(0.5), blurRadius: 10)]
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                  onPressed: _isLoading ? null : _updatePassword,
-                  child: _isLoading 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Save Password", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: _isLoading ? null : _updatePassword,
+                child: _isLoading 
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text("Save Password", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             )
           ],
@@ -4113,9 +3971,9 @@ class ThemeSettingsPage extends StatelessWidget {
               spacing: 15,
               runSpacing: 15,
               children: [
-                _buildColorOption(const Color(0xFF9D4EDD), "Neon", context), // Adding Custom Neon Purple
-                _buildColorOption(Colors.blue, "Blue", context),
+                _buildColorOption(animeMxPurple, "AnimeMX", context), 
                 _buildColorOption(Colors.red, "Red", context),
+                _buildColorOption(Colors.blue, "Blue", context),
                 _buildColorOption(Colors.green, "Green", context),
                 _buildColorOption(Colors.orange, "Orange", context),
                 _buildColorOption(Colors.pink, "Pink", context),
@@ -4131,7 +3989,7 @@ class ThemeSettingsPage extends StatelessWidget {
     return ValueListenableBuilder<Color>(
       valueListenable: primaryColorNotifier,
       builder: (context, currentColor, _) {
-        bool isSelected = currentColor.value == color.value;
+        bool isSelected = currentColor == color;
         return GestureDetector(
           onTap: () => primaryColorNotifier.value = color,
           child: Column(
@@ -4143,7 +4001,7 @@ class ThemeSettingsPage extends StatelessWidget {
                   color: color,
                   shape: BoxShape.circle,
                   border: Border.all(color: isSelected ? getText(context) : Colors.transparent, width: 3),
-                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.8), blurRadius: 15)] : []
+                  boxShadow: isSelected ? [BoxShadow(color: color.withOpacity(0.5), blurRadius: 10)] : []
                 ),
                 child: isSelected ? const Icon(Icons.check, color: Colors.white) : null,
               ),
@@ -4225,7 +4083,6 @@ class PremiumPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context), 
       appBar: AppBar(
@@ -4266,7 +4123,7 @@ class PremiumPage extends StatelessWidget {
                     slot: "1", 
                     earlyAccess: "No", 
                     support: "24/7 support",
-                    color: Colors.blueAccent,
+                    color: Colors.blue.shade800,
                   ), 
                   const SizedBox(width: 16),
                   
@@ -4279,7 +4136,7 @@ class PremiumPage extends StatelessWidget {
                     slot: "3", 
                     earlyAccess: "Yes", 
                     support: "24/7 support",
-                    color: Colors.pinkAccent,
+                    color: Colors.deepOrange.shade800,
                   ), 
                   const SizedBox(width: 16),
                   
@@ -4292,7 +4149,7 @@ class PremiumPage extends StatelessWidget {
                     slot: "7", 
                     earlyAccess: "Yes", 
                     support: "24/7 support",
-                    color: primColor,
+                    color: Colors.purple.shade800,
                   ),
                 ],
               ),
@@ -4358,16 +4215,19 @@ class PremiumPage extends StatelessWidget {
     return Container(
       width: 270, 
       decoration: BoxDecoration(
-        color: getCard(context),
+        gradient: LinearGradient(
+          colors: [getCard(context), color.withOpacity(0.2)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.circular(20), 
         border: Border.all(color: color.withOpacity(0.5), width: 1.5), 
-        boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 15, spreadRadius: 2)]
       ), 
       padding: const EdgeInsets.all(20), 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, 
         children: [
-          Text(title.toUpperCase(), style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2, shadows: [Shadow(color: color, blurRadius: 10)])), 
+          Text(title.toUpperCase(), style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.2)), 
           const SizedBox(height: 10),
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline, 
@@ -4400,9 +4260,8 @@ class PremiumPage extends StatelessWidget {
               height: 45, 
               alignment: Alignment.center, 
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [color.withOpacity(0.8), color]),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8)]
+                color: color, 
+                borderRadius: BorderRadius.circular(10)
               ), 
               child: const Text("Choose Plan", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
             )
@@ -4451,6 +4310,7 @@ class QRCodePaymentPage extends StatelessWidget {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     
+    // Fixed Custom QR Image provided by User
     String qrImageUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 
     return Scaffold(
@@ -4478,14 +4338,14 @@ class QRCodePaymentPage extends StatelessWidget {
               ),
               const SizedBox(height: 40),
               
-              // QR Code Display
+              // QR Code Display (Clean Shape)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white, 
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: primColor.withOpacity(0.3), blurRadius: 25, spreadRadius: 2)
+                    BoxShadow(color: primColor.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)
                   ]
                 ),
                 child: ClipRRect(
@@ -4510,7 +4370,7 @@ class QRCodePaymentPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: getCard(context),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: primColor.withOpacity(0.5))
+                      border: Border.all(color: Colors.white12)
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -4530,27 +4390,20 @@ class QRCodePaymentPage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: LinearGradient(colors: [primColor, const Color(0xFFC77DFF)]),
-                    boxShadow: [BoxShadow(color: primColor.withOpacity(0.5), blurRadius: 10)]
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue, // specified color 
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                   ),
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                    ),
-                    onPressed: () => _launchUPIApp(context),
-                    icon: const Icon(Icons.payment, color: Colors.white),
-                    label: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
+                  onPressed: () => _launchUPIApp(context),
+                  icon: const Icon(Icons.payment, color: Colors.white),
+                  label: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
 
               const SizedBox(height: 40),
               
+              // ENGLISH INSTRUCTIONS
               Text(
                 "Scan the QR Code or click Pay Now.",
                 style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold),
@@ -4569,8 +4422,7 @@ class QRCodePaymentPage extends StatelessWidget {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: getCard(context), 
-                    side: BorderSide(color: primColor.withOpacity(0.5)),
+                    backgroundColor: primColor, 
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                   ),
                   onPressed: () {
@@ -4644,7 +4496,6 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             decoration: BoxDecoration(
               color: const Color(0xFF1E1E1E), 
               borderRadius: BorderRadius.circular(16.0),
-              border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.5)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.5),
@@ -4792,7 +4643,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
           children:[
             Container(
               padding: const EdgeInsets.all(15), 
-              decoration: BoxDecoration(color: primColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: primColor.withOpacity(0.3))), 
+              decoration: BoxDecoration(color: primColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: primColor.withOpacity(0.3))), 
               child: Row(
                 children: [
                   Icon(Icons.info_outline, color: primColor), 
@@ -4811,7 +4662,7 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: getCard(context),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.white12)
               ),
               child: DropdownButtonHideUnderline(
@@ -4847,12 +4698,12 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 height: 160,
                 decoration: BoxDecoration(
                   color: getCard(context),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white12, style: BorderStyle.solid),
                 ),
                 child: _imageFile != null
                     ? ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         child: Image.file(_imageFile!, fit: BoxFit.cover, width: double.infinity),
                       )
                     : Column(
@@ -4886,15 +4737,15 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
                 filled: true,
                 fillColor: getCard(context),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Colors.white12),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Colors.white12),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: primColor),
                 ),
               ),
@@ -4904,23 +4755,16 @@ class _PaymentProofPageState extends State<PaymentProofPage> {
             SizedBox(
               width: double.infinity, 
               height: 50, 
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(colors: [primColor, const Color(0xFFC77DFF)]),
-                  boxShadow: [BoxShadow(color: primColor.withOpacity(0.5), blurRadius: 10)]
-                ),
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent, 
-                    shadowColor: Colors.transparent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ), 
-                  onPressed: _isSubmitting ? null : _submitRequest, 
-                  child: _isSubmitting 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text("Submit Proof", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primColor, 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 5,
+                ), 
+                onPressed: _isSubmitting ? null : _submitRequest, 
+                child: _isSubmitting 
+                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text("Submit Proof", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               )
             ),
           ],
@@ -4935,7 +4779,6 @@ class SupportPage extends StatelessWidget {
 
   @override 
   Widget build(BuildContext context) { 
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context), 
       appBar: AppBar(
@@ -4952,8 +4795,7 @@ class SupportPage extends StatelessWidget {
               padding: const EdgeInsets.all(20), 
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16), 
-                gradient: LinearGradient(colors:[primColor, primColor.withOpacity(0.5)]),
-                boxShadow: [BoxShadow(color: primColor.withOpacity(0.4), blurRadius: 10)]
+                gradient: LinearGradient(colors:[Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.7)])
               ), 
               child: Row(
                 children:[
@@ -5022,9 +4864,9 @@ class SupportPage extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12), 
       child: Material(
         color: getCard(context),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.all(12), 
@@ -5055,19 +4897,18 @@ class SupportPage extends StatelessWidget {
   }
 
   Widget _buildFaqItem(BuildContext context, String question, String answer) {
-    Color primColor = Theme.of(context).primaryColor;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: getCard(context),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: primColor.withOpacity(0.2))
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white12)
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(question, style: TextStyle(color: primColor, fontSize: 15, fontWeight: FontWeight.bold)),
+          Text(question, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 15, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Text(answer, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.4)),
         ],
@@ -5136,7 +4977,6 @@ class _ActivityPageState extends State<ActivityPage> {
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context), 
       appBar: AppBar(
@@ -5145,7 +4985,7 @@ class _ActivityPageState extends State<ActivityPage> {
         iconTheme: IconThemeData(color: getText(context))
       ), 
       body: _isLoading 
-        ? Center(child: CircularProgressIndicator(color: primColor))
+        ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
         : _fetchedOrders.isEmpty 
           ? Center(child: Text("No recent activity.", style: TextStyle(color: getSubText(context)))) 
           : ListView.builder(
@@ -5166,8 +5006,7 @@ class _ActivityPageState extends State<ActivityPage> {
                   padding: const EdgeInsets.all(16), 
                   decoration: BoxDecoration(
                     color: getCard(context), 
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: primColor.withOpacity(0.2))
+                    borderRadius: BorderRadius.circular(12)
                   ), 
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween, 
