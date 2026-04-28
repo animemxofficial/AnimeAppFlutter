@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ==========================================
 // GLOBAL CONFIG
@@ -53,7 +53,6 @@ class AdminAuthGate extends StatelessWidget {
       builder: (context, snapshot) {
         final session = snapshot.data?.session;
         if (session != null) {
-          // Add extra logic here if you only want specific emails to access admin
           return const AdminDashboard();
         }
         return const AdminLoginScreen();
@@ -63,7 +62,7 @@ class AdminAuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// ADMIN LOGIN SCREEN
+// ADMIN LOGIN SCREEN (MOBILE OPTIMIZED)
 // ==========================================
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
@@ -95,43 +94,45 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: cardDark,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: adminPurple.withOpacity(0.5)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.admin_panel_settings, size: 60, color: adminPurple),
-              const SizedBox(height: 16),
-              const Text("AnimeMX Admin Panel", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _emailController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(hintText: "Admin Email", filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(hintText: "Admin Password", filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
-                  child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Access Control Panel", style: TextStyle(fontWeight: FontWeight.bold)),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cardDark,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: adminPurple.withOpacity(0.5)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.admin_panel_settings, size: 60, color: adminPurple),
+                const SizedBox(height: 16),
+                const Text("AnimeMX Admin Panel", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: _emailController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(hintText: "Admin Email", filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
                 ),
-              )
-            ],
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(hintText: "Admin Password", filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _login,
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Access Control Panel", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                )
+              ],
+            ),
           ),
         ),
       ),
@@ -140,7 +141,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 }
 
 // ==========================================
-// ADMIN DASHBOARD (NAVIGATION)
+// ADMIN DASHBOARD (MOBILE OPTIMIZED NAVIGATION)
 // ==========================================
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -163,7 +164,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mera Anime MX - Admin Control", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)),
+        title: const Text("Mera Anime MX - Admin", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.red),
@@ -171,35 +172,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
           )
         ],
       ),
-      body: Row(
-        children: [
-          // Sidebar
-          Container(
-            width: 250,
-            color: cardDark,
-            child: ListView(
-              children: [
-                _buildNavItem(0, Icons.payments, "Payment Approvals"),
-                _buildNavItem(1, Icons.movie, "Manage Anime Content"),
-                _buildNavItem(2, Icons.people, "Registered Users"),
-                _buildNavItem(3, Icons.system_update, "App Source Code Update"),
-              ],
-            ),
-          ),
-          // Main Content
-          Expanded(child: _pages[_selectedIndex]),
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: cardDark,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: adminPurple,
+        unselectedItemColor: Colors.white54,
+        currentIndex: _selectedIndex,
+        onTap: (i) => setState(() => _selectedIndex = i),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.payments), label: "Payments"),
+          BottomNavigationBarItem(icon: Icon(Icons.movie), label: "Anime"),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: "Users"),
+          BottomNavigationBarItem(icon: Icon(Icons.system_update), label: "Update"),
         ],
       ),
-    );
-  }
-
-  Widget _buildNavItem(int index, IconData icon, String title) {
-    bool isSelected = _selectedIndex == index;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? adminPurple : Colors.white54),
-      title: Text(title, style: TextStyle(color: isSelected ? adminPurple : Colors.white54, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-      selected: isSelected,
-      onTap: () => setState(() => _selectedIndex = index),
     );
   }
 }
@@ -251,19 +238,19 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: cardDark,
-        title: Text("Proof from $email", style: const TextStyle(color: Colors.white)),
+        title: Text("Proof from \n$email", style: const TextStyle(color: Colors.white, fontSize: 14)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("UTR: $utr", style: const TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text("UTR: $utr", style: const TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 10),
             imageUrl.startsWith('http') 
-                ? Image.network(imageUrl, height: 400, fit: BoxFit.contain)
+                ? Image.network(imageUrl, height: 300, fit: BoxFit.contain)
                 : const Text("No Valid Image Found", style: TextStyle(color: Colors.white54)),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close"))
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: adminPurple)))
         ],
       ),
     );
@@ -273,24 +260,38 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   Widget build(BuildContext context) {
     return _isLoading 
       ? const Center(child: CircularProgressIndicator(color: adminPurple))
-      : ListView.builder(
-          padding: const EdgeInsets.all(16),
+      : _requests.isEmpty 
+        ? const Center(child: Text("No payments found.", style: TextStyle(color: Colors.white54)))
+        : ListView.builder(
+          padding: const EdgeInsets.all(12),
           itemCount: _requests.length,
           itemBuilder: (context, index) {
             final req = _requests[index];
             return Card(
               color: cardDark,
               margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text("${req['email']} - ${req['plan']}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                subtitle: Text("UTR: ${req['transaction_id']} | Status: ${req['status']}", style: TextStyle(color: req['status'] == 'Approved' ? Colors.green : Colors.orange)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(icon: const Icon(Icons.image, color: Colors.blue), onPressed: () => _showProofDialog(req['image_path'], req['email'], req['transaction_id'])),
-                    IconButton(icon: const Icon(Icons.check_circle, color: Colors.green), onPressed: () => _updateStatus(req['id'], 'Approved')),
-                    IconButton(icon: const Icon(Icons.cancel, color: Colors.orange), onPressed: () => _updateStatus(req['id'], 'Rejected')),
-                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteRequest(req['id'])),
+                    Text("${req['email']}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                    const SizedBox(height: 4),
+                    Text("Plan: ${req['plan']}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    Text("UTR: ${req['transaction_id']}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    Text("Status: ${req['status']}", style: TextStyle(color: req['status'] == 'Approved' ? Colors.green : Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)),
+                    const Divider(color: Colors.white12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        IconButton(icon: const Icon(Icons.image, color: Colors.blue), onPressed: () => _showProofDialog(req['image_path'], req['email'], req['transaction_id'])),
+                        IconButton(icon: const Icon(Icons.check_circle, color: Colors.green), onPressed: () => _updateStatus(req['id'], 'Approved')),
+                        IconButton(icon: const Icon(Icons.cancel, color: Colors.orange), onPressed: () => _updateStatus(req['id'], 'Rejected')),
+                        IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteRequest(req['id'])),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -314,7 +315,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _imageController = TextEditingController();
-  final _categoryController = TextEditingController(); // e.g Action, Romance, Trending Now
+  final _categoryController = TextEditingController(); 
   
   String _selectedDub = 'DUB';
   String _selectedRating = 'PG-13';
@@ -341,12 +342,12 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Upload New Anime", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
+          const Text("Upload New Anime", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
           
           TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Anime Title (e.g. Naruto)")),
           const SizedBox(height: 12),
@@ -354,8 +355,8 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
           const SizedBox(height: 12),
           TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Poster Image URL")),
           const SizedBox(height: 12),
-          TextField(controller: _categoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Category (e.g. Action, Romance, Thriller, Trending Now)")),
-          const SizedBox(height: 20),
+          TextField(controller: _categoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Category (e.g. Action, Romance)")),
+          const SizedBox(height: 16),
           
           Row(
             children: [
@@ -369,7 +370,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
                   onChanged: (v) => setState(() => _selectedDub = v!),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   dropdownColor: cardDark,
@@ -382,30 +383,31 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           CheckboxListTile(
-            title: const Text("Show in Hero Section (Top Slider)?", style: TextStyle(color: Colors.white)),
+            contentPadding: EdgeInsets.zero,
+            title: const Text("Show in Hero Section (Top Slider)?", style: TextStyle(color: Colors.white, fontSize: 14)),
             value: _isHeroSlider,
             activeColor: adminPurple,
             onChanged: (val) => setState(() => _isHeroSlider = val!),
           ),
 
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
           SizedBox(
             height: 50,
             width: double.infinity,
             child: ElevatedButton.icon(
               icon: const Icon(Icons.upload, color: Colors.white),
-              label: const Text("Upload Anime to Database", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              label: const Text("Upload Anime", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               onPressed: _addAnime,
             ),
           ),
 
-          const SizedBox(height: 40),
-          const Text("Note: Automatically Popular Anime", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 30),
+          const Text("Note: Popular Anime is Automatic", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
-          const Text("Jo anime app me zyada views gain karega, wo automatically 'Popular Section' me show hoga (based on 'episode_views' table). Aapko manually set karne ki zaroorat nahi hai.", style: TextStyle(color: Colors.white54)),
+          const Text("Jo anime zyada views gain karega, wo automatically 'Popular Section' me show hoga.", style: TextStyle(color: Colors.white54, fontSize: 12)),
         ],
       ),
     );
@@ -414,9 +416,10 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
   InputDecoration _inputDeco(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white38),
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
       filled: true,
       fillColor: cardDark,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white12)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple)),
     );
@@ -446,11 +449,8 @@ class _UsersListScreenState extends State<UsersListScreen> {
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
-      // Note: Direct auth.users fetch requires Service Role Key. 
-      // We fetch from user_preferences table which acts as user profiles.
       final data = await Supabase.instance.client.from('user_preferences').select('email').neq('email', '');
       
-      // Make unique list of emails
       Set<String> uniqueEmails = {};
       for (var row in data) {
         if (row['email'] != null) uniqueEmails.add(row['email']);
@@ -468,17 +468,22 @@ class _UsersListScreenState extends State<UsersListScreen> {
   Widget build(BuildContext context) {
     return _isLoading 
       ? const Center(child: CircularProgressIndicator(color: adminPurple))
-      : ListView.builder(
-          padding: const EdgeInsets.all(16),
+      : _users.isEmpty 
+        ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54)))
+        : ListView.builder(
+          padding: const EdgeInsets.all(12),
           itemCount: _users.length,
           itemBuilder: (context, index) {
             String email = _users[index];
             return Card(
               color: cardDark,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
-                leading: const Icon(Icons.person, color: adminPurple),
-                title: Text(email, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                subtitle: const Text("Password: [ Encrypted Hash for Security ]", style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                leading: const CircleAvatar(backgroundColor: adminPurple, child: Icon(Icons.person, color: Colors.white)),
+                title: Text(email, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text("Pass: [ Encrypted ]", style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic, fontSize: 12)),
                 trailing: IconButton(
                   icon: const Icon(Icons.copy, color: Colors.blueAccent),
                   onPressed: () {
@@ -524,13 +529,13 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Push Remote App Update", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+          const Text("Push Remote App Update", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text("Save main.dart and pubspec.yaml configuration to Database.", style: TextStyle(color: Colors.white54)),
+          const Text("Save main.dart and pubspec.yaml configuration to Database.", style: TextStyle(color: Colors.white54, fontSize: 13)),
           const SizedBox(height: 20),
           
           TextField(
@@ -544,7 +549,7 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _mainDartController,
-            maxLines: 15,
+            maxLines: 10,
             style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 12),
             decoration: _inputDeco("Paste updated main.dart code here..."),
           ),
@@ -554,11 +559,11 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
           const SizedBox(height: 8),
           TextField(
             controller: _pubspecController,
-            maxLines: 8,
+            maxLines: 6,
             style: const TextStyle(color: Colors.amberAccent, fontFamily: 'monospace', fontSize: 12),
             decoration: _inputDeco("Paste updated pubspec.yaml here..."),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 24),
 
           SizedBox(
             height: 50,
@@ -569,6 +574,7 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
               onPressed: _pushUpdate,
             ),
           ),
+          const SizedBox(height: 30),
         ],
       ),
     );
@@ -577,7 +583,7 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
   InputDecoration _inputDeco(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white38),
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
       filled: true,
       fillColor: cardDark,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white12)),
