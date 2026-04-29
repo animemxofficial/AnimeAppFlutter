@@ -12,7 +12,6 @@ const Color cardDark = Color(0xFF1A1A24);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Apne Supabase credentials yahan daalein
   await Supabase.initialize(
     url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
     anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
@@ -202,7 +201,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             _buildDrawerItem(Icons.payments, "Manage Payments", const ManagePaymentsScreen()),
             _buildDrawerItem(Icons.movie, "Manage Anime", const ManageAnimeScreen()),
             _buildDrawerItem(Icons.video_library, "Manage Episodes", const ManageEpisodesScreen()),
-            _buildDrawerItem(Icons.view_carousel, "Manage Hero Section", const ManageHeroScreen()),
+            _buildDrawerItem(Icons.view_carousel, "Hero Section (Slider)", const ManageHeroScreen()),
             _buildDrawerItem(Icons.people, "Manage Users", const UsersListScreen()),
             _buildDrawerItem(Icons.system_update, "Push App Update", const AppUpdateScreen()),
           ],
@@ -272,27 +271,51 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     }
   }
 
-  Future<void> _updateStatus(String id, String newStatus) async {
+  Future<void> _updateStatus(dynamic id, String newStatus) async {
     try {
-      await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment marked as $newStatus"), backgroundColor: Colors.green));
+      await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id.toString());
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment marked as $newStatus"), backgroundColor: Colors.green));
+      }
       _fetchRequests();
     } catch(e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      if(mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: Colors.redAccent,
+            title: const Text("Error Aa Gaya!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: Text(e.toString(), style: const TextStyle(color: Colors.white)),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK", style: TextStyle(color: Colors.white)))],
+          )
+        );
+      }
     }
   }
 
-  Future<void> _deleteRequest(String id) async {
+  Future<void> _deleteRequest(dynamic id) async {
     try {
-      await Supabase.instance.client.from('payment_requests').delete().eq('id', id);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Record Deleted"), backgroundColor: Colors.red));
+      await Supabase.instance.client.from('payment_requests').delete().eq('id', id.toString());
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Record Deleted"), backgroundColor: Colors.red));
+      }
       _fetchRequests();
     } catch(e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+      if(mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: Colors.redAccent,
+            title: const Text("Error Aa Gaya!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: Text(e.toString(), style: const TextStyle(color: Colors.white)),
+            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK", style: TextStyle(color: Colors.white)))],
+          )
+        );
+      }
     }
   }
 
-  Future<void> _editPlanDialog(String id, String currentPlan) async {
+  Future<void> _editPlanDialog(dynamic id, String currentPlan) async {
     TextEditingController planController = TextEditingController(text: currentPlan);
     await showDialog(
       context: context,
@@ -314,11 +337,21 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
           ElevatedButton(
             onPressed: () async {
               try {
-                await Supabase.instance.client.from('payment_requests').update({'plan': planController.text}).eq('id', id);
+                await Supabase.instance.client.from('payment_requests').update({'plan': planController.text}).eq('id', id.toString());
                 if(mounted) Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Plan Updated"), backgroundColor: Colors.green));
                 _fetchRequests();
-              } catch(e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red)); }
+              } catch(e) { 
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: Colors.redAccent,
+                    title: const Text("Error Aa Gaya!", style: TextStyle(color: Colors.white)),
+                    content: Text(e.toString(), style: const TextStyle(color: Colors.white)),
+                    actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK", style: TextStyle(color: Colors.white)))],
+                  )
+                );
+              }
             },
             child: const Text("Save"),
           )
@@ -467,8 +500,8 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     }
   }
 
-  Future<void> _deleteAnime(String id) async {
-    await Supabase.instance.client.from('anime_list').delete().eq('id', id);
+  Future<void> _deleteAnime(dynamic id) async {
+    await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString());
     _fetchAnime();
   }
 
@@ -507,7 +540,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
                 'image_url': _imageController.text,
                 'category': _mainCategoryController.text,
                 'sub_category': _subCategoryController.text,
-              }).eq('id', anime['id']);
+              }).eq('id', anime['id'].toString());
               if(mounted) Navigator.pop(context);
               _titleController.clear(); _imageController.clear(); _mainCategoryController.clear(); _subCategoryController.clear();
               _fetchAnime();
@@ -526,7 +559,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Upload Anime Poster", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text("Upload Anime Profile/Poster", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           
           TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Anime Name (e.g. Naruto)")),
@@ -731,8 +764,8 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
     }
   }
 
-  Future<void> _deleteEpisode(String id) async {
-    await Supabase.instance.client.from('anime_episodes').delete().eq('id', id);
+  Future<void> _deleteEpisode(dynamic id) async {
+    await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString());
     if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
   }
 
@@ -837,7 +870,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   List<dynamic> _animeList = [];
   String? _selectedAnimeId; 
   bool _isCustom = false;
-  String _selectedColor = "FF8A2BE2"; // Default Purple
+  String _selectedColor = "FF8A2BE2"; 
 
   List<dynamic> _heroItems = [];
 
@@ -887,8 +920,8 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
     }
   }
 
-  Future<void> _deleteHero(String id) async {
-    await Supabase.instance.client.from('hero_slider').delete().eq('id', id);
+  Future<void> _deleteHero(dynamic id) async {
+    await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString());
     _fetchData();
   }
 
@@ -923,7 +956,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             const SizedBox(height: 12),
           ],
           
-          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Title / Name")),
+          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Anime Name")),
           const SizedBox(height: 12),
           TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL (Landscape)")),
           const SizedBox(height: 12),
