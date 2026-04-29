@@ -1,3 +1,21 @@
+Bhai, bilkul tension mat lijiye. Main samajh gaya ki aapko poora code ek sath
+chahiye taaki koi confusion na ho.
+
+Niche Admin Panel ka 100% complete aur final code diya gaya hai. Isme aapki
+maangi gayi saari cheezein hain:
+
+  - 3-Line (Drawer) Menu (Bottom navigation hata diya gaya hai).
+  - "Mera Anime MX - Admin" text hata kar clean title lagaya gaya hai.
+  - Anime Upload, Edit, Delete (Category & Sub-category ke sath).
+  - Episodes Upload & Delete.
+  - Hero Section (Tag aur Color customization ke sath).
+  - Users List jisme har user ke liye "Reset Password" ka button hai.
+  - Payment Approval, Rejection, Delete aur Price/Plan Edit karne ka option.
+  - App Update (APK Link push) karne ka option.
+
+Apne Admin Panel ke main.dart file ka poora code delete karein, aur ye code
+copy-paste kar lijiye:
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -12,6 +30,7 @@ const Color cardDark = Color(0xFF1A1A24);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Apne Supabase credentials yahan daalein
   await Supabase.initialize(
     url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
     anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
@@ -27,6 +46,7 @@ class AdminApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      title: 'AnimeMX Admin',
       theme: ThemeData(
         brightness: Brightness.dark,
         primaryColor: adminPurple,
@@ -49,6 +69,9 @@ class AdminAuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator(color: adminPurple)));
+        }
         final session = snapshot.data?.session;
         if (session != null) {
           return const AdminDashboard();
@@ -75,6 +98,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
       await Supabase.instance.client.auth.signInWithPassword(
@@ -96,6 +120,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Container(
             padding: const EdgeInsets.all(24),
+            width: double.infinity,
+            constraints: const BoxConstraints(maxWidth: 400),
             decoration: BoxDecoration(
               color: cardDark,
               borderRadius: BorderRadius.circular(16),
@@ -165,7 +191,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentTitle, style: const TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 18)),
-        iconTheme: const IconThemeData(color: adminPurple), // 3 line hamburger icon color
+        iconTheme: const IconThemeData(color: adminPurple),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, color: Colors.redAccent),
@@ -186,7 +212,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   children: [
                     Icon(Icons.shield, color: adminPurple, size: 50),
                     SizedBox(height: 10),
-                    Text("Admin Dashboard", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text("Control Panel", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -194,7 +220,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             _buildDrawerItem(Icons.payments, "Manage Payments", const ManagePaymentsScreen()),
             _buildDrawerItem(Icons.movie, "Manage Anime", const ManageAnimeScreen()),
             _buildDrawerItem(Icons.video_library, "Manage Episodes", const ManageEpisodesScreen()),
-            _buildDrawerItem(Icons.view_carousel, "Hero Section (Slider)", const ManageHeroScreen()),
+            _buildDrawerItem(Icons.view_carousel, "Manage Hero Section", const ManageHeroScreen()),
             _buildDrawerItem(Icons.people, "Manage Users", const UsersListScreen()),
             _buildDrawerItem(Icons.system_update, "Push App Update", const AppUpdateScreen()),
           ],
@@ -225,7 +251,7 @@ class WelcomeScreen extends StatelessWidget {
           SizedBox(height: 20),
           Text("Welcome to Admin Control", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
           SizedBox(height: 10),
-          Text("Open the 3-line menu (top left) to start managing your app.", style: TextStyle(color: Colors.white54)),
+          Text("Open the menu (top left) to start managing your app.", style: TextStyle(color: Colors.white54)),
         ],
       ),
     );
@@ -265,13 +291,23 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   }
 
   Future<void> _updateStatus(String id, String newStatus) async {
-    await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id);
-    _fetchRequests();
+    try {
+      await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment marked as $newStatus"), backgroundColor: Colors.green));
+      _fetchRequests();
+    } catch(e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
   }
 
   Future<void> _deleteRequest(String id) async {
-    await Supabase.instance.client.from('payment_requests').delete().eq('id', id);
-    _fetchRequests();
+    try {
+      await Supabase.instance.client.from('payment_requests').delete().eq('id', id);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Record Deleted"), backgroundColor: Colors.red));
+      _fetchRequests();
+    } catch(e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
   }
 
   Future<void> _editPlanDialog(String id, String currentPlan) async {
@@ -285,7 +321,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
           controller: planController,
           style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
-            hintText: "Enter Correct Plan details",
+            hintText: "e.g. Basic Plan - ₹55/mo",
             hintStyle: TextStyle(color: Colors.white38),
             filled: true,
             fillColor: bgDark,
@@ -295,9 +331,12 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              await Supabase.instance.client.from('payment_requests').update({'plan': planController.text}).eq('id', id);
-              if(mounted) Navigator.pop(context);
-              _fetchRequests();
+              try {
+                await Supabase.instance.client.from('payment_requests').update({'plan': planController.text}).eq('id', id);
+                if(mounted) Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Plan Updated"), backgroundColor: Colors.green));
+                _fetchRequests();
+              } catch(e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red)); }
             },
             child: const Text("Save"),
           )
@@ -354,7 +393,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Plan: ${req['plan']}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                        Expanded(child: Text("Plan: ${req['plan']}", style: const TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis)),
                         GestureDetector(
                           onTap: () => _editPlanDialog(req['id'], req['plan']),
                           child: const Icon(Icons.edit, color: Colors.blueAccent, size: 18),
@@ -505,7 +544,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Upload Anime Profile/Poster", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text("Upload Anime Poster", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           
           TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Anime Name (e.g. Naruto)")),
@@ -602,7 +641,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
 }
 
 // ==========================================
-// 3. MANAGE EPISODES (ADD, EDIT, DELETE)
+// 3. MANAGE EPISODES (ADD, DELETE)
 // ==========================================
 class ManageEpisodesScreen extends StatefulWidget {
   const ManageEpisodesScreen({super.key});
@@ -650,7 +689,6 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
 
   Future<void> _fetchEpisodesForAnime(String animeId) async {
     try {
-      // Join seasons and episodes
       final data = await Supabase.instance.client.from('anime_seasons')
           .select('id, season_name, anime_episodes(id, episode_title, video_url)')
           .eq('anime_id', animeId);
@@ -903,7 +941,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             const SizedBox(height: 12),
           ],
           
-          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Anime Name")),
+          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Title / Name")),
           const SizedBox(height: 12),
           TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL (Landscape)")),
           const SizedBox(height: 12),
@@ -1096,18 +1134,18 @@ class AppUpdateScreen extends StatefulWidget {
 }
 
 class _AppUpdateScreenState extends State<AppUpdateScreen> {
-  final _mainDartController = TextEditingController();
-  final _pubspecController = TextEditingController();
   final _versionController = TextEditingController();
+  final _apkUrlController = TextEditingController();
+  final _whatsNewController = TextEditingController();
 
   Future<void> _pushUpdate() async {
     try {
       await Supabase.instance.client.from('app_updates').insert({
-        'version': _versionController.text,
-        'main_dart_code': _mainDartController.text,
-        'pubspec_code': _pubspecController.text,
+        'version': _versionController.text.trim(),
+        'apk_url': _apkUrlController.text.trim(),
+        'whats_new': _whatsNewController.text.trim(),
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("App Code Pushed Successfully!"), backgroundColor: Colors.green));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("App Update Alert Pushed Successfully!"), backgroundColor: Colors.green));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
     }
@@ -1120,48 +1158,28 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Push Remote App Update", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text("Push App Update (For Users)", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          const Text("Save main.dart and pubspec.yaml configuration to Database.", style: TextStyle(color: Colors.white54, fontSize: 13)),
+          const Text("Enter Version & APK Link. When user opens app, they will see an unskippable update prompt.", style: TextStyle(color: Colors.white54, fontSize: 13)),
           const SizedBox(height: 20),
           
-          TextField(
-            controller: _versionController,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputDeco("App Version (e.g. v2.1.0)"),
-          ),
+          TextField(controller: _versionController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("New Version Number (e.g. 1.0.2)")),
           const SizedBox(height: 16),
           
-          const Text("main.dart Source Code", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _mainDartController,
-            maxLines: 10,
-            style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 12),
-            decoration: _inputDeco("Paste updated main.dart code here..."),
-          ),
+          TextField(controller: _apkUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("APK Download Link (Drive, Mediafire, etc)")),
           const SizedBox(height: 16),
 
-          const Text("pubspec.yaml Source Code", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _pubspecController,
-            maxLines: 6,
-            style: const TextStyle(color: Colors.amberAccent, fontFamily: 'monospace', fontSize: 12),
-            decoration: _inputDeco("Paste updated pubspec.yaml here..."),
-          ),
+          TextField(controller: _whatsNewController, maxLines: 4, style: const TextStyle(color: Colors.white), decoration: _inputDeco("What's New / Release Notes...")),
           const SizedBox(height: 24),
 
           SizedBox(
-            height: 50,
-            width: double.infinity,
+            height: 50, width: double.infinity,
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.system_update_alt, color: Colors.white),
-              label: const Text("Push Update to Database", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.send, color: Colors.white),
+              label: const Text("Send Update Alert to Users", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
               onPressed: _pushUpdate,
             ),
           ),
-          const SizedBox(height: 30),
         ],
       ),
     );
