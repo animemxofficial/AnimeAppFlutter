@@ -1,21 +1,3 @@
-Bhai, bilkul tension mat lijiye. Main samajh gaya ki aapko poora code ek sath
-chahiye taaki koi confusion na ho.
-
-Niche Admin Panel ka 100% complete aur final code diya gaya hai. Isme aapki
-maangi gayi saari cheezein hain:
-
-  - 3-Line (Drawer) Menu (Bottom navigation hata diya gaya hai).
-  - "Mera Anime MX - Admin" text hata kar clean title lagaya gaya hai.
-  - Anime Upload, Edit, Delete (Category & Sub-category ke sath).
-  - Episodes Upload & Delete.
-  - Hero Section (Tag aur Color customization ke sath).
-  - Users List jisme har user ke liye "Reset Password" ka button hai.
-  - Payment Approval, Rejection, Delete aur Price/Plan Edit karne ka option.
-  - App Update (APK Link push) karne ka option.
-
-Apne Admin Panel ke main.dart file ka poora code delete karein, aur ye code
-copy-paste kar lijiye:
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
