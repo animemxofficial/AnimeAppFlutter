@@ -61,7 +61,6 @@ String formatViewsCount(int views) {
   return views.toString();
 }
 
-// --- MISSING FUNCTION ADDED BACK ---
 Future<void> fetchGlobalAnimeViews() async {
   try {
     final response = await Supabase.instance.client
@@ -88,7 +87,7 @@ Future<void> fetchGlobalAnimeViews() async {
 }
 
 // ==========================================
-// SUPABASE DATA PERSISTENCE SERVICES (RESTORED)
+// SUPABASE DATA PERSISTENCE SERVICES
 // ==========================================
 
 class CWService {
@@ -256,6 +255,7 @@ class Anime {
   final String category;
   final String subCategory;
   final bool isNew; 
+  final String description; // Added description
 
   Anime({
     required this.id,
@@ -272,6 +272,7 @@ class Anime {
     this.category = "",
     this.subCategory = "",
     this.isNew = false, 
+    this.description = "",
   });
 }
 
@@ -698,7 +699,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // CORE LOGIC: Fetch Data from Database Instead of Dummy List
+  // Fetch Data from Database
   Future<void> _fetchDatabaseCatalog() async {
     try {
       final animeResponse = await Supabase.instance.client.from('anime_list').select('''
@@ -724,7 +725,7 @@ class _MainScreenState extends State<MainScreen> {
             parsedEps.add(Episode(
               id: e['id'].toString(),
               title: e['episode_title']?.toString() ?? "Episode",
-              image: e['image_url']?.toString() ?? item['image_url'], // fallback to anime image
+              image: e['image_url']?.toString() ?? item['image_url'],
               duration: e['duration']?.toString() ?? "24m",
               videoUrl: e['video_url']?.toString() ?? "",
             ));
@@ -736,7 +737,6 @@ class _MainScreenState extends State<MainScreen> {
           ));
         }
 
-        // Convert hex color string from DB or use default
         Color dubColorParsed = const Color(0xFFFF4D4D);
         if (item['dub_color'] != null && item['dub_color'].toString().isNotEmpty) {
           try {
@@ -749,6 +749,7 @@ class _MainScreenState extends State<MainScreen> {
         fetchedAnimeList.add(Anime(
           id: item['id'].toString(),
           title: item['title']?.toString() ?? "Unknown",
+          description: item['description']?.toString() ?? "",
           image: item['image_url']?.toString() ?? "",
           genre: item['genres']?.toString() ?? "Action",
           rating: item['rating']?.toString() ?? "PG-13",
@@ -1012,12 +1013,34 @@ class HomeScreen extends StatelessWidget {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); 
               }
             ),
+            // RESTORED OPTIONS
             ListTile(
-              leading: Icon(Icons.headset_mic, color: getSubText(context)), 
-              title: Text("Support", style: TextStyle(color: getText(context))), 
+              leading: Icon(Icons.language, color: getSubText(context)), 
+              title: Text("Website", style: TextStyle(color: getText(context))), 
+              onTap: () => launchInBrowser("https://yourwebsite.com") // update URL
+            ),
+            ListTile(
+              leading: const Icon(Icons.favorite, color: Colors.pinkAccent), 
+              title: Text("Support Us", style: TextStyle(color: getText(context))), 
               onTap: () { 
                 Navigator.pop(context); 
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); 
+              }
+            ),
+            ListTile(
+              leading: Icon(Icons.palette, color: primColor), 
+              title: Text("Theme", style: TextStyle(color: getText(context))), 
+              onTap: () { 
+                Navigator.pop(context); 
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); 
+              }
+            ),
+            ListTile(
+              leading: Icon(Icons.lock, color: getSubText(context)), 
+              title: Text("Email & Password", style: TextStyle(color: getText(context))), 
+              onTap: () { 
+                Navigator.pop(context); 
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage())); 
               }
             ),
             ListTile(
@@ -1056,7 +1079,7 @@ class HomeScreen extends StatelessWidget {
           }
         ),
         title: Text(
-          "AnimeMX", 
+          "Anime MX", 
           style: TextStyle(color: primColor, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)
         ),
         actions:[
@@ -1072,7 +1095,7 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
             
-            // DYNAMIC HERO SLIDER
+            // DYNAMIC HERO SLIDER (UPDATED FOR DYNAMIC TAGS AND NORMAL CASE TEXT)
             ValueListenableBuilder<List<Map<String,dynamic>>>(
               valueListenable: heroSliderNotifier,
               builder: (context, heroList, child) {
@@ -1090,6 +1113,12 @@ class HomeScreen extends StatelessWidget {
                     final hero = heroList[i];
                     final bool isCustom = hero['is_custom'] ?? false;
                     final String heroTitle = hero['title'] ?? "";
+                    
+                    // Dynamic Tag parsing
+                    final String heroTag = hero['tag'] ?? "NEW";
+                    String hexColor = hero['tag_color']?.toString().replaceAll('#', '') ?? "FF8A2BE2";
+                    if(hexColor.length == 6) hexColor = 'FF$hexColor';
+                    Color tagColor = Color(int.tryParse(hexColor, radix: 16) ?? 0xFF8A2BE2);
                     
                     return GestureDetector(
                       onTap: () { 
@@ -1109,7 +1138,8 @@ class HomeScreen extends StatelessWidget {
                         children:[
                           Image.network(
                             hero['image_url'], 
-                            fit: BoxFit.cover
+                            fit: BoxFit.cover,
+                            errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)
                           ), 
                           Container(
                             decoration: BoxDecoration(
@@ -1146,7 +1176,7 @@ class HomeScreen extends StatelessWidget {
                                   SizedBox(
                                     width: MediaQuery.of(context).size.width * 0.85, 
                                     child: Text(
-                                      heroTitle.toUpperCase(), 
+                                      heroTitle, // Case is exactly as typed by Admin
                                       style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1), 
                                       maxLines: 1, 
                                       overflow: TextOverflow.ellipsis
@@ -1156,12 +1186,12 @@ class HomeScreen extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
                                     decoration: BoxDecoration(
-                                      color: primColor, 
+                                      color: tagColor, 
                                       borderRadius: BorderRadius.circular(4)
                                     ), 
-                                    child: const Text(
-                                      "NEW", 
-                                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
+                                    child: Text(
+                                      heroTag, 
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)
                                     )
                                   )
                                 ]
@@ -2263,7 +2293,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    "Description for ${widget.anime.title}. Watch it now on AnimeMX!", 
+                    widget.anime.description.isNotEmpty ? widget.anime.description : "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School. Watch it now on AnimeMX!", 
                     maxLines: _isExpanded ? null : 2, 
                     overflow: _isExpanded ? null : TextOverflow.ellipsis, 
                     style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
