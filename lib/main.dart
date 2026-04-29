@@ -61,6 +61,89 @@ String formatViewsCount(int views) {
   return views.toString();
 }
 
+// --- MISSING FUNCTION ADDED BACK ---
+Future<void> fetchGlobalAnimeViews() async {
+  try {
+    final response = await Supabase.instance.client
+        .from('episode_views')
+        .select('episode_id, view_count');
+
+    Map<String, int> viewsMap = {};
+    if (response != null) {
+      for (var row in response) {
+        String epId = row['episode_id'];
+        int vCount = row['view_count'] ?? 0;
+
+        List<String> parts = epId.split('_');
+        if (parts.length >= 3) {
+          String title = parts.sublist(0, parts.length - 2).join('_');
+          viewsMap[title] = (viewsMap[title] ?? 0) + vCount; 
+        }
+      }
+    }
+    globalAnimeViewsNotifier.value = viewsMap;
+  } catch (e) {
+    print("Error fetching global views: $e");
+  }
+}
+
+// ==========================================
+// SUPABASE DATA PERSISTENCE SERVICES (RESTORED)
+// ==========================================
+
+class CWService {
+  final SupabaseClient supabase;
+  CWService(this.supabase);
+
+  Future<void> saveCWList(String userEmail, List<CWItem> cwList) async {
+    final savedData = cwList.map((item) => item.toJson()).toList();
+    try {
+      await supabase.from('user_preferences').upsert(
+        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'continue_watching': savedData},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving continue watching list: $e");
+    }
+  }
+}
+
+class RecentSearchesService {
+  final SupabaseClient supabase;
+  RecentSearchesService(this.supabase);
+
+  Future<void> saveRecentSearches(String userEmail, List<String> searches) async {
+    final newSearches = [...searches];
+    if (newSearches.length > 5) newSearches.removeLast(); 
+    final searchesJson = jsonEncode(newSearches);
+    try {
+      await supabase.from('user_preferences').upsert(
+        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'recent_searches': searchesJson},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving recent searches: $e");
+    }
+  }
+}
+
+class MyListService {
+  final SupabaseClient supabase;
+  MyListService(this.supabase);
+
+  Future<void> saveMyList(String userEmail, List<SavedEpisode> savedList) async {
+    final savedData = savedList.map((item) => item.toJson()).toList();
+    try {
+      await supabase.from('user_preferences').upsert(
+        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'saved_anime': savedData},
+        onConflict: 'id',
+      );
+    } catch (e) {
+      print("Error saving saved anime list: $e");
+    }
+  }
+}
+
 // ==========================================
 // DATA MODELS
 // ==========================================
@@ -1011,7 +1094,6 @@ class HomeScreen extends StatelessWidget {
                     return GestureDetector(
                       onTap: () { 
                         if (isCustom || hero['anime_id'] == null) {
-                          // Custom banner, do nothing or show toast
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
                         } else {
                           try {
@@ -1111,7 +1193,6 @@ class HomeScreen extends StatelessWidget {
                   return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No Anime found in Database", style: TextStyle(color: Colors.white54))));
                 }
 
-                // Filtering Logics based on DB tags (category / sub_category)
                 final trendingList = allAnime.where((a) => a.category.toLowerCase().contains("trending")).toList();
                 final actionList = allAnime.where((a) => a.category.toLowerCase().contains("action") || a.subCategory.toLowerCase().contains("action")).toList();
                 final romanceList = allAnime.where((a) => a.category.toLowerCase().contains("romance") || a.subCategory.toLowerCase().contains("romance")).toList();
@@ -1119,15 +1200,13 @@ class HomeScreen extends StatelessWidget {
                 final suspenseList = allAnime.where((a) => a.category.toLowerCase().contains("suspense") || a.subCategory.toLowerCase().contains("suspense")).toList();
                 final mysteryList = allAnime.where((a) => a.category.toLowerCase().contains("mystery") || a.subCategory.toLowerCase().contains("mystery")).toList();
                 
-                // Popular list sorted by global views
                 List<Anime> popularList = List.from(allAnime);
                 popularList.sort((a, b) {
                   int viewsA = globalAnimeViewsNotifier.value[a.title] ?? 0;
                   int viewsB = globalAnimeViewsNotifier.value[b.title] ?? 0;
-                  return viewsB.compareTo(viewsA); // Descending
+                  return viewsB.compareTo(viewsA); 
                 });
 
-                // Episodes list
                 final episodesAvailableList = allAnime.where((a) => a.seasonsList.isNotEmpty).toList();
 
                 return Column(
@@ -1654,19 +1733,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0));
     }
     myListNotifier.value = list;
-    _saveMyListToSupabase();
-  }
-
-  Future<void> _saveMyListToSupabase() async {
-    final savedData = myListNotifier.value.map((item) => item.toJson()).toList();
-    try {
-      await Supabase.instance.client.from('user_preferences').upsert(
-        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'saved_anime': savedData},
-        onConflict: 'id',
-      );
-    } catch (e) {
-      print("Error saving saved anime list: $e");
-    }
+    MyListService(Supabase.instance.client).saveMyList(currentUserEmail, list);
   }
 
   @override
@@ -2616,20 +2683,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         list.insert(0, CWItem(anime: widget.anime, seasonIndex: widget.seasonIndex, episodeIndex: widget.episodeIndex, position: pos, totalDuration: dur)); 
       } 
       continueWatchingNotifier.value = list; 
-      _saveContinueWatchingToSupabase(list);
+      CWService(Supabase.instance.client).saveCWList(currentUserEmail, list);
     } 
-  }
-  
-  Future<void> _saveContinueWatchingToSupabase(List<CWItem> cwList) async {
-    final savedData = cwList.map((item) => item.toJson()).toList();
-    try {
-      await Supabase.instance.client.from('user_preferences').upsert(
-        {'id': Supabase.instance.client.auth.currentUser!.id, 'email': currentUserEmail, 'continue_watching': savedData},
-        onConflict: 'id',
-      );
-    } catch (e) {
-      print("Error saving continue watching list: $e");
-    }
   }
 
   void _toggleControls() { 
