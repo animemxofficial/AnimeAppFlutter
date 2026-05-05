@@ -1,14 +1,3 @@
-Bhai, ye error isliye aa raha hai kyunki Supabase realtime_client package ke
-purane version aur naye version me Presence objects handle karne ka tarika thoda
-alag hai, jis wajah se keys aur length theek se pehchan nahi pa raha.
-
-Tension mat lijiye, maine us logic ko aese likha hai ki wo kisi bhi version me
-error nahi dega (pura safe tarike se Map ko handle karega).
-
-Aap is code ko apne Admin Panel ke main.dart me daal dijiye. Maine koi bhi code
-chota nahi kiya hai, saare features wahi hain bas wo error wali line 100% fix
-kar di hai.
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -236,7 +225,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 }
 
 // ==========================================
-// 1. DASHBOARD HOME (LIVE STATS - PERFECT FIX)
+// 1. DASHBOARD HOME (LIVE STATS)
 // ==========================================
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -287,7 +276,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       int count = 0;
       
       if (activeStates != null) {
-        // FIXED PRESENCE LOGIC
         final rawMap = activeStates as Map<dynamic, dynamic>;
         for (var value in rawMap.values) {
           if (value is List) {
@@ -552,6 +540,53 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     _fetchAnime();
   }
 
+  Future<void> _editAnime(Map<String, dynamic> anime) async {
+    _titleController.text = anime['title'] ?? '';
+    _descController.text = anime['description'] ?? '';
+    _imageController.text = anime['image_url'] ?? '';
+    _mainCategoryController.text = anime['category'] ?? '';
+    _subCategoryController.text = anime['sub_category'] ?? '';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        title: const Text("Edit Anime", style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Title")),
+              const SizedBox(height: 8),
+              TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Image URL")),
+              const SizedBox(height: 8),
+              TextField(controller: _mainCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Main Category")),
+              const SizedBox(height: 8),
+              TextField(controller: _subCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Sub Category")),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              await Supabase.instance.client.from('anime_list').update({
+                'title': _titleController.text,
+                'image_url': _imageController.text,
+                'category': _mainCategoryController.text,
+                'sub_category': _subCategoryController.text,
+              }).eq('id', anime['id'].toString());
+              if(mounted) Navigator.pop(context);
+              _titleController.clear(); _imageController.clear(); _mainCategoryController.clear(); _subCategoryController.clear();
+              _fetchAnime();
+            },
+            child: const Text("Update"),
+          )
+        ],
+      )
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -578,7 +613,13 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
           if (_isLoading) const Center(child: CircularProgressIndicator(color: adminPurple))
           else ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _animeList.length, itemBuilder: (context, index) {
             final a = _animeList[index];
-            return Card(color: cardDark, child: ListTile(leading: Image.network(a['image_url'], width: 40, fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.error)), title: Text(a['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), subtitle: Text("${a['category']} | ${a['dub_status']}", style: const TextStyle(color: Colors.white54)), trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteAnime(a['id']))));
+            return Card(color: cardDark, child: ListTile(leading: Image.network(a['image_url'], width: 40, fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.error)), title: Text(a['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), subtitle: Text("${a['category']} | ${a['dub_status']}", style: const TextStyle(color: Colors.white54)), trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _editAnime(a)),
+                IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteAnime(a['id'])),
+              ],
+            )));
           })
         ],
       ),
