@@ -565,7 +565,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
         onBytesReceived: (cumulative, total) {
           if (total != -1) {
             setState(() {
-              _progress = cumulative / total;
+              _progress = cumulative / total; // Type safe fixed mapping
               _statusText = "Downloading... ${(_progress * 100).toInt()}%";
             });
           } else {
@@ -579,8 +579,6 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
       await file.writeAsBytes(bytes);
 
       setState(() { _statusText = "Installing..."; });
-      
-      // Trigger APK Install
       await OpenFilex.open(file.path);
       
       setState(() { _isDownloading = false; _statusText = "Update Now"; _progress = 0.0; });
@@ -605,7 +603,6 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
             const Text("Update Available", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             
-            // Glowing Logo Box
             Container(
               width: 120, height: 120,
               decoration: BoxDecoration(
@@ -613,7 +610,10 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
                 boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.5), blurRadius: 30, spreadRadius: 5)],
                 border: Border.all(color: animeMxPurple.withOpacity(0.3), width: 2)
               ),
-              child: ClipRRect(borderRadius: BorderRadius.circular(22), child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.movie, color: adminPurple, size: 50))),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22), 
+                child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: adminPurple, size: 50))
+              ),
             ),
             const SizedBox(height: 16),
             
@@ -621,7 +621,6 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
             Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
             const SizedBox(height: 24),
 
-            // What's New Box
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: const Color(0xFF1A1A24), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
@@ -641,7 +640,6 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
             ),
             const SizedBox(height: 24),
 
-            // Progress Bar
             if (_isDownloading)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -652,7 +650,6 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
               ),
             const SizedBox(height: 16),
 
-            // Update Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: SizedBox(
@@ -997,7 +994,7 @@ class HomeScreen extends StatelessWidget {
             ListTile(leading: Icon(Icons.home, color: getSubText(context)), title: Text("Home", style: TextStyle(color: getText(context))), onTap: () => Navigator.pop(context)),
             ListTile(leading: const Icon(Icons.workspace_premium, color: Colors.amber), title: const Text("Go Premium", style: TextStyle(color: Colors.amber)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); }),
             
-            // --- UPDATED OPTIONS (Simple Icons) ---
+            // --- FIXED OPTIONS (Simple Icons) ---
             ListTile(leading: Icon(Icons.language, color: getSubText(context)), title: Text("Website", style: TextStyle(color: getText(context))), onTap: () => launchInBrowser(globalWebsiteUrl)),
             ListTile(leading: Icon(Icons.help_outline, color: getSubText(context)), title: Text("Support", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); }),
             ListTile(leading: Icon(Icons.palette_outlined, color: getSubText(context)), title: Text("Theme", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); }),
@@ -1310,7 +1307,7 @@ class CWSeeAllPage extends StatelessWidget {
 }
 
 // ==========================================
-// CATEGORY PAGES & CARDS
+// CATEGORY PAGES & CARDS (UPDATED COLORS)
 // ==========================================
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
@@ -1677,7 +1674,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    widget.anime.description.isNotEmpty ? widget.anime.description : "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School. Watch it now on AnimeMX!", 
+                    widget.anime.description.isNotEmpty ? widget.anime.description : "Watch ${widget.anime.title} now on AnimeMX!", 
                     maxLines: _isExpanded ? null : 2, overflow: _isExpanded ? null : TextOverflow.ellipsis, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
                   ),
                   const SizedBox(height: 6),
