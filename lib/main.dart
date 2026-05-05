@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 // ==========================================
 // GLOBAL CONFIG & THEME
@@ -225,7 +225,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 }
 
 // ==========================================
-// 1. DASHBOARD HOME (LIVE STATS)
+// 1. DASHBOARD HOME (LIVE STATS - FIXED)
 // ==========================================
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -251,13 +251,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   Future<void> _fetchStats() async {
     try {
-      // Fetch Total Users from user_preferences
       final userRes = await Supabase.instance.client.from('user_preferences').select('email');
       Set<String> uniqueEmails = {};
       for(var r in userRes) { if(r['email'] != null) uniqueEmails.add(r['email']); }
       totalUsers = uniqueEmails.length;
 
-      // Fetch Premium Users from payment_requests
       final premiumRes = await Supabase.instance.client.from('payment_requests').select('email').eq('status', 'Approved');
       Set<String> premiumEmails = {};
       for(var r in premiumRes) { if(r['email'] != null) premiumEmails.add(r['email']); }
@@ -265,7 +263,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
       freeUsers = totalUsers - premiumUsers;
       if(freeUsers < 0) freeUsers = 0;
-
+      offlineUsers = totalUsers; // Default before live sync
+      
       setState(() => _isLoading = false);
     } catch(e) { print(e); setState(() => _isLoading = false); }
   }
@@ -275,8 +274,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     _presenceChannel?.onPresenceSync((payload) {
       final activeStates = _presenceChannel?.presenceState();
       int count = 0;
-      if (activeStates != null) {
-        for (var state in activeStates.values) { count += state.length; }
+      if (activeStates != null && activeStates.isNotEmpty) {
+        // Safe count calculation
+        for (var key in activeStates.keys) {
+          final stateList = activeStates[key];
+          if (stateList != null && stateList is List) {
+            count += stateList.length;
+          }
+        }
       }
       setState(() {
         liveUsers = count;
@@ -769,7 +774,10 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return _isLoading ? const Center(child: CircularProgressIndicator(color: adminPurple)) : _users.isEmpty ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54)))
+    return _isLoading 
+      ? const Center(child: CircularProgressIndicator(color: adminPurple))
+      : _users.isEmpty 
+        ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54)))
         : Column(
             children: [
               Container(padding: const EdgeInsets.all(12), color: Colors.blueAccent.withOpacity(0.1), child: Row(children: const [Icon(Icons.info, color: Colors.blueAccent), SizedBox(width: 10), Expanded(child: Text("Passwords are encrypted. Click 'Send Link' to send a password reset email.", style: TextStyle(color: Colors.blueAccent, fontSize: 13)))])),
@@ -790,7 +798,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text("Pass: [ Encrypted ]", style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic, fontSize: 12)),
+                                const Text("Pass: [ Encrypted Hash ]", style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic, fontSize: 12)),
                                 ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), icon: const Icon(Icons.link, color: Colors.white, size: 16), label: const Text("Send Link", style: TextStyle(color: Colors.white, fontSize: 12)), onPressed: () => _sendResetLink(email))
                               ],
                             )
