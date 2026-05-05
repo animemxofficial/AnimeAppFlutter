@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart'; // For consolidateHttpClientResponseBytes
+import 'package:flutter/foundation.dart'; 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -562,10 +562,10 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
       }
       var bytes = await consolidateHttpClientResponseBytes(
         response,
-        onBytesReceived: (cumulative, total) {
-          if (total != -1) {
+        onBytesReceived: (int cumulative, int? total) {
+          if (total != null && total != -1) {
             setState(() {
-              _progress = cumulative / total; // Type safe fixed mapping
+              _progress = cumulative / total;
               _statusText = "Downloading... ${(_progress * 100).toInt()}%";
             });
           } else {
@@ -612,7 +612,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(22), 
-                child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: adminPurple, size: 50))
+                child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: animeMxPurple, size: 50))
               ),
             ),
             const SizedBox(height: 16),
@@ -994,7 +994,7 @@ class HomeScreen extends StatelessWidget {
             ListTile(leading: Icon(Icons.home, color: getSubText(context)), title: Text("Home", style: TextStyle(color: getText(context))), onTap: () => Navigator.pop(context)),
             ListTile(leading: const Icon(Icons.workspace_premium, color: Colors.amber), title: const Text("Go Premium", style: TextStyle(color: Colors.amber)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); }),
             
-            // --- FIXED OPTIONS (Simple Icons) ---
+            // --- UPDATED OPTIONS (Simple Icons, Name Change) ---
             ListTile(leading: Icon(Icons.language, color: getSubText(context)), title: Text("Website", style: TextStyle(color: getText(context))), onTap: () => launchInBrowser(globalWebsiteUrl)),
             ListTile(leading: Icon(Icons.help_outline, color: getSubText(context)), title: Text("Support", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); }),
             ListTile(leading: Icon(Icons.palette_outlined, color: getSubText(context)), title: Text("Theme", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); }),
@@ -1674,7 +1674,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    widget.anime.description.isNotEmpty ? widget.anime.description : "Watch ${widget.anime.title} now on AnimeMX!", 
+                    widget.anime.description.isNotEmpty ? widget.anime.description : "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School. Watch it now on AnimeMX!", 
                     maxLines: _isExpanded ? null : 2, overflow: _isExpanded ? null : TextOverflow.ellipsis, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
                   ),
                   const SizedBox(height: 6),
