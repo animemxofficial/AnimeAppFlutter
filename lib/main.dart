@@ -225,7 +225,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 }
 
 // ==========================================
-// 1. DASHBOARD HOME (LIVE STATS)
+// 1. DASHBOARD HOME (LIVE STATS & DAILY USERS)
 // ==========================================
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -239,6 +239,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int freeUsers = 0;
   int liveUsers = 0;
   int offlineUsers = 0;
+  int dailyActiveUsers = 0; // NEW: Daily active users
   bool _isLoading = true;
   RealtimeChannel? _presenceChannel;
 
@@ -264,6 +265,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       freeUsers = totalUsers - premiumUsers;
       if(freeUsers < 0) freeUsers = 0;
       offlineUsers = totalUsers; 
+
+      // NEW: Fetch Daily Active Users (DAU)
+      final today = DateTime.now();
+      final startOfToday = DateTime(today.year, today.month, today.day).toUtc().toIso8601String();
+      try {
+        final dailyRes = await Supabase.instance.client.from('user_views').select('user_id').gte('created_at', startOfToday);
+        Set<String> uniqueDaily = {};
+        for(var r in dailyRes) { if(r['user_id'] != null) uniqueDaily.add(r['user_id'].toString()); }
+        dailyActiveUsers = uniqueDaily.length;
+      } catch(e) { print("DAU error: $e"); }
       
       setState(() => _isLoading = false);
     } catch(e) { print(e); setState(() => _isLoading = false); }
@@ -310,7 +321,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Overview", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text("Overview Analytics", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             
             GridView(
@@ -318,13 +329,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 1.1, crossAxisSpacing: 16, mainAxisSpacing: 16),
               children: [
                 _buildStatCard("Total Members", totalUsers.toString(), Icons.people, Colors.blue),
-                _buildStatCard("Premium Subscriptions", premiumUsers.toString(), Icons.workspace_premium, Colors.amber),
-                _buildStatCard("Free Users", freeUsers.toString(), Icons.person_outline, Colors.grey),
-                _buildStatCard("Live Viewers Now", liveUsers.toString(), Icons.sensors, Colors.green, isLive: true),
+                _buildStatCard("Premium Members", premiumUsers.toString(), Icons.workspace_premium, Colors.amber),
+                _buildStatCard("Daily Active Users", dailyActiveUsers.toString(), Icons.local_fire_department, Colors.orange),
+                _buildStatCard("Live Now", liveUsers.toString(), Icons.sensors, Colors.green, isLive: true),
               ],
             ),
             const SizedBox(height: 16),
-            _buildStatCard("Offline Members", offlineUsers.toString(), Icons.cloud_off, Colors.redAccent, fullWidth: true),
+            Row(
+              children: [
+                Expanded(child: _buildStatCard("Free Users", freeUsers.toString(), Icons.person_outline, Colors.grey, fullWidth: true)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildStatCard("Offline Now", offlineUsers.toString(), Icons.cloud_off, Colors.redAccent, fullWidth: true)),
+              ],
+            )
           ],
         ),
       ),
@@ -346,9 +363,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ],
           ),
           const Spacer(),
-          Text(count, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+          Text(count, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
-          Text(title, style: TextStyle(color: Colors.white70, fontSize: fullWidth ? 16 : 13, fontWeight: FontWeight.w500)),
+          Text(title, style: TextStyle(color: Colors.white70, fontSize: fullWidth ? 13 : 12, fontWeight: FontWeight.w500)),
         ],
       ),
     );
@@ -356,7 +373,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 }
 
 // ==========================================
-// 2. MANAGE PAYMENTS
+// 2. MANAGE PAYMENTS (WITH DATE GROUPING)
 // ==========================================
 class ManagePaymentsScreen extends StatefulWidget {
   const ManagePaymentsScreen({super.key});
@@ -438,6 +455,24 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     );
   }
 
+  // Format Date Logic: Today, Yesterday, or specific date
+  String _formatDateGroup(String? isoString) {
+    if (isoString == null) return "Unknown Time";
+    DateTime date = DateTime.parse(isoString).toLocal();
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime yesterday = today.subtract(const Duration(days: 1));
+    DateTime checkDate = DateTime(date.year, date.month, date.day);
+
+    String ampm = date.hour >= 12 ? 'PM' : 'AM';
+    int hr = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    String timeStr = "$hr:${date.minute.toString().padLeft(2, '0')} $ampm";
+
+    if (checkDate == today) return "Today at $timeStr";
+    if (checkDate == yesterday) return "Yesterday at $timeStr";
+    return "${date.day}/${date.month}/${date.year} at $timeStr";
+  }
+
   @override
   Widget build(BuildContext context) {
     return _isLoading 
@@ -447,6 +482,8 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
           padding: const EdgeInsets.all(12), itemCount: _requests.length,
           itemBuilder: (context, index) {
             final req = _requests[index];
+            String displayTime = _formatDateGroup(req['created_at']);
+            
             return Card(
               color: cardDark, margin: const EdgeInsets.only(bottom: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: Padding(
@@ -461,11 +498,13 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                         Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: req['status'] == 'Approved' ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Text(req['status'], style: TextStyle(color: req['status'] == 'Approved' ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold)))
                       ],
                     ),
+                    const SizedBox(height: 6),
+                    Text(displayTime, style: TextStyle(color: displayTime.contains("Today") ? Colors.greenAccent : Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text("Plan: ${req['plan']}", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                        Expanded(child: Text("Plan: ${req['plan']}", style: const TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis)),
                         GestureDetector(onTap: () => _editPlanDialog(req['id'], req['plan']), child: const Icon(Icons.edit, color: Colors.blueAccent, size: 18))
                       ],
                     ),
@@ -869,7 +908,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
 }
 
 // ==========================================
-// 7. APP SETTINGS (WEBSITE LINK)
+// 7. APP SETTINGS (WEBSITE LINK & LOGO)
 // ==========================================
 class AppSettingsScreen extends StatefulWidget {
   const AppSettingsScreen({super.key});
@@ -879,36 +918,49 @@ class AppSettingsScreen extends StatefulWidget {
 
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _urlController = TextEditingController();
+  final _logoController = TextEditingController();
   
   @override
-  void initState() { super.initState(); _fetchUrl(); }
+  void initState() { super.initState(); _fetchSettings(); }
 
-  Future<void> _fetchUrl() async {
+  Future<void> _fetchSettings() async {
     try {
-      final res = await Supabase.instance.client.from('app_settings').select('website_url').eq('id', 1).maybeSingle();
-      if(res != null) setState(() => _urlController.text = res['website_url'] ?? "");
+      final res = await Supabase.instance.client.from('app_settings').select().eq('id', 1).maybeSingle();
+      if(res != null) {
+        setState(() {
+          _urlController.text = res['website_url'] ?? "";
+          _logoController.text = res['app_logo_url'] ?? "";
+        });
+      }
     } catch(e) {}
   }
 
-  Future<void> _updateUrl() async {
+  Future<void> _saveSettings() async {
     try {
-      await Supabase.instance.client.from('app_settings').upsert({'id': 1, 'website_url': _urlController.text.trim()});
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Website URL Updated!"), backgroundColor: Colors.green));
+      await Supabase.instance.client.from('app_settings').upsert({'id': 1, 'website_url': _urlController.text.trim(), 'app_logo_url': _logoController.text.trim()});
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("App Settings Updated Successfully!"), backgroundColor: Colors.green));
     } catch(e) {}
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Update Website Link", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(height: 8),
-          const Text("Ye link user panel ke 'Website' button pe click karne par khulega.", style: TextStyle(color: Colors.white54, fontSize: 13)), const SizedBox(height: 20),
+          const Text("App Visuals & Links", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(height: 8),
+          const Text("Change user panel logo and website URL from here.", style: TextStyle(color: Colors.white54, fontSize: 13)), const SizedBox(height: 20),
+          
+          const Text("Website URL", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)), const SizedBox(height: 8),
           TextField(controller: _urlController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "https://yourwebsite.com", filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
           const SizedBox(height: 20),
-          SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(icon: const Icon(Icons.save, color: Colors.white), label: const Text("Save Link", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), onPressed: _updateUrl)),
+
+          const Text("App Logo URL (PNG/WEBP)", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)), const SizedBox(height: 8),
+          TextField(controller: _logoController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "https://image-link.png", filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 24),
+
+          SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(icon: const Icon(Icons.save, color: Colors.white), label: const Text("Save App Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), onPressed: _saveSettings)),
         ],
       ),
     );
@@ -930,10 +982,18 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
   final _whatsNewController = TextEditingController();
 
   Future<void> _pushUpdate() async {
+    // Basic validation
+    if (_versionController.text.trim() == "1.0.0") {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Alert: Users pehle se 1.0.0 use kar rahe hain. 1.0.1 ya bada version daalein warna unhe popup nahi dikhega!"), backgroundColor: Colors.orange));
+      return;
+    }
+
     try {
       await Supabase.instance.client.from('app_updates').insert({'version': _versionController.text.trim(), 'apk_url': _apkUrlController.text.trim(), 'whats_new': _whatsNewController.text.trim()});
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("App Update Alert Pushed Successfully!"), backgroundColor: Colors.green));
-    } catch (e) {}
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
   }
 
   @override
@@ -944,8 +1004,8 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text("Push App Update (For Users)", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(height: 8),
-          const Text("Enter Version & APK Link. When user opens app, they will see an unskippable update prompt.", style: TextStyle(color: Colors.white54, fontSize: 13)), const SizedBox(height: 20),
-          TextField(controller: _versionController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("New Version Number (e.g. 1.0.2)")), const SizedBox(height: 16),
+          const Text("Enter Version & APK Link. (Warning: Naya version number 1.0.1 ya usse aage hona chahiye)", style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)), const SizedBox(height: 20),
+          TextField(controller: _versionController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("New Version Number (e.g. 1.0.1)")), const SizedBox(height: 16),
           TextField(controller: _apkUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("APK Download Link (Drive, Mediafire)")), const SizedBox(height: 16),
           TextField(controller: _whatsNewController, maxLines: 4, style: const TextStyle(color: Colors.white), decoration: _inputDeco("What's New / Release Notes...")), const SizedBox(height: 24),
           SizedBox(height: 50, width: double.infinity, child: ElevatedButton.icon(icon: const Icon(Icons.send, color: Colors.white), label: const Text("Send Update Alert to Users", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), onPressed: _pushUpdate)),
