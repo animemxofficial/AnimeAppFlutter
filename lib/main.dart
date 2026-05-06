@@ -357,7 +357,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN (PREMIUM MINIMAL UI)
+// LOGIN SCREEN 
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -531,25 +531,25 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // ==========================================
-// IN-APP OTA UPDATER UI (PREMIUM DESIGN)
+// IN-APP OTA UPDATER UI (FULL SCREEN EXACT PREMIUM DESIGN)
 // ==========================================
-class InAppUpdateDialog extends StatefulWidget {
+class FullScreenUpdatePage extends StatefulWidget {
   final String latestVersion;
   final String apkUrl;
   final String whatsNew;
 
-  const InAppUpdateDialog({
+  const FullScreenUpdatePage({
     Key? key, required this.latestVersion, required this.apkUrl, required this.whatsNew,
   }) : super(key: key);
 
   @override
-  State<InAppUpdateDialog> createState() => _InAppUpdateDialogState();
+  State<FullScreenUpdatePage> createState() => _FullScreenUpdatePageState();
 }
 
-class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
+class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
   double _progress = 0.0;
   bool _isDownloading = false;
-  String _statusText = "Update Now";
+  String _statusText = "Update";
   String _fileSize = "Calculating...";
 
   Future<void> _startDownload() async {
@@ -565,7 +565,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
         onBytesReceived: (int cumulative, int? total) {
           if (total != null && total != -1) {
             setState(() {
-              _progress = cumulative / total;
+              _progress = cumulative / total; 
               _statusText = "Downloading... ${(_progress * 100).toInt()}%";
             });
           } else {
@@ -581,7 +581,7 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
       setState(() { _statusText = "Installing..."; });
       await OpenFilex.open(file.path);
       
-      setState(() { _isDownloading = false; _statusText = "Update Now"; _progress = 0.0; });
+      setState(() { _isDownloading = false; _statusText = "Update"; _progress = 0.0; });
     } catch (e) {
       setState(() { _isDownloading = false; _statusText = "Failed. Try Again?"; });
     }
@@ -591,92 +591,135 @@ class _InAppUpdateDialogState extends State<InAppUpdateDialog> {
   Widget build(BuildContext context) {
     List<String> updates = widget.whatsNew.split('\n').where((s) => s.trim().isNotEmpty).toList();
 
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Container(
-        decoration: BoxDecoration(color: const Color(0xFF0F0F13), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white12)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 24),
-            const Text("Update Available", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            
-            Container(
-              width: 120, height: 120,
-              decoration: BoxDecoration(
-                color: Colors.black, borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.5), blurRadius: 30, spreadRadius: 5)],
-                border: Border.all(color: animeMxPurple.withOpacity(0.3), width: 2)
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22), 
-                child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: animeMxPurple, size: 50))
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            const Text("AnimeMX", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 1)),
-            Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
-            const SizedBox(height: 24),
-
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20), padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: const Color(0xFF1A1A24), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: const [Icon(Icons.auto_awesome, color: animeMxPurple, size: 20), SizedBox(width: 8), Text("What's New", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))]),
-                  const SizedBox(height: 12),
-                  ...updates.map((u) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("• ", style: TextStyle(color: Colors.white54, fontSize: 16)), Expanded(child: Text(u, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)))],))),
-                  const Divider(color: Colors.white12, height: 24),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Row(children: [const Icon(Icons.download_rounded, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update Size", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text(_fileSize, style: const TextStyle(color: Colors.white54, fontSize: 11))])]),
-                    Row(children: [const Icon(Icons.info_outline, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text(CURRENT_APP_VERSION, style: const TextStyle(color: Colors.white54, fontSize: 11))])]),
-                  ])
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            if (_isDownloading)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white12, valueColor: const AlwaysStoppedAnimation<Color>(animeMxPurple)),
+    return WillPopScope(
+      onWillPop: () async => false, // Disable back button
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F0F13), // Deep dark background
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
+                const Text("Update Available", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 40),
+                
+                // Top App Icon with Glow
+                Container(
+                  width: 140, height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.black, borderRadius: BorderRadius.circular(30),
+                    boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.4), blurRadius: 40, spreadRadius: 5)],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30), 
+                    child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: animeMxPurple, size: 60))
+                  ),
                 ),
-              ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 20),
+                
+                const Text("Anime MX", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.verified_user, color: Colors.green, size: 16),
+                    SizedBox(width: 6),
+                    Text("Verified by Play Protect", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
+                
+                const SizedBox(height: 40),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: SizedBox(
-                width: double.infinity, height: 55,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10, shadowColor: animeMxPurple.withOpacity(0.5)),
-                  onPressed: _isDownloading ? null : _startDownload,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                // What's New Box
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (!_isDownloading) const Icon(Icons.download, color: Colors.white, size: 20),
-                      if (!_isDownloading) const SizedBox(width: 8),
-                      Text(_statusText, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome, color: animeMxPurple, size: 20)), 
+                          const SizedBox(width: 12), 
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text("What's new", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                              Text("Bug fixes and performance improvements.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                            ],
+                          )
+                        ]
+                      ),
+                      const SizedBox(height: 16),
+                      ...updates.map((u) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("• ", style: TextStyle(color: animeMxPurple, fontSize: 18, fontWeight: FontWeight.bold)), Expanded(child: Text(u, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)))],))),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 16),
+
+                // Specs Box
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
+                  child: Column(
+                    children: [
+                      Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.download_rounded, color: animeMxPurple, size: 18)), const SizedBox(width: 16), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update size", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(_fileSize, style: const TextStyle(color: Colors.white54, fontSize: 12))])]),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(color: Colors.white12, height: 1)),
+                      Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.info_outline, color: animeMxPurple, size: 18)), const SizedBox(width: 16), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current version", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(CURRENT_APP_VERSION, style: const TextStyle(color: Colors.white54, fontSize: 12))])]),
+                    ],
+                  ),
+                ),
+                
+                const Spacer(),
+
+                if (_isDownloading)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white12, valueColor: const AlwaysStoppedAnimation<Color>(animeMxPurple)),
+                    ),
+                  ),
+
+                // Full Width Button
+                SizedBox(
+                  width: double.infinity, height: 55,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10, shadowColor: animeMxPurple.withOpacity(0.5)),
+                    onPressed: _isDownloading ? null : _startDownload,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (!_isDownloading) const Icon(Icons.download, color: Colors.white, size: 20),
+                        if (!_isDownloading) const SizedBox(width: 8),
+                        Text(_statusText, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.lock_outline, color: Colors.white38, size: 14),
+                    SizedBox(width: 6),
+                    Text("Your data won't be lost", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            const Text("Your data will not be lost", style: TextStyle(color: Colors.white38, fontSize: 12)),
-            const SizedBox(height: 24),
-          ],
+          ),
         ),
       ),
     );
   }
 }
+
 
 // ==========================================
 // MAIN SCREEN & DATABASE LOADER
@@ -716,6 +759,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _loadEverything() async {
+    await _checkCookies(); // New logic ensures banner is shown only once
     await _fetchSettings(); 
     await _checkForUpdates(context); 
     await _fetchActivePlanAndCheckDevices(); 
@@ -726,8 +770,47 @@ class _MainScreenState extends State<MainScreen> {
     
     if(mounted) {
       setState(() => _isDataLoading = false);
-      if (!hasAcceptedCookies) _showCookieBanner(context);
     }
+  }
+
+  // FIXED COOKIE POLICY
+  Future<void> _checkCookies() async {
+    final prefs = await SharedPreferences.getInstance();
+    bool accepted = prefs.getBool('cookies_accepted') ?? false;
+    if (!accepted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showCookieBanner(context);
+      });
+    } else {
+      hasAcceptedCookies = true;
+    }
+  }
+
+  void _showCookieBanner(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    showModalBottomSheet(
+      context: context, isScrollControlled: true, isDismissible: false, enableDrag: false, backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: getCard(context), borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), border: Border.all(color: Colors.white12)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [Icon(Icons.cookie, color: primColor, size: 28), const SizedBox(width: 10), const Text("Cookie Policy", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))]),
+            const SizedBox(height: 15),
+            const Text("We use cookies to improve your experience, personalize content, and analyze traffic. You can choose to accept or manage your preferences anytime.", style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
+            const SizedBox(height: 25),
+            Row(
+              children: [
+                Expanded(child: OutlinedButton(style: OutlinedButton.styleFrom(side: BorderSide(color: primColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: () async { final prefs = await SharedPreferences.getInstance(); await prefs.setBool('cookies_accepted', true); hasAcceptedCookies = true; Navigator.pop(context); }, child: Text("Decline", style: TextStyle(color: primColor, fontWeight: FontWeight.bold)))),
+                const SizedBox(width: 15),
+                Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: () async { final prefs = await SharedPreferences.getInstance(); await prefs.setBool('cookies_accepted', true); hasAcceptedCookies = true; Navigator.pop(context); }, child: const Text("Accept All", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+              ],
+            )
+          ],
+        )
+      )
+    );
   }
 
   Future<void> _fetchSettings() async {
@@ -818,13 +901,8 @@ class _MainScreenState extends State<MainScreen> {
         String whatsNew = response['whats_new'] ?? "New updates available.";
 
         if (latestVersion != CURRENT_APP_VERSION && apkUrl.isNotEmpty) {
-          showDialog(
-            context: context, barrierDismissible: false,
-            builder: (context) => WillPopScope(
-              onWillPop: () async => false, 
-              child: InAppUpdateDialog(latestVersion: latestVersion, apkUrl: apkUrl, whatsNew: whatsNew)
-            )
-          );
+          // Navigator push to the new Full Screen UI instead of Dialog
+          Navigator.push(context, MaterialPageRoute(builder: (context) => FullScreenUpdatePage(latestVersion: latestVersion, apkUrl: apkUrl, whatsNew: whatsNew)));
         }
       }
     } catch (e) { print("Update check error: $e"); }
@@ -895,33 +973,6 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
     } catch (e) {}
-  }
-
-  void _showCookieBanner(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    showModalBottomSheet(
-      context: context, isScrollControlled: true, isDismissible: false, enableDrag: false, backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: getCard(context), borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), border: Border.all(color: Colors.white12)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [Icon(Icons.cookie, color: primColor, size: 28), const SizedBox(width: 10), const Text("Cookie Policy", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))]),
-            const SizedBox(height: 15),
-            const Text("We use cookies to improve your experience, personalize content, and analyze traffic. You can choose to accept or manage your preferences anytime.", style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)),
-            const SizedBox(height: 25),
-            Row(
-              children: [
-                Expanded(child: OutlinedButton(style: OutlinedButton.styleFrom(side: BorderSide(color: primColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: () { hasAcceptedCookies = true; Navigator.pop(context); }, child: Text("Decline", style: TextStyle(color: primColor, fontWeight: FontWeight.bold)))),
-                const SizedBox(width: 15),
-                Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: () { hasAcceptedCookies = true; Navigator.pop(context); }, child: const Text("Accept All", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-              ],
-            )
-          ],
-        )
-      )
-    );
   }
 
   void _goToSearch() => setState(() => _index = 1);
@@ -2351,7 +2402,7 @@ class ProfileScreen extends StatelessWidget {
                 _buildGroupedItem(context: context, title: "App Theme", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
                 _buildGroupedItem(context: context, title: "Payment Verification", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage()))),
                 _buildGroupedItem(context: context, title: "Order History", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage()))),
-                _buildGroupedItem(context: context, title: "Support Center", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
+                _buildGroupedItem(context: context, title: "Support", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
               ], context),
 
               const SizedBox(height: 10),
