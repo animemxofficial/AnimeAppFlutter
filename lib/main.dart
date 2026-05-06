@@ -299,6 +299,24 @@ Future<void> launchTelegram(String contact) async {
 }
 
 // ==========================================
+// APP LOGOUT FUNCTION (CLEARS DEVICE SESSION)
+// ==========================================
+Future<void> logoutUser(BuildContext context) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    String? dId = prefs.getString('device_id');
+    if (dId != null && currentUserEmail.isNotEmpty) {
+      // Free up device slot on logout
+      await Supabase.instance.client.from('user_devices').delete().eq('device_id', dId).eq('email', currentUserEmail);
+    }
+  } catch (e) {
+    print("Logout error: $e");
+  }
+  await Supabase.instance.client.auth.signOut();
+}
+
+
+// ==========================================
 // ROOT APP
 // ==========================================
 class AnimeMX extends StatelessWidget {
@@ -531,7 +549,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // ==========================================
-// IN-APP OTA UPDATER UI (FULL SCREEN EXACT PREMIUM DESIGN)
+// IN-APP OTA UPDATER UI (SCROLLABLE FULL SCREEN EXACT PREMIUM DESIGN)
 // ==========================================
 class FullScreenUpdatePage extends StatefulWidget {
   final String latestVersion;
@@ -596,7 +614,7 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
       child: Scaffold(
         backgroundColor: const Color(0xFF0F0F13), // Deep dark background
         body: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -674,7 +692,7 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
                   ),
                 ),
                 
-                const Spacer(),
+                const SizedBox(height: 30),
 
                 if (_isDownloading)
                   Padding(
@@ -720,7 +738,6 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
   }
 }
 
-
 // ==========================================
 // MAIN SCREEN & DATABASE LOADER
 // ==========================================
@@ -759,7 +776,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _loadEverything() async {
-    await _checkCookies(); // New logic ensures banner is shown only once
+    await _checkCookies(); 
     await _fetchSettings(); 
     await _checkForUpdates(context); 
     await _fetchActivePlanAndCheckDevices(); 
@@ -773,7 +790,6 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // FIXED COOKIE POLICY
   Future<void> _checkCookies() async {
     final prefs = await SharedPreferences.getInstance();
     bool accepted = prefs.getBool('cookies_accepted') ?? false;
@@ -852,17 +868,15 @@ class _MainScreenState extends State<MainScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     String? dId = prefs.getString('device_id');
-    if (dId == null) {
-      dId = const Uuid().v4();
-      await prefs.setString('device_id', dId);
-    }
     
     try {
       final dbDevices = await Supabase.instance.client.from('user_devices').select('device_id').eq('email', currentUserEmail);
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
-      
-      if (!registeredDevices.contains(dId)) {
+
+      if (dId == null || !registeredDevices.contains(dId)) {
         if (registeredDevices.length < limit) {
+          dId = const Uuid().v4();
+          await prefs.setString('device_id', dId);
           await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
         } else {
           _showDeviceLimitDialog(limit);
@@ -881,9 +895,13 @@ class _MainScreenState extends State<MainScreen> {
           title: const Text("Device Limit Reached!", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
           content: Text("Your current plan allows a maximum of $limit device(s). Please log out from another device or upgrade your plan.", style: const TextStyle(color: Colors.white70)),
           actions: [
+            TextButton(
+              onPressed: () { Navigator.of(context, rootNavigator: true).pop(); Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumPage())); },
+              child: const Text("Upgrade Plan", style: TextStyle(color: animeMxPurple)),
+            ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-              onPressed: () async { await Supabase.instance.client.auth.signOut(); Navigator.of(context, rootNavigator: true).pop(); },
+              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
               child: const Text("Log Out", style: TextStyle(color: Colors.white)),
             )
           ]
@@ -901,7 +919,6 @@ class _MainScreenState extends State<MainScreen> {
         String whatsNew = response['whats_new'] ?? "New updates available.";
 
         if (latestVersion != CURRENT_APP_VERSION && apkUrl.isNotEmpty) {
-          // Navigator push to the new Full Screen UI instead of Dialog
           Navigator.push(context, MaterialPageRoute(builder: (context) => FullScreenUpdatePage(latestVersion: latestVersion, apkUrl: apkUrl, whatsNew: whatsNew)));
         }
       }
@@ -1045,7 +1062,6 @@ class HomeScreen extends StatelessWidget {
             ListTile(leading: Icon(Icons.home, color: getSubText(context)), title: Text("Home", style: TextStyle(color: getText(context))), onTap: () => Navigator.pop(context)),
             ListTile(leading: const Icon(Icons.workspace_premium, color: Colors.amber), title: const Text("Go Premium", style: TextStyle(color: Colors.amber)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); }),
             
-            // --- UPDATED OPTIONS (Simple Icons, Name Change) ---
             ListTile(leading: Icon(Icons.language, color: getSubText(context)), title: Text("Website", style: TextStyle(color: getText(context))), onTap: () => launchInBrowser(globalWebsiteUrl)),
             ListTile(leading: Icon(Icons.help_outline, color: getSubText(context)), title: Text("Support", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); }),
             ListTile(leading: Icon(Icons.palette_outlined, color: getSubText(context)), title: Text("Theme", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); }),
@@ -1053,7 +1069,7 @@ class HomeScreen extends StatelessWidget {
             ListTile(leading: Icon(Icons.privacy_tip_outlined, color: getSubText(context)), title: Text("Privacy Policy", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage())); }),
             
             const Padding(padding: EdgeInsets.symmetric(vertical: 8.0), child: Divider(color: Colors.white12, thickness: 1)),
-            ListTile(leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20), title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)), onTap: () async { Navigator.pop(context); await Supabase.instance.client.auth.signOut(); }),
+            ListTile(leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20), title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)), onTap: () async { Navigator.pop(context); await logoutUser(context); }),
             const SizedBox(height: 20),
           ],
         ),
@@ -1358,7 +1374,7 @@ class CWSeeAllPage extends StatelessWidget {
 }
 
 // ==========================================
-// CATEGORY PAGES & CARDS (UPDATED COLORS)
+// CATEGORY PAGES & CARDS
 // ==========================================
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
@@ -2402,7 +2418,7 @@ class ProfileScreen extends StatelessWidget {
                 _buildGroupedItem(context: context, title: "App Theme", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
                 _buildGroupedItem(context: context, title: "Payment Verification", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage()))),
                 _buildGroupedItem(context: context, title: "Order History", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage()))),
-                _buildGroupedItem(context: context, title: "Support", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
+                _buildGroupedItem(context: context, title: "Support Center", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
               ], context),
 
               const SizedBox(height: 10),
@@ -2410,7 +2426,7 @@ class ProfileScreen extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: InkWell(
-                  onTap: () async { await Supabase.instance.client.auth.signOut(); },
+                  onTap: () async { await logoutUser(context); },
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.redAccent.withOpacity(0.5))),
@@ -2826,7 +2842,7 @@ class SupportPage extends StatelessWidget {
   @override 
   Widget build(BuildContext context) { 
     return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Help Center", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
+      backgroundColor: getBg(context), appBar: AppBar(title: Text("Support", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16), 
         child: Column(
