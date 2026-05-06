@@ -13,11 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
-
-// ==========================================
-// APP VERSION FOR OTA UPDATES
-// ==========================================
-const String CURRENT_APP_VERSION = "1.0.0"; 
+import 'package:package_info_plus/package_info_plus.dart';
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -28,7 +24,7 @@ String userMobileNumber = "";
 String userActivePlan = ""; 
 bool hasAcceptedCookies = false; 
 
-String globalWebsiteUrl = "https://google.com"; // Default URL
+String globalWebsiteUrl = "https://google.com"; 
 String globalAppLogoUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiFzvJT7KpnCHDQckDOecr6TEu9HUcVPgdS5BOzz5ls1LoEKDjIX-F54jeXoVEaa3JpHA4hOwfncf03-6bC95v5MHp7tLEOhDd4rsq8zngT0jKI0J02rlTKKgZVau6YGIBYax2MO-GILv-tsamob8AzWw8LAuvGfV8Mif5P-WZ76nEIdHUoQEnsdyT-E5c/s1254/IMG-20260426-WA0001.webp"; 
 
 List<String> globalRecentSearches = [];
@@ -273,7 +269,7 @@ void main() async {
 }
 
 // ==========================================
-// UTILITY FUNCTIONS for Links and Contacts
+// UTILITY FUNCTIONS
 // ==========================================
 Future<void> launchInBrowser(String url) async {
   final Uri uri = Uri.parse(url);
@@ -298,15 +294,11 @@ Future<void> launchTelegram(String contact) async {
   }
 }
 
-// ==========================================
-// APP LOGOUT FUNCTION (CLEARS DEVICE SESSION)
-// ==========================================
 Future<void> logoutUser(BuildContext context) async {
   try {
     final prefs = await SharedPreferences.getInstance();
     String? dId = prefs.getString('device_id');
     if (dId != null && currentUserEmail.isNotEmpty) {
-      // Free up device slot on logout
       await Supabase.instance.client.from('user_devices').delete().eq('device_id', dId).eq('email', currentUserEmail);
     }
   } catch (e) {
@@ -314,7 +306,6 @@ Future<void> logoutUser(BuildContext context) async {
   }
   await Supabase.instance.client.auth.signOut();
 }
-
 
 // ==========================================
 // ROOT APP
@@ -549,7 +540,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // ==========================================
-// IN-APP OTA UPDATER UI (SCROLLABLE FULL SCREEN EXACT PREMIUM DESIGN)
+// IN-APP OTA UPDATER UI (FULL SCREEN EXACT PREMIUM DESIGN)
 // ==========================================
 class FullScreenUpdatePage extends StatefulWidget {
   final String latestVersion;
@@ -581,7 +572,7 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
       var bytes = await consolidateHttpClientResponseBytes(
         response,
         onBytesReceived: (int cumulative, int? total) {
-          if (total != null && total != -1) {
+          if (total != null && total > 0) {
             setState(() {
               _progress = cumulative / total; 
               _statusText = "Downloading... ${(_progress * 100).toInt()}%";
@@ -612,99 +603,96 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
     return WillPopScope(
       onWillPop: () async => false, // Disable back button
       child: Scaffold(
-        backgroundColor: const Color(0xFF0F0F13), // Deep dark background
+        backgroundColor: const Color(0xFF0F0F13), 
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const SizedBox(height: 20),
-                const Text("Update Available", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 40),
-                
-                // Top App Icon with Glow
-                Container(
-                  width: 140, height: 140,
-                  decoration: BoxDecoration(
-                    color: Colors.black, borderRadius: BorderRadius.circular(30),
-                    boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.4), blurRadius: 40, spreadRadius: 5)],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30), 
-                    child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: animeMxPurple, size: 60))
-                  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 30),
+              const Text("Update Available", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 30),
+              
+              Container(
+                width: 130, height: 130,
+                decoration: BoxDecoration(
+                  color: Colors.black, borderRadius: BorderRadius.circular(30),
+                  boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.4), blurRadius: 40, spreadRadius: 5)],
                 ),
-                const SizedBox(height: 20),
-                
-                const Text("Anime MX", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.verified_user, color: Colors.green, size: 16),
-                    SizedBox(width: 6),
-                    Text("Verified by Play Protect", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  ],
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(30), 
+                  child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: animeMxPurple, size: 60))
                 ),
-                
-                const SizedBox(height: 40),
+              ),
+              const SizedBox(height: 20),
+              
+              const Text("Anime MX", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.verified_user, color: Colors.green, size: 16),
+                  SizedBox(width: 6),
+                  Text("Verified by Play Protect", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                ],
+              ),
+              
+              const SizedBox(height: 30),
 
-                // What's New Box
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome, color: animeMxPurple, size: 20)), 
-                          const SizedBox(width: 12), 
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Text("What's new", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                              Text("Bug fixes and performance improvements.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                            ],
-                          )
-                        ]
-                      ),
-                      const SizedBox(height: 16),
-                      ...updates.map((u) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("• ", style: TextStyle(color: animeMxPurple, fontSize: 18, fontWeight: FontWeight.bold)), Expanded(child: Text(u, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)))],))),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Specs Box
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                  child: Column(
-                    children: [
-                      Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.download_rounded, color: animeMxPurple, size: 18)), const SizedBox(width: 16), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update size", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(_fileSize, style: const TextStyle(color: Colors.white54, fontSize: 12))])]),
-                      const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(color: Colors.white12, height: 1)),
-                      Row(children: [Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.info_outline, color: animeMxPurple, size: 18)), const SizedBox(width: 16), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current version", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(CURRENT_APP_VERSION, style: const TextStyle(color: Colors.white54, fontSize: 12))])]),
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 30),
-
-                if (_isDownloading)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white12, valueColor: const AlwaysStoppedAnimation<Color>(animeMxPurple)),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome, color: animeMxPurple, size: 20)), 
+                            const SizedBox(width: 12), 
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text("What's new", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text("Bug fixes and performance improvements.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                              ],
+                            )
+                          ]
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: ListView(
+                            children: updates.map((u) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("• ", style: TextStyle(color: animeMxPurple, fontSize: 18, fontWeight: FontWeight.bold)), Expanded(child: Text(u, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)))],))).toList(),
+                          ),
+                        ),
+                        const Divider(color: Colors.white12, height: 24),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Row(children: [const Icon(Icons.download_rounded, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update size", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(_fileSize, style: const TextStyle(color: Colors.white54, fontSize: 12))])]),
+                          Row(children: [const Icon(Icons.info_outline, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current version", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), FutureBuilder<PackageInfo>(future: PackageInfo.fromPlatform(), builder: (c, snap) => Text(snap.data?.version ?? "1.0.0", style: const TextStyle(color: Colors.white54, fontSize: 12)))])]),
+                        ])
+                      ],
                     ),
                   ),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
 
-                // Full Width Button
-                SizedBox(
+              if (_isDownloading)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20, left: 30, right: 30),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white12, valueColor: const AlwaysStoppedAnimation<Color>(animeMxPurple)),
+                  ),
+                ),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
                   width: double.infinity, height: 55,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10, shadowColor: animeMxPurple.withOpacity(0.5)),
@@ -719,24 +707,26 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.lock_outline, color: Colors.white38, size: 14),
-                    SizedBox(width: 6),
-                    Text("Your data won't be lost", style: TextStyle(color: Colors.white38, fontSize: 12)),
-                  ],
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 12),
+              
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.lock_outline, color: Colors.white38, size: 14),
+                  SizedBox(width: 6),
+                  Text("Your data won't be lost", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
       ),
     );
   }
 }
+
 
 // ==========================================
 // MAIN SCREEN & DATABASE LOADER
@@ -893,15 +883,20 @@ class _MainScreenState extends State<MainScreen> {
         child: AlertDialog(
           backgroundColor: getCard(context),
           title: const Text("Device Limit Reached!", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-          content: Text("Your current plan allows a maximum of $limit device(s). Please log out from another device or upgrade your plan.", style: const TextStyle(color: Colors.white70)),
+          content: Text("Your current plan allows a maximum of $limit device(s). Please logout from another device or reset your sessions.", style: const TextStyle(color: Colors.white70)),
           actions: [
             TextButton(
-              onPressed: () { Navigator.of(context, rootNavigator: true).pop(); Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumPage())); },
-              child: const Text("Upgrade Plan", style: TextStyle(color: animeMxPurple)),
+              onPressed: () async {
+                // Self Fix: Let user clear old devices so they are never permanently stuck
+                await Supabase.instance.client.from('user_devices').delete().eq('email', currentUserEmail);
+                Navigator.of(context, rootNavigator: true).pop();
+                _checkDeviceLimit(); // Try again
+              },
+              child: const Text("Reset Devices", style: TextStyle(color: Colors.blueAccent)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
+              onPressed: () async { await Supabase.instance.client.auth.signOut(); Navigator.of(context, rootNavigator: true).pop(); },
               child: const Text("Log Out", style: TextStyle(color: Colors.white)),
             )
           ]
@@ -912,13 +907,16 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _checkForUpdates(BuildContext context) async {
     try {
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      String currentAppVersion = packageInfo.version;
+
       final response = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
       if (response != null) {
         String latestVersion = response['version'] ?? "1.0.0";
         String apkUrl = response['apk_url'] ?? "";
         String whatsNew = response['whats_new'] ?? "New updates available.";
 
-        if (latestVersion != CURRENT_APP_VERSION && apkUrl.isNotEmpty) {
+        if (latestVersion != currentAppVersion && apkUrl.isNotEmpty) {
           Navigator.push(context, MaterialPageRoute(builder: (context) => FullScreenUpdatePage(latestVersion: latestVersion, apkUrl: apkUrl, whatsNew: whatsNew)));
         }
       }
@@ -1158,12 +1156,13 @@ class HomeScreen extends StatelessWidget {
               valueListenable: animeListNotifier,
               builder: (context, allAnime, child) {
                 if (allAnime.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No Anime found in Database", style: TextStyle(color: Colors.white54))));
-                final trendingList = allAnime.where((a) => a.category.toLowerCase().contains("trending")).toList();
-                final actionList = allAnime.where((a) => a.category.toLowerCase().contains("action") || a.subCategory.toLowerCase().contains("action")).toList();
-                final romanceList = allAnime.where((a) => a.category.toLowerCase().contains("romance") || a.subCategory.toLowerCase().contains("romance")).toList();
-                final comedyList = allAnime.where((a) => a.category.toLowerCase().contains("comedy") || a.subCategory.toLowerCase().contains("comedy")).toList();
-                final suspenseList = allAnime.where((a) => a.category.toLowerCase().contains("suspense") || a.subCategory.toLowerCase().contains("suspense")).toList();
-                final mysteryList = allAnime.where((a) => a.category.toLowerCase().contains("mystery") || a.subCategory.toLowerCase().contains("mystery")).toList();
+                
+                final trendingList = allAnime.where((a) => a.category.trim().toLowerCase().contains("trending")).toList();
+                final actionList = allAnime.where((a) => a.category.trim().toLowerCase().contains("action") || a.subCategory.trim().toLowerCase().contains("action")).toList();
+                final romanceList = allAnime.where((a) => a.category.trim().toLowerCase().contains("romance") || a.subCategory.trim().toLowerCase().contains("romance")).toList();
+                final comedyList = allAnime.where((a) => a.category.trim().toLowerCase().contains("comedy") || a.subCategory.trim().toLowerCase().contains("comedy")).toList();
+                final suspenseList = allAnime.where((a) => a.category.trim().toLowerCase().contains("suspense") || a.subCategory.trim().toLowerCase().contains("suspense")).toList();
+                final mysteryList = allAnime.where((a) => a.category.trim().toLowerCase().contains("mystery") || a.subCategory.trim().toLowerCase().contains("mystery")).toList();
                 
                 List<Anime> popularList = List.from(allAnime);
                 popularList.sort((a, b) {
@@ -1176,6 +1175,7 @@ class HomeScreen extends StatelessWidget {
 
                 return Column(
                   children: [
+                    _buildPortraitSection(context, "Recently Added", Icons.fiber_new, Colors.green, allAnime), // Fallback: always shows newly added
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, primColor, trendingList),
                     if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", Icons.emoji_events, Colors.amber, popularList),
                     if (episodesAvailableList.isNotEmpty) _buildThumbnailSection(context, "Latest Episodes", null, null, false, animeList: episodesAvailableList),
@@ -1195,6 +1195,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildPortraitSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
+    if(list.isEmpty) return const SizedBox.shrink();
     Color primColor = Theme.of(context).primaryColor;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1374,7 +1375,7 @@ class CWSeeAllPage extends StatelessWidget {
 }
 
 // ==========================================
-// CATEGORY PAGES & CARDS
+// CATEGORY PAGES & CARDS 
 // ==========================================
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
@@ -1472,13 +1473,13 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     
     if (widget.pageTitle == "Trending Now") { tagText = "TRENDING"; tagBgColor = primColor; tagTextColor = Colors.white; } 
     else if (widget.pageTitle == "Popular Anime") { tagText = "POPULAR"; tagBgColor = Colors.cyan; tagTextColor = Colors.black; } 
-    else if (widget.pageTitle == "DUB" || widget.anime.dubStatus == "DUB" || widget.anime.dubStatus == "AMX DUB") { 
+    else if (widget.anime.dubStatus == "DUB" || widget.anime.dubStatus == "AMX DUB") { 
       tagText = "AMX DUB"; tagBgColor = const Color(0xFF8A2BE2); tagTextColor = Colors.white; 
     }
     else if (widget.anime.dubStatus == "MIX" || widget.anime.dubStatus == "MIX O/D") { 
       tagText = "MIX O/D"; tagBgColor = Colors.blue; tagTextColor = Colors.white; 
     }
-    else if (widget.pageTitle == "ORIGINAL" || widget.anime.dubStatus == "ORIGINAL") { 
+    else if (widget.anime.dubStatus == "ORIGINAL") { 
       tagText = "ORIGINAL"; tagBgColor = Colors.redAccent; tagTextColor = Colors.white; 
     }
     
@@ -2842,7 +2843,7 @@ class SupportPage extends StatelessWidget {
   @override 
   Widget build(BuildContext context) { 
     return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Support", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
+      backgroundColor: getBg(context), appBar: AppBar(title: Text("Support Center", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16), 
         child: Column(
