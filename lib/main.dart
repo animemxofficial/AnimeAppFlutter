@@ -269,7 +269,7 @@ void main() async {
 }
 
 // ==========================================
-// UTILITY FUNCTIONS
+// UTILITY FUNCTIONS for Links and Contacts
 // ==========================================
 Future<void> launchInBrowser(String url) async {
   final Uri uri = Uri.parse(url);
@@ -540,15 +540,16 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // ==========================================
-// IN-APP OTA UPDATER UI (FULL SCREEN EXACT PREMIUM DESIGN)
+// IN-APP OTA UPDATER UI 
 // ==========================================
 class FullScreenUpdatePage extends StatefulWidget {
   final String latestVersion;
+  final String currentVersion;
   final String apkUrl;
   final String whatsNew;
 
   const FullScreenUpdatePage({
-    Key? key, required this.latestVersion, required this.apkUrl, required this.whatsNew,
+    Key? key, required this.latestVersion, required this.currentVersion, required this.apkUrl, required this.whatsNew,
   }) : super(key: key);
 
   @override
@@ -601,98 +602,89 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
     List<String> updates = widget.whatsNew.split('\n').where((s) => s.trim().isNotEmpty).toList();
 
     return WillPopScope(
-      onWillPop: () async => false, // Disable back button
+      onWillPop: () async => false, 
       child: Scaffold(
         backgroundColor: const Color(0xFF0F0F13), 
         body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 30),
-              const Text("Update Available", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 30),
-              
-              Container(
-                width: 130, height: 130,
-                decoration: BoxDecoration(
-                  color: Colors.black, borderRadius: BorderRadius.circular(30),
-                  boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.4), blurRadius: 40, spreadRadius: 5)],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 20),
+                const Text("Update Available", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 40),
+                
+                Container(
+                  width: 140, height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.black, borderRadius: BorderRadius.circular(30),
+                    boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.4), blurRadius: 40, spreadRadius: 5)],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30), 
+                    child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: animeMxPurple, size: 60))
+                  ),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30), 
-                  child: Image.network(globalAppLogoUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.movie, color: animeMxPurple, size: 60))
+                const SizedBox(height: 20),
+                
+                const Text("Anime MX", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 6),
+                Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.verified_user, color: Colors.green, size: 16),
+                    SizedBox(width: 6),
+                    Text("Verified by Play Protect", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 20),
-              
-              const Text("Anime MX", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.verified_user, color: Colors.green, size: 16),
-                  SizedBox(width: 6),
-                  Text("Verified by Play Protect", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                ],
-              ),
-              
-              const SizedBox(height: 30),
+                
+                const SizedBox(height: 40),
 
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome, color: animeMxPurple, size: 20)), 
-                            const SizedBox(width: 12), 
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text("What's new", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                Text("Bug fixes and performance improvements.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                              ],
-                            )
-                          ]
-                        ),
-                        const SizedBox(height: 16),
-                        Expanded(
-                          child: ListView(
-                            children: updates.map((u) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("• ", style: TextStyle(color: animeMxPurple, fontSize: 18, fontWeight: FontWeight.bold)), Expanded(child: Text(u, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)))],))).toList(),
-                          ),
-                        ),
-                        const Divider(color: Colors.white12, height: 24),
-                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          Row(children: [const Icon(Icons.download_rounded, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update size", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(_fileSize, style: const TextStyle(color: Colors.white54, fontSize: 12))])]),
-                          Row(children: [const Icon(Icons.info_outline, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current version", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)), const SizedBox(height: 2), FutureBuilder<PackageInfo>(future: PackageInfo.fromPlatform(), builder: (c, snap) => Text(snap.data?.version ?? "1.0.0", style: const TextStyle(color: Colors.white54, fontSize: 12)))])]),
-                        ])
-                      ],
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: const Color(0xFF16161E), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome, color: animeMxPurple, size: 20)), 
+                          const SizedBox(width: 12), 
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text("What's new", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                              Text("Bug fixes and performance improvements.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                            ],
+                          )
+                        ]
+                      ),
+                      const SizedBox(height: 16),
+                      ...updates.map((u) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("• ", style: TextStyle(color: animeMxPurple, fontSize: 18, fontWeight: FontWeight.bold)), Expanded(child: Text(u, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)))],))),
+                      const Divider(color: Colors.white12, height: 24),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        Row(children: [const Icon(Icons.download_rounded, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update size", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text(_fileSize, style: const TextStyle(color: Colors.white54, fontSize: 11))])]),
+                        Row(children: [const Icon(Icons.info_outline, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current version", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text(widget.currentVersion, style: const TextStyle(color: Colors.white54, fontSize: 11))])]),
+                      ])
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 30),
+
+                if (_isDownloading)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white12, valueColor: const AlwaysStoppedAnimation<Color>(animeMxPurple)),
                     ),
                   ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
 
-              if (_isDownloading)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20, left: 30, right: 30),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white12, valueColor: const AlwaysStoppedAnimation<Color>(animeMxPurple)),
-                  ),
-                ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SizedBox(
+                SizedBox(
                   width: double.infinity, height: 55,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10, shadowColor: animeMxPurple.withOpacity(0.5)),
@@ -707,26 +699,25 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.lock_outline, color: Colors.white38, size: 14),
-                  SizedBox(width: 6),
-                  Text("Your data won't be lost", style: TextStyle(color: Colors.white38, fontSize: 12)),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 16),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.lock_outline, color: Colors.white38, size: 14),
+                    SizedBox(width: 6),
+                    Text("Your data won't be lost", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
 
 // ==========================================
 // MAIN SCREEN & DATABASE LOADER
@@ -858,15 +849,17 @@ class _MainScreenState extends State<MainScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     String? dId = prefs.getString('device_id');
+    if (dId == null) {
+      dId = const Uuid().v4();
+      await prefs.setString('device_id', dId);
+    }
     
     try {
       final dbDevices = await Supabase.instance.client.from('user_devices').select('device_id').eq('email', currentUserEmail);
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
-
-      if (dId == null || !registeredDevices.contains(dId)) {
+      
+      if (!registeredDevices.contains(dId)) {
         if (registeredDevices.length < limit) {
-          dId = const Uuid().v4();
-          await prefs.setString('device_id', dId);
           await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
         } else {
           _showDeviceLimitDialog(limit);
@@ -883,20 +876,19 @@ class _MainScreenState extends State<MainScreen> {
         child: AlertDialog(
           backgroundColor: getCard(context),
           title: const Text("Device Limit Reached!", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-          content: Text("Your current plan allows a maximum of $limit device(s). Please logout from another device or reset your sessions.", style: const TextStyle(color: Colors.white70)),
+          content: Text("Your current plan allows a maximum of $limit device(s). Please log out from another device or reset your sessions.", style: const TextStyle(color: Colors.white70)),
           actions: [
             TextButton(
               onPressed: () async {
-                // Self Fix: Let user clear old devices so they are never permanently stuck
                 await Supabase.instance.client.from('user_devices').delete().eq('email', currentUserEmail);
                 Navigator.of(context, rootNavigator: true).pop();
-                _checkDeviceLimit(); // Try again
+                _checkDeviceLimit(); 
               },
               child: const Text("Reset Devices", style: TextStyle(color: Colors.blueAccent)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-              onPressed: () async { await Supabase.instance.client.auth.signOut(); Navigator.of(context, rootNavigator: true).pop(); },
+              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
               child: const Text("Log Out", style: TextStyle(color: Colors.white)),
             )
           ]
@@ -905,19 +897,32 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  // CORRECT LOGIC FOR VERSION CHECKING
+  bool _isVersionGreater(String latest, String current) {
+    List<String> lParts = latest.split('.');
+    List<String> cParts = current.split('.');
+    for(int i = 0; i < min(lParts.length, cParts.length); i++) {
+      int l = int.tryParse(lParts[i]) ?? 0;
+      int c = int.tryParse(cParts[i]) ?? 0;
+      if(l > c) return true;
+      if(l < c) return false;
+    }
+    return lParts.length > cParts.length;
+  }
+
   Future<void> _checkForUpdates(BuildContext context) async {
     try {
       PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      String currentAppVersion = packageInfo.version;
+      String currentAppVersion = packageInfo.version; 
 
       final response = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
       if (response != null) {
-        String latestVersion = response['version'] ?? "1.0.0";
+        String latestVersion = response['version'] ?? currentAppVersion;
         String apkUrl = response['apk_url'] ?? "";
         String whatsNew = response['whats_new'] ?? "New updates available.";
 
-        if (latestVersion != currentAppVersion && apkUrl.isNotEmpty) {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => FullScreenUpdatePage(latestVersion: latestVersion, apkUrl: apkUrl, whatsNew: whatsNew)));
+        if (_isVersionGreater(latestVersion, currentAppVersion) && apkUrl.isNotEmpty) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => FullScreenUpdatePage(latestVersion: latestVersion, currentVersion: currentAppVersion, apkUrl: apkUrl, whatsNew: whatsNew)));
         }
       }
     } catch (e) { print("Update check error: $e"); }
@@ -1175,7 +1180,7 @@ class HomeScreen extends StatelessWidget {
 
                 return Column(
                   children: [
-                    _buildPortraitSection(context, "Recently Added", Icons.fiber_new, Colors.green, allAnime), // Fallback: always shows newly added
+                    _buildPortraitSection(context, "Recently Added", Icons.fiber_new, Colors.green, allAnime), 
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, primColor, trendingList),
                     if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", Icons.emoji_events, Colors.amber, popularList),
                     if (episodesAvailableList.isNotEmpty) _buildThumbnailSection(context, "Latest Episodes", null, null, false, animeList: episodesAvailableList),
@@ -1375,7 +1380,7 @@ class CWSeeAllPage extends StatelessWidget {
 }
 
 // ==========================================
-// CATEGORY PAGES & CARDS 
+// CATEGORY PAGES & CARDS
 // ==========================================
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
@@ -2419,7 +2424,7 @@ class ProfileScreen extends StatelessWidget {
                 _buildGroupedItem(context: context, title: "App Theme", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
                 _buildGroupedItem(context: context, title: "Payment Verification", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage()))),
                 _buildGroupedItem(context: context, title: "Order History", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage()))),
-                _buildGroupedItem(context: context, title: "Support Center", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
+                _buildGroupedItem(context: context, title: "Support", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
               ], context),
 
               const SizedBox(height: 10),
