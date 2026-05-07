@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart'; 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:video_player/video_player.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -11,9 +10,12 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+
+// ==========================================
+// APP VERSION FOR OTA UPDATES
+// ==========================================
+const String CURRENT_APP_VERSION = "1.0.0"; 
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
@@ -36,7 +38,6 @@ final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
-// --- THEME ---
 const Color animeMxPurple = Color(0xFF8A2BE2); 
 final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
 
@@ -45,10 +46,7 @@ Color getCard(BuildContext context) => const Color(0xFF1A1A1A);
 Color getText(BuildContext context) => Colors.white;
 Color getSubText(BuildContext context) => Colors.white54;
 
-final List<Color> avatarColors = [
-  Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent,
-  Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo,
-];
+final List<Color> avatarColors = [Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
 
 Color getAvatarColor(String inputString) {
   if (inputString.isEmpty) return Colors.grey;
@@ -99,10 +97,7 @@ class CWService {
   Future<void> saveCWList(String userEmail, List<CWItem> cwList) async {
     final savedData = cwList.map((item) => item.toJson()).toList();
     try {
-      await supabase.from('user_preferences').upsert(
-        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'continue_watching': savedData},
-        onConflict: 'id',
-      );
+      await supabase.from('user_preferences').upsert({'id': supabase.auth.currentUser!.id, 'email': userEmail, 'continue_watching': savedData}, onConflict: 'id');
     } catch (e) {}
   }
 }
@@ -116,10 +111,7 @@ class RecentSearchesService {
     if (newSearches.length > 5) newSearches.removeLast(); 
     final searchesJson = jsonEncode(newSearches);
     try {
-      await supabase.from('user_preferences').upsert(
-        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'recent_searches': searchesJson},
-        onConflict: 'id',
-      );
+      await supabase.from('user_preferences').upsert({'id': supabase.auth.currentUser!.id, 'email': userEmail, 'recent_searches': searchesJson}, onConflict: 'id');
     } catch (e) {}
   }
 }
@@ -131,10 +123,7 @@ class MyListService {
   Future<void> saveMyList(String userEmail, List<SavedEpisode> savedList) async {
     final savedData = savedList.map((item) => item.toJson()).toList();
     try {
-      await supabase.from('user_preferences').upsert(
-        {'id': supabase.auth.currentUser!.id, 'email': userEmail, 'saved_anime': savedData},
-        onConflict: 'id',
-      );
+      await supabase.from('user_preferences').upsert({'id': supabase.auth.currentUser!.id, 'email': userEmail, 'saved_anime': savedData}, onConflict: 'id');
     } catch (e) {}
   }
 }
@@ -152,27 +141,14 @@ class CWItem {
 
   CWItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.position, required this.totalDuration});
 
-  Map<String, dynamic> toJson() => {
-    'animeTitle': anime.title,
-    'seasonIndex': seasonIndex,
-    'episodeIndex': episodeIndex,
-    'positionInSeconds': position.inSeconds,
-    'totalDurationInSeconds': totalDuration.inSeconds,
-  };
+  Map<String, dynamic> toJson() => {'animeTitle': anime.title, 'seasonIndex': seasonIndex, 'episodeIndex': episodeIndex, 'positionInSeconds': position.inSeconds, 'totalDurationInSeconds': totalDuration.inSeconds};
   
   static CWItem fromJson(Map<String, dynamic> json, List<Anime> allAnime) {
     try {
       final animeMatch = allAnime.firstWhere((anime) => anime.title == json['animeTitle']);
-      return CWItem(
-        anime: animeMatch, seasonIndex: json['seasonIndex'], episodeIndex: json['episodeIndex'],
-        position: Duration(seconds: json['positionInSeconds']), totalDuration: Duration(seconds: json['totalDurationInSeconds']),
-      );
+      return CWItem(anime: animeMatch, seasonIndex: json['seasonIndex'], episodeIndex: json['episodeIndex'], position: Duration(seconds: json['positionInSeconds']), totalDuration: Duration(seconds: json['totalDurationInSeconds']));
     } catch (e) {
-      return CWItem(
-        anime: allAnime.isNotEmpty ? allAnime[0] : _getDummyAnime(), 
-        seasonIndex: 0, episodeIndex: 0,
-        position: Duration(seconds: json['positionInSeconds'] ?? 0), totalDuration: Duration(seconds: json['totalDurationInSeconds'] ?? 0),
-      );
+      return CWItem(anime: allAnime.isNotEmpty ? allAnime[0] : _getDummyAnime(), seasonIndex: 0, episodeIndex: 0, position: Duration(seconds: json['positionInSeconds'] ?? 0), totalDuration: Duration(seconds: json['totalDurationInSeconds'] ?? 0));
     }
   }
 }
@@ -184,11 +160,7 @@ class SavedEpisode {
 
   SavedEpisode({required this.anime, required this.seasonIndex, required this.episodeIndex});
 
-  Map<String, dynamic> toJson() => {
-    'animeTitle': anime.title,
-    'seasonIndex': seasonIndex,
-    'episodeIndex': episodeIndex,
-  };
+  Map<String, dynamic> toJson() => {'animeTitle': anime.title, 'seasonIndex': seasonIndex, 'episodeIndex': episodeIndex};
 }
 
 class Episode {
@@ -540,66 +512,27 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // ==========================================
-// IN-APP OTA UPDATER UI 
+// IN-APP OTA UPDATER UI (URL LAUNCHER METHOD - 100% SUCCESS)
 // ==========================================
-class FullScreenUpdatePage extends StatefulWidget {
+class FullScreenUpdatePage extends StatelessWidget {
   final String latestVersion;
-  final String currentVersion;
   final String apkUrl;
   final String whatsNew;
 
   const FullScreenUpdatePage({
-    Key? key, required this.latestVersion, required this.currentVersion, required this.apkUrl, required this.whatsNew,
+    Key? key, required this.latestVersion, required this.apkUrl, required this.whatsNew,
   }) : super(key: key);
 
-  @override
-  State<FullScreenUpdatePage> createState() => _FullScreenUpdatePageState();
-}
-
-class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
-  double _progress = 0.0;
-  bool _isDownloading = false;
-  String _statusText = "Update";
-  String _fileSize = "Calculating...";
-
-  Future<void> _startDownload() async {
-    setState(() { _isDownloading = true; _statusText = "Starting Download..."; });
-    try {
-      var request = await HttpClient().getUrl(Uri.parse(widget.apkUrl));
-      var response = await request.close();
-      if (response.contentLength != -1) {
-        setState(() { _fileSize = "${(response.contentLength / (1024 * 1024)).toStringAsFixed(1)} MB"; });
-      }
-      var bytes = await consolidateHttpClientResponseBytes(
-        response,
-        onBytesReceived: (int cumulative, int? total) {
-          if (total != null && total > 0) {
-            setState(() {
-              _progress = cumulative / total; 
-              _statusText = "Downloading... ${(_progress * 100).toInt()}%";
-            });
-          } else {
-            setState(() { _statusText = "Downloading... ${(cumulative / 1024 / 1024).toStringAsFixed(1)} MB"; });
-          }
-        },
-      );
-
-      Directory dir = await getTemporaryDirectory();
-      File file = File('${dir.path}/AnimeMX_Update.apk');
-      await file.writeAsBytes(bytes);
-
-      setState(() { _statusText = "Installing..."; });
-      await OpenFilex.open(file.path);
-      
-      setState(() { _isDownloading = false; _statusText = "Update"; _progress = 0.0; });
-    } catch (e) {
-      setState(() { _isDownloading = false; _statusText = "Failed. Try Again?"; });
+  void _startBrowserDownload() async {
+    final Uri uri = Uri.parse(apkUrl);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      print('Could not launch update URL');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    List<String> updates = widget.whatsNew.split('\n').where((s) => s.trim().isNotEmpty).toList();
+    List<String> updates = whatsNew.split('\n').where((s) => s.trim().isNotEmpty).toList();
 
     return WillPopScope(
       onWillPop: () async => false, 
@@ -630,7 +563,7 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
                 
                 const Text("Anime MX", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                Text("Version ${widget.latestVersion}", style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                Text("Version $latestVersion", style: const TextStyle(color: Colors.white54, fontSize: 14)),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -666,35 +599,26 @@ class _FullScreenUpdatePageState extends State<FullScreenUpdatePage> {
                       ...updates.map((u) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("• ", style: TextStyle(color: animeMxPurple, fontSize: 18, fontWeight: FontWeight.bold)), Expanded(child: Text(u, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.4)))],))),
                       const Divider(color: Colors.white12, height: 24),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                        Row(children: [const Icon(Icons.download_rounded, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update size", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text(_fileSize, style: const TextStyle(color: Colors.white54, fontSize: 11))])]),
-                        Row(children: [const Icon(Icons.info_outline, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current version", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text(widget.currentVersion, style: const TextStyle(color: Colors.white54, fontSize: 11))])]),
+                        Row(children: [const Icon(Icons.download_rounded, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Update Status", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text("Required", style: const TextStyle(color: Colors.greenAccent, fontSize: 11))])]),
+                        Row(children: [const Icon(Icons.info_outline, color: Colors.white54, size: 18), const SizedBox(width: 8), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Current version", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)), Text(CURRENT_APP_VERSION, style: const TextStyle(color: Colors.white54, fontSize: 11))])]),
                       ])
                     ],
                   ),
                 ),
                 
-                const SizedBox(height: 30),
-
-                if (_isDownloading)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white12, valueColor: const AlwaysStoppedAnimation<Color>(animeMxPurple)),
-                    ),
-                  ),
+                const SizedBox(height: 40),
 
                 SizedBox(
                   width: double.infinity, height: 55,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 10, shadowColor: animeMxPurple.withOpacity(0.5)),
-                    onPressed: _isDownloading ? null : _startDownload,
+                    onPressed: _startBrowserDownload,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (!_isDownloading) const Icon(Icons.download, color: Colors.white, size: 20),
-                        if (!_isDownloading) const SizedBox(width: 8),
-                        Text(_statusText, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      children: const [
+                        Icon(Icons.download, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text("Download Update", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -849,17 +773,15 @@ class _MainScreenState extends State<MainScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     String? dId = prefs.getString('device_id');
-    if (dId == null) {
-      dId = const Uuid().v4();
-      await prefs.setString('device_id', dId);
-    }
     
     try {
       final dbDevices = await Supabase.instance.client.from('user_devices').select('device_id').eq('email', currentUserEmail);
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
-      
-      if (!registeredDevices.contains(dId)) {
+
+      if (dId == null || !registeredDevices.contains(dId)) {
         if (registeredDevices.length < limit) {
+          dId = const Uuid().v4();
+          await prefs.setString('device_id', dId);
           await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
         } else {
           _showDeviceLimitDialog(limit);
@@ -912,17 +834,14 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _checkForUpdates(BuildContext context) async {
     try {
-      PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      String currentAppVersion = packageInfo.version; 
-
       final response = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
       if (response != null) {
-        String latestVersion = response['version'] ?? currentAppVersion;
+        String latestVersion = response['version'] ?? CURRENT_APP_VERSION;
         String apkUrl = response['apk_url'] ?? "";
         String whatsNew = response['whats_new'] ?? "New updates available.";
 
-        if (_isVersionGreater(latestVersion, currentAppVersion) && apkUrl.isNotEmpty) {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => FullScreenUpdatePage(latestVersion: latestVersion, currentVersion: currentAppVersion, apkUrl: apkUrl, whatsNew: whatsNew)));
+        if (_isVersionGreater(latestVersion, CURRENT_APP_VERSION) && apkUrl.isNotEmpty) {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => FullScreenUpdatePage(latestVersion: latestVersion, apkUrl: apkUrl, whatsNew: whatsNew)));
         }
       }
     } catch (e) { print("Update check error: $e"); }
@@ -1065,6 +984,7 @@ class HomeScreen extends StatelessWidget {
             ListTile(leading: Icon(Icons.home, color: getSubText(context)), title: Text("Home", style: TextStyle(color: getText(context))), onTap: () => Navigator.pop(context)),
             ListTile(leading: const Icon(Icons.workspace_premium, color: Colors.amber), title: const Text("Go Premium", style: TextStyle(color: Colors.amber)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); }),
             
+            // --- UPDATED OPTIONS (Simple Icons, Name Change) ---
             ListTile(leading: Icon(Icons.language, color: getSubText(context)), title: Text("Website", style: TextStyle(color: getText(context))), onTap: () => launchInBrowser(globalWebsiteUrl)),
             ListTile(leading: Icon(Icons.help_outline, color: getSubText(context)), title: Text("Support", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); }),
             ListTile(leading: Icon(Icons.palette_outlined, color: getSubText(context)), title: Text("Theme", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); }),
@@ -1380,7 +1300,7 @@ class CWSeeAllPage extends StatelessWidget {
 }
 
 // ==========================================
-// CATEGORY PAGES & CARDS
+// CATEGORY PAGES & CARDS 
 // ==========================================
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
@@ -1478,13 +1398,13 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     
     if (widget.pageTitle == "Trending Now") { tagText = "TRENDING"; tagBgColor = primColor; tagTextColor = Colors.white; } 
     else if (widget.pageTitle == "Popular Anime") { tagText = "POPULAR"; tagBgColor = Colors.cyan; tagTextColor = Colors.black; } 
-    else if (widget.anime.dubStatus == "DUB" || widget.anime.dubStatus == "AMX DUB") { 
+    else if (widget.pageTitle == "DUB" || widget.anime.dubStatus == "DUB" || widget.anime.dubStatus == "AMX DUB") { 
       tagText = "AMX DUB"; tagBgColor = const Color(0xFF8A2BE2); tagTextColor = Colors.white; 
     }
     else if (widget.anime.dubStatus == "MIX" || widget.anime.dubStatus == "MIX O/D") { 
       tagText = "MIX O/D"; tagBgColor = Colors.blue; tagTextColor = Colors.white; 
     }
-    else if (widget.anime.dubStatus == "ORIGINAL") { 
+    else if (widget.pageTitle == "ORIGINAL" || widget.anime.dubStatus == "ORIGINAL") { 
       tagText = "ORIGINAL"; tagBgColor = Colors.redAccent; tagTextColor = Colors.white; 
     }
     
@@ -2424,7 +2344,7 @@ class ProfileScreen extends StatelessWidget {
                 _buildGroupedItem(context: context, title: "App Theme", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
                 _buildGroupedItem(context: context, title: "Payment Verification", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage()))),
                 _buildGroupedItem(context: context, title: "Order History", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage()))),
-                _buildGroupedItem(context: context, title: "Support", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
+                _buildGroupedItem(context: context, title: "Support Center", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
               ], context),
 
               const SizedBox(height: 10),
@@ -2848,7 +2768,7 @@ class SupportPage extends StatelessWidget {
   @override 
   Widget build(BuildContext context) { 
     return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Support Center", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
+      backgroundColor: getBg(context), appBar: AppBar(title: Text("Help Center", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16), 
         child: Column(
