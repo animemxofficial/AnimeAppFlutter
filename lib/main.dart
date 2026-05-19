@@ -15,7 +15,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 // ==========================================
 // APP VERSION FOR OTA UPDATES
 // ==========================================
-const String CURRENT_APP_VERSION = "1.0.0"; 
+const String CURRENT_APP_VERSION = "1.0.1"; 
 
 // ==========================================
 // DATA MODELS & GLOBAL STATE
