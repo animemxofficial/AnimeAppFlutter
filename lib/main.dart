@@ -24,6 +24,7 @@ String currentUserName = "Guest User";
 String currentUserEmail = "";
 String userMobileNumber = ""; 
 String userActivePlan = ""; 
+DateTime? userPlanExpiryDate; // Expiry date variable added
 bool hasAcceptedCookies = false; 
 
 String globalWebsiteUrl = "https://google.com"; 
@@ -198,16 +199,18 @@ class Anime {
   final String subCategory;
   final bool isNew; 
   final String description; 
+  final DateTime createdAt; // Date added parameter
 
   Anime({
     required this.id, required this.title, required this.image, this.genre = "Action", this.rating = "PG-13", this.dubStatus = "DUB", 
     this.season = "Season 1", this.status = "Ongoing", this.views = "0", this.dubColor = const Color(0xFFFF4D4D), 
     required this.seasonsList, this.category = "", this.subCategory = "", this.isNew = false, this.description = "",
+    required this.createdAt,
   });
 }
 
 Anime _getDummyAnime() {
-  return Anime(id: '0', title: 'Loading...', image: '', seasonsList: []);
+  return Anime(id: '0', title: 'Loading...', image: '', seasonsList: [], createdAt: DateTime.now());
 }
 
 class OrderItem {
@@ -238,6 +241,61 @@ void main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   
   runApp(const AnimeMX());
+}
+
+// ==========================================
+// UTILITY FUNCTIONS for Premium Access
+// ==========================================
+
+void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int episodeIndex, {Duration? startPosition, bool isReplacement = false}) {
+  // Free User Block
+  if (userActivePlan.isEmpty) {
+    _showPremiumDialog(context, "Premium Plan Required", "Please subscribe to a Premium Plan to unlock and watch episodes.");
+    return;
+  }
+
+  // Basic Plan Lock Logic (7 days wait for new content)
+  if (userActivePlan.toLowerCase().contains("basic")) {
+    final int daysSinceAdded = DateTime.now().difference(anime.createdAt).inDays;
+    if (daysSinceAdded < 7) {
+      _showPremiumDialog(
+        context, 
+        "Early Access Locked", 
+        "Basic Plan users can watch new episodes 7 days after release.\n\nUpgrade to Standard or Elite Plan for Instant Access!"
+      );
+      return;
+    }
+  }
+
+  // Allowed to play
+  if (isReplacement) {
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: seasonIndex, episodeIndex: episodeIndex, startPosition: startPosition)));
+  } else {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: seasonIndex, episodeIndex: episodeIndex, startPosition: startPosition)));
+  }
+}
+
+void _showPremiumDialog(BuildContext context, String title, String msg) {
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white12)),
+      title: Row(children: [const Icon(Icons.workspace_premium, color: Colors.amber, size: 28), const SizedBox(width: 8), Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 18)))]),
+      content: Text(msg, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: Colors.grey))),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+          onPressed: () {
+            Navigator.pop(ctx);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumPage()));
+          },
+          child: const Text("View Plans", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
+        )
+      ]
+    )
+  );
 }
 
 // ==========================================
@@ -750,16 +808,19 @@ class _MainScreenState extends State<MainScreen> {
 
       if (response != null && mounted) {
         DateTime createdAt = DateTime.parse(response['created_at']);
+        DateTime expiryDate = createdAt.add(const Duration(days: 30));
         DateTime now = DateTime.now();
-        int daysPassed = now.difference(createdAt).inDays;
         
-        if (daysPassed <= 30) {
+        if (now.isBefore(expiryDate)) {
           userActivePlan = response['plan'].toString().split(' - ')[0]; 
+          userPlanExpiryDate = expiryDate;
         } else {
           userActivePlan = ""; 
+          userPlanExpiryDate = null;
         }
       } else {
         userActivePlan = "";
+        userPlanExpiryDate = null;
       }
       await _checkDeviceLimit();
 
@@ -819,7 +880,6 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // CORRECT LOGIC FOR VERSION CHECKING
   bool _isVersionGreater(String latest, String current) {
     List<String> lParts = latest.split('.');
     List<String> cParts = current.split('.');
@@ -876,11 +936,18 @@ class _MainScreenState extends State<MainScreen> {
           } catch(e){}
         }
 
+        // Parsing creation date for new episode check lock
+        DateTime parsedCreatedAt = DateTime.now().subtract(const Duration(days: 30));
+        if (item['created_at'] != null) {
+          parsedCreatedAt = DateTime.tryParse(item['created_at'].toString()) ?? parsedCreatedAt;
+        }
+
         fetchedAnimeList.add(Anime(
           id: item['id'].toString(), title: item['title']?.toString() ?? "Unknown", description: item['description']?.toString() ?? "",
           image: item['image_url']?.toString() ?? "", genre: item['genres']?.toString() ?? "Action", rating: item['rating']?.toString() ?? "PG-13",
           dubStatus: item['dub_status']?.toString() ?? "DUB", dubColor: dubColorParsed, category: item['category']?.toString() ?? "",
           subCategory: item['sub_category']?.toString() ?? "", seasonsList: parsedSeasons,
+          createdAt: parsedCreatedAt,
         ));
       }
       animeListNotifier.value = fetchedAnimeList;
@@ -984,7 +1051,6 @@ class HomeScreen extends StatelessWidget {
             ListTile(leading: Icon(Icons.home, color: getSubText(context)), title: Text("Home", style: TextStyle(color: getText(context))), onTap: () => Navigator.pop(context)),
             ListTile(leading: const Icon(Icons.workspace_premium, color: Colors.amber), title: const Text("Go Premium", style: TextStyle(color: Colors.amber)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); }),
             
-            // --- UPDATED OPTIONS (Simple Icons, Name Change) ---
             ListTile(leading: Icon(Icons.language, color: getSubText(context)), title: Text("Website", style: TextStyle(color: getText(context))), onTap: () => launchInBrowser(globalWebsiteUrl)),
             ListTile(leading: Icon(Icons.help_outline, color: getSubText(context)), title: Text("Support", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); }),
             ListTile(leading: Icon(Icons.palette_outlined, color: getSubText(context)), title: Text("Theme", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); }),
@@ -1140,6 +1206,7 @@ class HomeScreen extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
             itemBuilder: (context, index) { 
+              String cardCategory = list[index].category.isNotEmpty ? list[index].category : list[index].genre;
               return GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: list[index]))), 
                 child: Container(
@@ -1150,7 +1217,7 @@ class HomeScreen extends StatelessWidget {
                       Expanded(child: Container(decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 1.5)), child: ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.network(list[index].image, fit: BoxFit.cover, width: double.infinity, errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.white54))))), 
                       const SizedBox(height: 8), 
                       Text(list[index].title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
-                      Text(list[index].genre, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)
+                      Text(cardCategory, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)
                     ]
                   )
                 )
@@ -1254,7 +1321,7 @@ class CWSeeAllPage extends StatelessWidget {
           final ep = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex];
 
           return GestureDetector(
-            onTap: () { Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))); },
+            onTap: () => attemptPlayEpisode(context, item.anime, item.seasonIndex, item.episodeIndex, startPosition: item.position),
             child: Container(
               margin: const EdgeInsets.only(bottom: 16), height: 110,
               decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))]),
@@ -1417,7 +1484,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
         if (widget.isLatestOnly) {
           if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList.last.episodes.isNotEmpty) {
             int sIndex = widget.anime.seasonsList.length - 1; int eIndex = widget.anime.seasonsList.last.episodes.length - 1;
-            Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.anime, seasonIndex: sIndex, episodeIndex: eIndex)));
+            attemptPlayEpisode(context, widget.anime, sIndex, eIndex);
           } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!"))); }
         } else { Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime, isLatestOnly: widget.isLatestOnly))); }
       }, 
@@ -1468,7 +1535,7 @@ class ThumbnailLatestCard extends StatelessWidget {
       onTap: () {
         if (anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty) {
           int sIndex = anime.seasonsList.length - 1; int eIndex = anime.seasonsList.last.episodes.length - 1;
-          Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIndex, episodeIndex: eIndex)));
+          attemptPlayEpisode(context, anime, sIndex, eIndex);
         } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!"))); }
       }, 
       child: Container(
@@ -1531,7 +1598,7 @@ class _CWAnimeCardState extends State<CWAnimeCard> {
       onTapDown: (_) => setState(() => _isTapped = true), 
       onTapUp: (_) { 
         setState(() => _isTapped = false); 
-        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.item.anime, seasonIndex: widget.item.seasonIndex, episodeIndex: widget.item.episodeIndex, startPosition: widget.item.position))); 
+        attemptPlayEpisode(context, widget.item.anime, widget.item.seasonIndex, widget.item.episodeIndex, startPosition: widget.item.position);
       }, 
       onTapCancel: () => setState(() => _isTapped = false), 
       child: AnimatedContainer(
@@ -1647,7 +1714,7 @@ class _DetailsPageState extends State<DetailsPage> {
                     children:[
                       Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)), child: Text(widget.anime.rating, style: TextStyle(color: getText(context), fontSize: 11, fontWeight: FontWeight.bold))), 
                       const SizedBox(width: 10), 
-                      Expanded(child: Text("• ${widget.anime.dubStatus} | ${widget.anime.genre}", style: TextStyle(color: getSubText(context), fontSize: 13), overflow: TextOverflow.ellipsis))
+                      Expanded(child: Text("• ${widget.anime.dubStatus} | ${widget.anime.genre.isNotEmpty ? widget.anime.genre : widget.anime.category}", style: TextStyle(color: getSubText(context), fontSize: 13), overflow: TextOverflow.ellipsis))
                     ]
                   ),
                   const SizedBox(height: 20),
@@ -1658,7 +1725,7 @@ class _DetailsPageState extends State<DetailsPage> {
                       onPressed: () { 
                         if (episodesList.isNotEmpty) {
                           int playIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : 0;
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex))).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }); 
+                          attemptPlayEpisode(context, widget.anime, _selectedSeasonIndex, playIndex);
                         }
                       }, 
                       icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
@@ -1694,8 +1761,9 @@ class _DetailsPageState extends State<DetailsPage> {
                           double progress = 0.0; 
                           final cwIndex = cwList.indexWhere((item) => item.anime.title == widget.anime.title && item.seasonIndex == _selectedSeasonIndex && item.episodeIndex == actualEpIndex); 
                           if (cwIndex != -1) { if (cwList[cwIndex].totalDuration.inMilliseconds > 0) { progress = cwList[cwIndex].position.inMilliseconds / cwList[cwIndex].totalDuration.inMilliseconds; } } 
+                          
                           return GestureDetector(
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: actualEpIndex, startPosition: cwIndex != -1 ? cwList[cwIndex].position : null))).then((_) { _fetchEpisodeViews(); fetchGlobalAnimeViews(); }), 
+                            onTap: () => attemptPlayEpisode(context, widget.anime, _selectedSeasonIndex, actualEpIndex, startPosition: cwIndex != -1 ? cwList[cwIndex].position : null), 
                             child: Container(
                               margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
                               child: Row(
@@ -2047,7 +2115,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         const Text("Up Next", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
                         const SizedBox(height: 12), 
                         GestureDetector(
-                          onTap: () { Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VideoPlayerPage(anime: widget.anime, seasonIndex: widget.seasonIndex, episodeIndex: widget.episodeIndex + 1))); }, 
+                          onTap: () { attemptPlayEpisode(context, widget.anime, widget.seasonIndex, widget.episodeIndex + 1, isReplacement: true); }, 
                           child: Container(
                             decoration: BoxDecoration(color: const Color(0xFF1A1A1A), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))]), 
                             child: Row(
@@ -2282,30 +2350,35 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN
+// PROFILE SCREEN (COMPLETELY REDESIGNED)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
 
   Widget _buildMenuGroup(List<Widget> items, BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 30), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
-      child: Column(children: items.asMap().entries.map((entry) { int idx = entry.key; Widget item = entry.value; if (idx == items.length - 1) return item; return Column(children: [item, const Divider(color: Colors.white12, height: 1, indent: 16, endIndent: 16)]); }).toList()),
+      margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
+      child: Column(children: items.asMap().entries.map((entry) { int idx = entry.key; Widget item = entry.value; if (idx == items.length - 1) return item; return Column(children: [item, const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16)]); }).toList()),
     );
   }
 
-  Widget _buildGroupedItem({required String title, required VoidCallback onTap, String? trailingText, Color? trailingColor, BuildContext? context}) {
+  Widget _buildGroupedItem({required String title, required IconData icon, required VoidCallback onTap, String? trailingText, Color? trailingColor, BuildContext? context}) {
     return Material(
       color: Colors.transparent, 
       child: InkWell(
         onTap: onTap, borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(color: getText(context!), fontSize: 16, fontWeight: FontWeight.w500)),
-              Row(children: [if (trailingText != null) ...[Text(trailingText, style: TextStyle(color: trailingColor ?? getSubText(context), fontSize: 15)), const SizedBox(width: 8)], Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14)]),
+              Row(
+                children: [
+                  Icon(icon, color: Theme.of(context!).primaryColor, size: 22), const SizedBox(width: 14),
+                  Text(title, style: TextStyle(color: getText(context), fontSize: 15, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              Row(children: [if (trailingText != null) ...[Text(trailingText, style: TextStyle(color: trailingColor ?? getSubText(context), fontSize: 13, fontWeight: FontWeight.bold)), const SizedBox(width: 8)], Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14)]),
             ],
           ),
         ),
@@ -2315,54 +2388,128 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    
+    // Formatting Expiry Date beautifully
+    String expiryText = "Upgrade to unlock features";
+    if (userPlanExpiryDate != null) {
+      final List<String> months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      expiryText = "Valid till: ${userPlanExpiryDate!.day} ${months[userPlanExpiryDate!.month - 1]}, ${userPlanExpiryDate!.year}";
+    }
+
     return Scaffold(
       backgroundColor: getBg(context),
-      appBar: AppBar(title: Text("My Account", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 24)), backgroundColor: getBg(context), elevation: 0, centerTitle: false),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
-              Container(
-                width: double.infinity, padding: const EdgeInsets.only(bottom: 24, top: 10),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 280.0,
+            floating: false,
+            pinned: true,
+            backgroundColor: getBg(context),
+            flexibleSpace: FlexibleSpaceBar(
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [primColor.withOpacity(0.4), Colors.black],
+                    begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: const [0.0, 0.9]
+                  ),
+                ),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircleAvatar(radius: 45, backgroundColor: getAvatarColor(currentUserName), child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold))),
-                    const SizedBox(height: 16),
-                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(width: 6), const Icon(Icons.verified, color: Colors.blueAccent, size: 20)]),
-                    const SizedBox(height: 10),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: userActivePlan.isEmpty ? Colors.white12 : Theme.of(context).primaryColor.withOpacity(0.2), borderRadius: BorderRadius.circular(12)), child: Text(userActivePlan.isEmpty ? "FREE PLAN" : userActivePlan.toUpperCase(), style: TextStyle(color: userActivePlan.isEmpty ? Colors.white70 : Theme.of(context).primaryColor, fontSize: 12, fontWeight: FontWeight.bold))),
+                    const SizedBox(height: 40),
+                    Container(
+                      padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2)),
+                      child: CircleAvatar(radius: 45, backgroundColor: getAvatarColor(currentUserName), child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold))),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center, 
+                      children: [
+                        Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
+                        const SizedBox(width: 6), 
+                        if (userActivePlan.isNotEmpty) const Icon(Icons.verified, color: Colors.blueAccent, size: 20)
+                      ]
+                    ),
+                    const SizedBox(height: 4),
+                    Text(currentUserEmail, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)),
                   ],
                 ),
               ),
-
-              _buildMenuGroup([
-                _buildGroupedItem(context: context, title: "Subscription", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())), trailingText: userActivePlan.isEmpty ? "Upgrade" : userActivePlan, trailingColor: Theme.of(context).primaryColor),
-                _buildGroupedItem(context: context, title: "Notifications", onTap: () {}, trailingText: "On"),
-                _buildGroupedItem(context: context, title: "Change Password", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage()))),
-                _buildGroupedItem(context: context, title: "App Theme", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
-                _buildGroupedItem(context: context, title: "Payment Verification", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage()))),
-                _buildGroupedItem(context: context, title: "Order History", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage()))),
-                _buildGroupedItem(context: context, title: "Support Center", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
-              ], context),
-
-              const SizedBox(height: 10),
-              
-              Align(
-                alignment: Alignment.centerLeft,
-                child: InkWell(
-                  onTap: () async { await logoutUser(context); },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.redAccent.withOpacity(0.5))),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: const [Icon(Icons.logout, color: Colors.redAccent, size: 18), SizedBox(width: 8), Text("Log Out", style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold))]),
-                  ),
-                ),
-              )
-            ],
+            ),
           ),
-        ),
+          
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children:[
+                  // Beautiful Premium Banner
+                  GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())),
+                    child: Container(
+                      width: double.infinity, padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        gradient: userActivePlan.isEmpty 
+                            ? const LinearGradient(colors: [Color(0xFF2A2A35), Color(0xFF1A1A1A)])
+                            : LinearGradient(colors: [primColor, primColor.withOpacity(0.6)]),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: userActivePlan.isEmpty ? Colors.black26 : primColor.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(userActivePlan.isEmpty ? Icons.lock_outline : Icons.workspace_premium, color: Colors.white, size: 40),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(userActivePlan.isEmpty ? "FREE PLAN" : userActivePlan.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Text(expiryText, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13)),
+                              ],
+                            ),
+                          ),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)), child: const Text("Upgrade", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)))
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  Text("General Settings", style: TextStyle(color: getSubText(context), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  const SizedBox(height: 10),
+                  _buildMenuGroup([
+                    _buildGroupedItem(context: context, title: "App Theme", icon: Icons.palette_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
+                    _buildGroupedItem(context: context, title: "Change Password", icon: Icons.lock_outline, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage()))),
+                  ], context),
+
+                  Text("Payments & Support", style: TextStyle(color: getSubText(context), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  const SizedBox(height: 10),
+                  _buildMenuGroup([
+                    _buildGroupedItem(context: context, title: "Payment Verification", icon: Icons.receipt_long_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentProofPage()))),
+                    _buildGroupedItem(context: context, title: "Order History", icon: Icons.history, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityPage()))),
+                    _buildGroupedItem(context: context, title: "Help & Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage()))),
+                  ], context),
+
+                  const SizedBox(height: 10),
+                  
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: () async { await logoutUser(context); },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.redAccent.withOpacity(0.5))),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: const [Icon(Icons.logout, color: Colors.redAccent, size: 20), SizedBox(width: 8), Text("Log Out securely", style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold))]),
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
