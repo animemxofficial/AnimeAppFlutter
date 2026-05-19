@@ -46,6 +46,10 @@ dependencies:
   uuid: ^4.3.3
   path_provider: ^2.1.2 
   open_filex: ^4.4.0
+  # ... (baaki purane packages) ...
+  dio: any
+  path_provider: any
+  open_filex: any
 
 dev_dependencies:
   flutter_test:
