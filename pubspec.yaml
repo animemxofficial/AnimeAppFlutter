@@ -44,8 +44,6 @@ dependencies:
   webview_flutter: ^4.4.2
   shared_preferences: ^2.2.2  
   uuid: ^4.3.3
-  open_filex: ^4.4.0
-  # ... (baaki purane packages) ...
   dio: any
   path_provider: any
   open_filex: any
