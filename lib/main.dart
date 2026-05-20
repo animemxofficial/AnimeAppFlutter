@@ -757,7 +757,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   // ========================================================
-  // NEW SOFT UPDATE SYSTEM (POPUP)
+  // NEW SOFT UPDATE SYSTEM (SCREENSHOT DESIGN)
   // ========================================================
   Future<void> _checkForUpdates(BuildContext context) async {
     try {
@@ -767,87 +767,123 @@ class _MainScreenState extends State<MainScreen> {
         // Check for website URL, if apk_url is empty, fallback to globalWebsiteUrl
         String updateUrl = response['apk_url'] ?? globalWebsiteUrl; 
         if (updateUrl.isEmpty) updateUrl = globalWebsiteUrl;
-        
-        String whatsNew = response['whats_new'] ?? "New updates and improvements are available.";
 
         if (_isVersionGreater(latestVersion, CURRENT_APP_VERSION)) {
-          _showUpdateDialog(latestVersion, updateUrl, whatsNew);
+          _showUpdateDialog(latestVersion, updateUrl);
         }
       }
     } catch (e) { print("Update check error: $e"); }
   }
 
-  void _showUpdateDialog(String latestVersion, String updateUrl, String whatsNew) {
+  void _showUpdateDialog(String latestVersion, String updateUrl) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Prevents closing by tapping outside
+      barrierDismissible: false, 
       builder: (ctx) => Dialog(
-        backgroundColor: getCard(context),
+        backgroundColor: const Color(0xFF1E1E24), // Matches the dark grey in screenshot
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Colors.white12, width: 1.5)
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("New Update Available", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx), // User can cancel with X
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.close, color: Colors.white70, size: 20),
-                    ),
-                  )
-                ],
-              ),
-              const SizedBox(height: 20),
-              
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Image.network(globalAppLogoUrl, height: 80, width: 80, fit: BoxFit.cover, errorBuilder: (c, e, s) => const Icon(Icons.movie, size: 80, color: animeMxPurple)),
-              ),
-              const SizedBox(height: 16),
-              
-              Text("Version $latestVersion is out now!", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              // Icon Area with Sparkles
+              SizedBox(
+                width: 140,
+                height: 100,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    const Text("What's New:", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 6),
-                    Text(whatsNew, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
+                    // Sparkles / Particles
+                    Positioned(top: 10, left: 20, child: Text("✦", style: TextStyle(color: animeMxPurple.withOpacity(0.8), fontSize: 18))),
+                    Positioned(top: 20, right: 30, child: Text("✦", style: TextStyle(color: Colors.white54, fontSize: 12))),
+                    Positioned(bottom: 25, left: 15, child: Text("★", style: TextStyle(color: Colors.white54, fontSize: 10))),
+                    Positioned(bottom: 10, right: 25, child: Text("✦", style: TextStyle(color: animeMxPurple.withOpacity(0.8), fontSize: 14))),
+                    Positioned(top: 40, left: 5, child: Text("●", style: TextStyle(color: Colors.white30, fontSize: 8))),
+                    Positioned(bottom: 40, right: 10, child: Text("●", style: TextStyle(color: Colors.white30, fontSize: 6))),
+                    
+                    // Center Download Icon
+                    Container(
+                      width: 75, height: 75,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF9D4EDD), Color(0xFF6B21A8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.3), blurRadius: 20, spreadRadius: 5)
+                        ]
+                      ),
+                      child: const Icon(Icons.download_rounded, color: Colors.white, size: 38),
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 5,
+              // Title
+              const Text(
+                "Install New Version",
+                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              
+              // Description
+              const Text(
+                "A new version of Anime MX is available.\nInstall now to enjoy the latest features\nand improvements.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+              ),
+              const SizedBox(height: 28),
+              
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A2A35), // Dark grey button background
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text("Later", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
                   ),
-                  onPressed: () {
-                    launchInBrowser(updateUrl); // Redirect to Website
-                    Navigator.pop(ctx);
-                  },
-                  child: const Text("Go to Website & Update", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
-                ),
-              )
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        launchInBrowser(updateUrl);
+                        Navigator.pop(ctx);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)],
+                            begin: Alignment.centerLeft,
+                            end: Alignment.centerRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))
+                          ]
+                        ),
+                        alignment: Alignment.center,
+                        child: const Text("Install Now", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
