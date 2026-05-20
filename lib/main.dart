@@ -170,8 +170,9 @@ class Episode {
   final String duration;
   final String views;
   final String videoUrl;
+  final DateTime createdAt;
 
-  Episode({required this.id, required this.title, required this.image, required this.duration, this.views = "0", required this.videoUrl});
+  Episode({required this.id, required this.title, required this.image, required this.duration, this.views = "0", required this.videoUrl, required this.createdAt});
 }
 
 class Season {
@@ -252,14 +253,17 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     return;
   }
 
-  // 7-DAY LOCK FOR BASIC PLAN
-  if (userActivePlan.toLowerCase().contains("basic")) {
-    final int daysSinceAdded = DateTime.now().difference(anime.createdAt).inDays;
+  // Exact Logic For Basic Plan (₹55) locking ONLY the latest episodes
+  if (userActivePlan.toLowerCase().contains("basic") || userActivePlan.contains("55")) {
+    final episode = anime.seasonsList[seasonIndex].episodes[episodeIndex];
+    final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
+    
     if (daysSinceAdded < 7) {
+      int daysLeft = 7 - daysSinceAdded;
       _showPremiumDialog(
         context, 
         "Early Access Locked", 
-        "Basic Plan (₹55) users can watch new episodes 7 days after they are uploaded.\n\nUpgrade to Standard (₹99) or Elite (₹149) Plan to watch instantly without waiting!"
+        "Basic Plan (₹55) users can watch new episodes 7 days after release.\n\nThis episode will unlock automatically in $daysLeft day(s).\n\nUpgrade to Standard (₹99) or Elite (₹149) Plan to watch instantly!"
       );
       return;
     }
@@ -731,12 +735,12 @@ class _MainScreenState extends State<MainScreen> {
               Expanded(child: Text("Device Limit Reached", style: TextStyle(color: Colors.white, fontSize: 18))),
             ],
           ),
-          content: Text("Your current plan allows a maximum of $limit device(s).\n\nPlease log out from your other device to continue.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+          content: Text("Your current plan allows a maximum of $limit device(s).\n\nPlease log out from your other device to continue using Anime MX.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
-              child: const Text("Log Out", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text("Log Out securely", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ]
         )
@@ -757,107 +761,90 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   // ========================================================
-  // NEW SOFT UPDATE SYSTEM (SCREENSHOT DESIGN)
+  // COMPACT & PERFECT UPDATE DIALOG (SCREENSHOT DESIGN)
   // ========================================================
   Future<void> _checkForUpdates(BuildContext context) async {
     try {
       final response = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
       if (response != null) {
         String latestVersion = response['version'] ?? CURRENT_APP_VERSION;
-        // Check for website URL, if apk_url is empty, fallback to globalWebsiteUrl
         String updateUrl = response['apk_url'] ?? globalWebsiteUrl; 
         if (updateUrl.isEmpty) updateUrl = globalWebsiteUrl;
 
         if (_isVersionGreater(latestVersion, CURRENT_APP_VERSION)) {
-          _showUpdateDialog(latestVersion, updateUrl);
+          _showUpdateDialog(updateUrl);
         }
       }
     } catch (e) { print("Update check error: $e"); }
   }
 
-  void _showUpdateDialog(String latestVersion, String updateUrl) {
+  void _showUpdateDialog(String updateUrl) {
     showDialog(
       context: context,
       barrierDismissible: false, 
       builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF1E1E24), // Matches the dark grey in screenshot
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        backgroundColor: const Color(0xFF1E1E24), // Exact dark shade from screenshot
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 20,
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               // Icon Area with Sparkles
               SizedBox(
-                width: 140,
-                height: 100,
+                width: 100, height: 90,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Sparkles / Particles
-                    Positioned(top: 10, left: 20, child: Text("✦", style: TextStyle(color: animeMxPurple.withOpacity(0.8), fontSize: 18))),
-                    Positioned(top: 20, right: 30, child: Text("✦", style: TextStyle(color: Colors.white54, fontSize: 12))),
-                    Positioned(bottom: 25, left: 15, child: Text("★", style: TextStyle(color: Colors.white54, fontSize: 10))),
-                    Positioned(bottom: 10, right: 25, child: Text("✦", style: TextStyle(color: animeMxPurple.withOpacity(0.8), fontSize: 14))),
-                    Positioned(top: 40, left: 5, child: Text("●", style: TextStyle(color: Colors.white30, fontSize: 8))),
-                    Positioned(bottom: 40, right: 10, child: Text("●", style: TextStyle(color: Colors.white30, fontSize: 6))),
+                    // Fake sparkles to match screenshot
+                    Positioned(top: 0, left: 10, child: Text("✦", style: TextStyle(color: const Color(0xFF8A2BE2).withOpacity(0.8), fontSize: 16))),
+                    Positioned(top: 15, right: 15, child: const Text("✦", style: TextStyle(color: Colors.white54, fontSize: 10))),
+                    Positioned(bottom: 10, left: 5, child: const Text("★", style: TextStyle(color: Colors.white54, fontSize: 8))),
+                    Positioned(bottom: 0, right: 10, child: Text("✦", style: TextStyle(color: const Color(0xFF8A2BE2).withOpacity(0.8), fontSize: 14))),
                     
-                    // Center Download Icon
                     Container(
-                      width: 75, height: 75,
+                      width: 65, height: 65,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF9D4EDD), Color(0xFF6B21A8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        boxShadow: [
-                          BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.3), blurRadius: 20, spreadRadius: 5)
-                        ]
+                        gradient: const LinearGradient(colors: [Color(0xFF9D4EDD), Color(0xFF6B21A8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        boxShadow: [BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.4), blurRadius: 15, spreadRadius: 2)]
                       ),
-                      child: const Icon(Icons.download_rounded, color: Colors.white, size: 38),
+                      child: const Icon(Icons.download_rounded, color: Colors.white, size: 36),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               
-              // Title
-              const Text(
-                "Install New Version",
-                style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+              const Text("Install New Version", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
               
-              // Description
-              const Text(
+              Text(
                 "A new version of Anime MX is available.\nInstall now to enjoy the latest features\nand improvements.",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.4),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               
-              // Buttons
               Row(
                 children: [
                   Expanded(
                     child: GestureDetector(
                       onTap: () => Navigator.pop(ctx),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2A2A35), // Dark grey button background
+                          color: Colors.transparent,
+                          border: Border.all(color: Colors.white24),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         alignment: Alignment.center,
-                        child: const Text("Later", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                        child: const Text("Later", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -865,20 +852,14 @@ class _MainScreenState extends State<MainScreen> {
                         Navigator.pop(ctx);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
+                          gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]),
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))
-                          ]
+                          boxShadow: [BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]
                         ),
                         alignment: Alignment.center,
-                        child: const Text("Install Now", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                        child: const Text("Install Now", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ),
@@ -893,20 +874,42 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchDatabaseCatalog() async {
     try {
-      final animeResponse = await Supabase.instance.client.from('anime_list').select('''
-        id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at,
-        anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url))
-      ''').order('created_at', ascending: false);
+      var animeResponse;
+      bool hasEpDate = true;
+
+      // FIRST TRY: Getting Episode's Created At (For 100% accurate 7-day lock)
+      try {
+        animeResponse = await Supabase.instance.client.from('anime_list').select('''
+          id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at,
+          anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url, created_at))
+        ''').order('created_at', ascending: false);
+      } catch (e) {
+        // SECOND TRY: Fallback if episode table doesn't have created_at column
+        hasEpDate = false;
+        animeResponse = await Supabase.instance.client.from('anime_list').select('''
+          id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at,
+          anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url))
+        ''').order('created_at', ascending: false);
+      }
 
       List<Anime> fetchedAnimeList = [];
       for (var item in animeResponse) {
+        DateTime animeDate = DateTime.now().subtract(const Duration(days: 30));
+        if (item['created_at'] != null) {
+          animeDate = DateTime.tryParse(item['created_at'].toString()) ?? animeDate;
+        }
+
         List<Season> parsedSeasons = [];
         var seasonsData = item['anime_seasons'] as List<dynamic>? ?? [];
         for (var s in seasonsData) {
           List<Episode> parsedEps = [];
           var epData = s['anime_episodes'] as List<dynamic>? ?? [];
           for (var e in epData) {
-            parsedEps.add(Episode(id: e['id'].toString(), title: e['episode_title']?.toString() ?? "Episode", image: e['image_url']?.toString() ?? item['image_url'], duration: e['duration']?.toString() ?? "24m", videoUrl: e['video_url']?.toString() ?? ""));
+            DateTime epDate = animeDate; 
+            if (hasEpDate && e['created_at'] != null) {
+              epDate = DateTime.tryParse(e['created_at'].toString()) ?? animeDate;
+            }
+            parsedEps.add(Episode(id: e['id'].toString(), title: e['episode_title']?.toString() ?? "Episode", image: e['image_url']?.toString() ?? item['image_url'], duration: e['duration']?.toString() ?? "24m", videoUrl: e['video_url']?.toString() ?? "", createdAt: epDate));
           }
           parsedSeasons.add(Season(id: s['id'].toString(), name: s['season_name'].toString(), episodes: parsedEps));
         }
@@ -920,18 +923,11 @@ class _MainScreenState extends State<MainScreen> {
           } catch(e){}
         }
 
-        // Parsing creation date for new episode check lock
-        DateTime parsedCreatedAt = DateTime.now().subtract(const Duration(days: 30));
-        if (item['created_at'] != null) {
-          parsedCreatedAt = DateTime.tryParse(item['created_at'].toString()) ?? parsedCreatedAt;
-        }
-
         fetchedAnimeList.add(Anime(
           id: item['id'].toString(), title: item['title']?.toString() ?? "Unknown", description: item['description']?.toString() ?? "",
           image: item['image_url']?.toString() ?? "", genre: item['genres']?.toString() ?? "Action", rating: item['rating']?.toString() ?? "PG-13",
           dubStatus: item['dub_status']?.toString() ?? "DUB", dubColor: dubColorParsed, category: item['category']?.toString() ?? "",
-          subCategory: item['sub_category']?.toString() ?? "", seasonsList: parsedSeasons,
-          createdAt: parsedCreatedAt,
+          subCategory: item['sub_category']?.toString() ?? "", seasonsList: parsedSeasons, createdAt: animeDate,
         ));
       }
       animeListNotifier.value = fetchedAnimeList;
