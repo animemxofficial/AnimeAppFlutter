@@ -252,13 +252,14 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     return;
   }
 
+  // 7-DAY LOCK FOR BASIC PLAN
   if (userActivePlan.toLowerCase().contains("basic")) {
     final int daysSinceAdded = DateTime.now().difference(anime.createdAt).inDays;
     if (daysSinceAdded < 7) {
       _showPremiumDialog(
         context, 
         "Early Access Locked", 
-        "Basic Plan users can watch new episodes 7 days after release.\n\nUpgrade to Standard or Elite Plan for Instant Access!"
+        "Basic Plan (₹55) users can watch new episodes 7 days after they are uploaded.\n\nUpgrade to Standard (₹99) or Elite (₹149) Plan to watch instantly without waiting!"
       );
       return;
     }
@@ -722,21 +723,20 @@ class _MainScreenState extends State<MainScreen> {
         onWillPop: () async => false,
         child: AlertDialog(
           backgroundColor: getCard(context),
-          title: const Text("Device Limit Reached!", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-          content: Text("Your current plan allows a maximum of $limit device(s). Please log out from another device or reset your sessions.", style: const TextStyle(color: Colors.white70)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white12)),
+          title: Row(
+            children: const [
+              Icon(Icons.devices, color: Colors.redAccent, size: 28),
+              SizedBox(width: 10),
+              Expanded(child: Text("Device Limit Reached", style: TextStyle(color: Colors.white, fontSize: 18))),
+            ],
+          ),
+          content: Text("Your current plan allows a maximum of $limit device(s).\n\nPlease log out from your other device to continue.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
           actions: [
-            TextButton(
-              onPressed: () async {
-                await Supabase.instance.client.from('user_devices').delete().eq('email', currentUserEmail);
-                Navigator.of(context, rootNavigator: true).pop();
-                _checkDeviceLimit(); 
-              },
-              child: const Text("Reset Devices", style: TextStyle(color: Colors.blueAccent)),
-            ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
-              child: const Text("Log Out", style: TextStyle(color: Colors.white)),
+              child: const Text("Log Out", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             )
           ]
         )
@@ -992,11 +992,36 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
-// HOME SCREEN
+// HOME SCREEN (WITH PROFESSIONAL DRAWER)
 // ==========================================
 class HomeScreen extends StatelessWidget {
   final VoidCallback onSearchTap;
   const HomeScreen({super.key, required this.onSearchTap});
+
+  Widget _buildDrawerItem(BuildContext context, IconData icon, String title, VoidCallback onTap, {Color? iconColor, bool isPremium = false}) {
+    Color color = iconColor ?? Colors.white70;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: isPremium ? Colors.amber.withOpacity(0.1) : Colors.transparent,
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(title, style: TextStyle(color: isPremium ? Colors.amber : Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 14),
+        onTap: onTap,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1032,17 +1057,35 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             ),
-            ListTile(leading: Icon(Icons.home, color: getSubText(context)), title: Text("Home", style: TextStyle(color: getText(context))), onTap: () => Navigator.pop(context)),
-            ListTile(leading: const Icon(Icons.workspace_premium, color: Colors.amber), title: const Text("Go Premium", style: TextStyle(color: Colors.amber)), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); }),
+            const SizedBox(height: 10),
+            _buildDrawerItem(context, Icons.home_filled, "Home", () => Navigator.pop(context), iconColor: primColor),
+            _buildDrawerItem(context, Icons.workspace_premium, "Go Premium", () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PremiumPage())); }, isPremium: true, iconColor: Colors.amber),
             
-            ListTile(leading: Icon(Icons.language, color: getSubText(context)), title: Text("Website", style: TextStyle(color: getText(context))), onTap: () => launchInBrowser(globalWebsiteUrl)),
-            ListTile(leading: Icon(Icons.help_outline, color: getSubText(context)), title: Text("Support", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); }),
-            ListTile(leading: Icon(Icons.palette_outlined, color: getSubText(context)), title: Text("Theme", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); }),
-            ListTile(leading: Icon(Icons.lock, color: getSubText(context)), title: Text("Change Password", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage())); }),
-            ListTile(leading: Icon(Icons.privacy_tip_outlined, color: getSubText(context)), title: Text("Privacy Policy", style: TextStyle(color: getText(context))), onTap: () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage())); }),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10), child: Text("SETTINGS", style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold))),
+            _buildDrawerItem(context, Icons.language, "Website", () => launchInBrowser(globalWebsiteUrl)),
+            _buildDrawerItem(context, Icons.palette_outlined, "App Theme", () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())); }),
+            _buildDrawerItem(context, Icons.lock_outline, "Change Password", () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage())); }),
             
-            const Padding(padding: EdgeInsets.symmetric(vertical: 8.0), child: Divider(color: Colors.white12, thickness: 1)),
-            ListTile(leading: const Icon(Icons.logout, color: Colors.redAccent, size: 20), title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 13)), onTap: () async { Navigator.pop(context); await logoutUser(context); }),
+            const Padding(padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10), child: Text("HELP & INFO", style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold))),
+            _buildDrawerItem(context, Icons.support_agent, "Help Center", () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const SupportPage())); }),
+            _buildDrawerItem(context, Icons.privacy_tip_outlined, "Privacy Policy", () { Navigator.pop(context); Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage())); }),
+            
+            const SizedBox(height: 10),
+            const Divider(color: Colors.white12, thickness: 1, indent: 20, endIndent: 20),
+            
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: ListTile(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.logout, color: Colors.redAccent, size: 20),
+                ),
+                title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)),
+                onTap: () async { Navigator.pop(context); await logoutUser(context); },
+              ),
+            ),
             const SizedBox(height: 20),
           ],
         ),
