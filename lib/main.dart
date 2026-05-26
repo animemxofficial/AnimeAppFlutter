@@ -449,7 +449,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // --- UPDATED FORGOT PASSWORD WITH CLEAR MESSAGING ---
   Future<void> _forgotPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Pehle apna email upar box me bharein!")));
@@ -703,9 +702,9 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) { print("Plan fetch error: $e"); }
   }
 
-  // --- UPDATED: STRICT DEVICE LIMIT LOGIC (NO RESET BUTTON) ---
+  // --- 🔥 AUTO-KICK (NETFLIX STYLE) DEVICE LIMIT SYSTEM 🔥 ---
   Future<void> _checkDeviceLimit() async {
-    int limit = 1; // Default for Free & Basic
+    int limit = 1; 
     if (userActivePlan.toLowerCase().contains("standard")) limit = 3;
     if (userActivePlan.toLowerCase().contains("elite")) limit = 7;
 
@@ -713,49 +712,42 @@ class _MainScreenState extends State<MainScreen> {
     String? dId = prefs.getString('device_id');
     
     try {
-      final dbDevices = await Supabase.instance.client.from('user_devices').select('device_id').eq('email', currentUserEmail);
+      final dbDevices = await Supabase.instance.client
+          .from('user_devices')
+          .select('device_id, created_at')
+          .eq('email', currentUserEmail)
+          .order('created_at', ascending: true);
+
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
-      if (dId == null || !registeredDevices.contains(dId)) {
-        // If current device is NOT registered, check limit
-        if (registeredDevices.length < limit) {
-          dId ??= const Uuid().v4();
-          await prefs.setString('device_id', dId);
-          await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
-        } else {
-          // STRICT KICK-OUT IF LIMIT EXCEEDED
-          _showDeviceLimitDialog(limit);
+      if (dId == null) {
+        dId = const Uuid().v4();
+        await prefs.setString('device_id', dId);
+      }
+
+      if (registeredDevices.contains(dId)) {
+        return; // All good, current device is safely registered
+      }
+
+      // If new device or cleared data...
+      if (registeredDevices.length < limit) {
+        // Space available, simply register
+        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
+      } else {
+        // LIMIT FULL: Session Takeover (Kicks the oldest device)
+        String oldestDevice = registeredDevices.first;
+        await Supabase.instance.client.from('user_devices').delete().eq('device_id', oldestDevice);
+        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Session transferred! Your older device was logged out."),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ));
         }
       }
     } catch(e) {}
-  }
-
-  void _showDeviceLimitDialog(int limit) {
-    showDialog(
-      context: context, barrierDismissible: false,
-      builder: (ctx) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          backgroundColor: getCard(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white12)),
-          title: Row(
-            children: const [
-              Icon(Icons.devices, color: Colors.redAccent, size: 28),
-              SizedBox(width: 10),
-              Expanded(child: Text("Device Limit Reached", style: TextStyle(color: Colors.white, fontSize: 18))),
-            ],
-          ),
-          content: Text("Your current plan allows a maximum of $limit device(s).\n\nThis account is already active on other devices. You cannot login from this new device until you log out from the old one.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
-              child: const Text("Log Out", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
-          ]
-        )
-      )
-    );
   }
 
   bool _isVersionGreater(String latest, String current) {
@@ -1891,11 +1883,36 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     super.initState(); 
     _incrementAndFetchViews(); 
     _fetchLikesDislikes(); 
+    
+    // 🔥 NEW: Check real-time if device limit is broken while trying to play
+    _enforceSingleScreen();
+
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex]; 
     _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl), videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))..initialize().then((_) { 
       if (widget.startPosition != null) { _controller.seekTo(widget.startPosition!); } 
       setState(() {}); _controller.play(); 
     }); 
+  }
+
+  Future<void> _enforceSingleScreen() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? dId = prefs.getString('device_id');
+    if (dId != null) {
+      final check = await Supabase.instance.client.from('user_devices').select('device_id').eq('device_id', dId).maybeSingle();
+      if (check == null) {
+        // DEVICE WAS KICKED OUT BY ANOTHER DEVICE
+        _controller.pause();
+        await Supabase.instance.client.auth.signOut();
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const AuthGate()), (route) => false);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Account in use on another device! Please upgrade your plan."),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 5),
+          ));
+        }
+      }
+    }
   }
 
   @override 
@@ -2383,7 +2400,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN
+// PROFILE SCREEN (COMPLETELY REDESIGNED)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
