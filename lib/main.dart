@@ -327,10 +327,15 @@ Future<void> launchTelegram(String contact) async {
 
 Future<void> logoutUser(BuildContext context) async {
   try {
-    await Supabase.instance.client.auth.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    String? dId = prefs.getString('device_id');
+    if (dId != null && currentUserEmail.isNotEmpty) {
+      await Supabase.instance.client.from('user_devices').delete().eq('device_id', dId).eq('email', currentUserEmail);
+    }
   } catch (e) {
     print("Logout error: $e");
   }
+  await Supabase.instance.client.auth.signOut();
 }
 
 // ==========================================
@@ -444,6 +449,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // --- UPDATED FORGOT PASSWORD WITH CLEAR MESSAGING ---
   Future<void> _forgotPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Pehle apna email upar box me bharein!")));
@@ -452,7 +458,13 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(_emailController.text.trim());
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password reset link sent to your email!"), backgroundColor: Colors.green));
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Reset link sent! Apne email ka Inbox/Spam check karein naya password set karne ke liye."), 
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 4),
+        ));
+      }
     } on AuthException catch (e) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: Colors.red));
     } catch (e) {
@@ -606,7 +618,7 @@ class _MainScreenState extends State<MainScreen> {
     await _checkCookies(); 
     await _fetchSettings(); 
     await _checkForUpdates(context); 
-    await _fetchActivePlan(); 
+    await _fetchActivePlanAndCheckDevices(); 
     
     await fetchGlobalAnimeViews(); 
     await _fetchDatabaseCatalog();
@@ -666,7 +678,7 @@ class _MainScreenState extends State<MainScreen> {
     } catch(e) { }
   }
 
-  Future<void> _fetchActivePlan() async {
+  Future<void> _fetchActivePlanAndCheckDevices() async {
     try {
       final response = await Supabase.instance.client.from('payment_requests').select('plan, created_at, status').eq('email', currentUserEmail).eq('status', 'Approved').order('created_at', ascending: false).limit(1).maybeSingle();
 
@@ -686,8 +698,64 @@ class _MainScreenState extends State<MainScreen> {
         userActivePlan = "";
         userPlanExpiryDate = null;
       }
+      await _checkDeviceLimit();
 
     } catch (e) { print("Plan fetch error: $e"); }
+  }
+
+  // --- UPDATED: STRICT DEVICE LIMIT LOGIC (NO RESET BUTTON) ---
+  Future<void> _checkDeviceLimit() async {
+    int limit = 1; // Default for Free & Basic
+    if (userActivePlan.toLowerCase().contains("standard")) limit = 3;
+    if (userActivePlan.toLowerCase().contains("elite")) limit = 7;
+
+    final prefs = await SharedPreferences.getInstance();
+    String? dId = prefs.getString('device_id');
+    
+    try {
+      final dbDevices = await Supabase.instance.client.from('user_devices').select('device_id').eq('email', currentUserEmail);
+      List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
+
+      if (dId == null || !registeredDevices.contains(dId)) {
+        // If current device is NOT registered, check limit
+        if (registeredDevices.length < limit) {
+          dId ??= const Uuid().v4();
+          await prefs.setString('device_id', dId);
+          await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
+        } else {
+          // STRICT KICK-OUT IF LIMIT EXCEEDED
+          _showDeviceLimitDialog(limit);
+        }
+      }
+    } catch(e) {}
+  }
+
+  void _showDeviceLimitDialog(int limit) {
+    showDialog(
+      context: context, barrierDismissible: false,
+      builder: (ctx) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          backgroundColor: getCard(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white12)),
+          title: Row(
+            children: const [
+              Icon(Icons.devices, color: Colors.redAccent, size: 28),
+              SizedBox(width: 10),
+              Expanded(child: Text("Device Limit Reached", style: TextStyle(color: Colors.white, fontSize: 18))),
+            ],
+          ),
+          content: Text("Your current plan allows a maximum of $limit device(s).\n\nThis account is already active on other devices. You cannot login from this new device until you log out from the old one.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
+              child: const Text("Log Out", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
+          ]
+        )
+      )
+    );
   }
 
   bool _isVersionGreater(String latest, String current) {
@@ -2315,7 +2383,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN (COMPLETELY REDESIGNED)
+// PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
