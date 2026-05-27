@@ -223,6 +223,16 @@ class OrderItem {
   OrderItem({required this.planName, required this.amount, required this.status, required this.date});
 }
 
+// 🔥 NEW MODEL FOR FLATTENED EPISODES 🔥
+class LatestEpisodeItem {
+  final Anime anime;
+  final int seasonIndex;
+  final int episodeIndex;
+  final Episode episode;
+
+  LatestEpisodeItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.episode});
+}
+
 // ==========================================
 // MAIN ENTRY POINT
 // ==========================================
@@ -254,13 +264,12 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     return;
   }
 
-  // Exact Logic For Basic Plan (₹55) WITH EXPLICIT COUNTDOWN
   if (userActivePlan.toLowerCase().contains("basic") || userActivePlan.contains("55")) {
     final episode = anime.seasonsList[seasonIndex].episodes[episodeIndex];
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded; // This will show 7, 6, 5...
+      int daysLeft = 7 - daysSinceAdded;
       _showPremiumDialog(
         context, 
         "⏳ Early Access Locked", 
@@ -703,7 +712,6 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) { print("Plan fetch error: $e"); }
   }
 
-  // --- 🔥 AUTO-KICK (NETFLIX STYLE) DEVICE LIMIT SYSTEM 🔥 ---
   Future<String> _getHardwareDeviceId() async {
     try {
       final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -739,9 +747,7 @@ class _MainScreenState extends State<MainScreen> {
 
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
-      if (registeredDevices.contains(currentHardwareId)) {
-        return; 
-      }
+      if (registeredDevices.contains(currentHardwareId)) return; 
 
       if (registeredDevices.length < limit) {
         await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
@@ -773,9 +779,6 @@ class _MainScreenState extends State<MainScreen> {
     return lParts.length > cParts.length;
   }
 
-  // ========================================================
-  // COMPACT & PERFECT UPDATE DIALOG (SCREENSHOT DESIGN)
-  // ========================================================
   Future<void> _checkForUpdates(BuildContext context) async {
     try {
       final response = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
@@ -796,7 +799,7 @@ class _MainScreenState extends State<MainScreen> {
       context: context,
       barrierDismissible: false, 
       builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF1E1E24), // Exact dark shade from screenshot
+        backgroundColor: const Color(0xFF1E1E24), 
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         elevation: 20,
         child: Padding(
@@ -804,7 +807,6 @@ class _MainScreenState extends State<MainScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon Area with Sparkles
               SizedBox(
                 width: 100, height: 90,
                 child: Stack(
@@ -846,11 +848,7 @@ class _MainScreenState extends State<MainScreen> {
                       onTap: () => Navigator.pop(ctx),
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.transparent,
-                          border: Border.all(color: Colors.white24),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        decoration: BoxDecoration(color: Colors.transparent, border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(12)),
                         alignment: Alignment.center,
                         child: const Text("Later", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                       ),
@@ -859,17 +857,10 @@ class _MainScreenState extends State<MainScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: GestureDetector(
-                      onTap: () {
-                        launchInBrowser(updateUrl);
-                        Navigator.pop(ctx);
-                      },
+                      onTap: () { launchInBrowser(updateUrl); Navigator.pop(ctx); },
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]
-                        ),
+                        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: const Color(0xFF8A2BE2).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))]),
                         alignment: Alignment.center,
                         child: const Text("Install Now", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
                       ),
@@ -1175,7 +1166,7 @@ class HomeScreen extends StatelessWidget {
               }
             ),
             
-            // CATEGORIES
+            // CATEGORIES & LATEST EPISODES
             ValueListenableBuilder<List<Anime>>(
               valueListenable: animeListNotifier,
               builder: (context, allAnime, child) {
@@ -1195,14 +1186,28 @@ class HomeScreen extends StatelessWidget {
                   return viewsB.compareTo(viewsA); 
                 });
 
-                final episodesAvailableList = allAnime.where((a) => a.seasonsList.isNotEmpty).toList();
+                // 🔥 NEW LOGIC FOR LATEST EPISODES: FLATTEN LIST 🔥
+                List<LatestEpisodeItem> latestEpisodesFlatList = [];
+                for (var anime in allAnime) {
+                  for (int s = 0; s < anime.seasonsList.length; s++) {
+                    for (int e = 0; e < anime.seasonsList[s].episodes.length; e++) {
+                      latestEpisodesFlatList.add(LatestEpisodeItem(anime: anime, seasonIndex: s, episodeIndex: e, episode: anime.seasonsList[s].episodes[e]));
+                    }
+                  }
+                }
+                // Sort by episode createdAt descending
+                latestEpisodesFlatList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
+                if (latestEpisodesFlatList.length > 20) latestEpisodesFlatList = latestEpisodesFlatList.sublist(0, 20); // Top 20 latest uploads
 
                 return Column(
                   children: [
                     _buildPortraitSection(context, "Recently Added", Icons.fiber_new, Colors.green, allAnime), 
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, primColor, trendingList),
                     if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", Icons.emoji_events, Colors.amber, popularList),
-                    if (episodesAvailableList.isNotEmpty) _buildThumbnailSection(context, "Latest Episodes", null, null, false, animeList: episodesAvailableList),
+                    
+                    // LATEST EPISODES SECTION USING NEW FLAT LIST
+                    if (latestEpisodesFlatList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestEpisodesFlatList),
+                    
                     if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
                     if (romanceList.isNotEmpty) _buildPortraitSection(context, "Romance", null, null, romanceList),
                     if (comedyList.isNotEmpty) _buildPortraitSection(context, "Comedy", null, null, comedyList),
@@ -1215,6 +1220,38 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  // --- 🔥 NEW BUILDER FOR LATEST EPISODES ONLY 🔥 ---
+  Widget _buildLatestEpisodesSection(BuildContext context, String title, Color primColor, List<LatestEpisodeItem> latestList) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+            children: [
+              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context)))]), 
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LatestEpisodesSeeAllPage(latestList: latestList))), 
+                child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13))
+              )
+            ]
+          ),
+        ),
+        SizedBox(
+          height: 150, 
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: latestList.length, 
+            itemBuilder: (context, index) { 
+              return ThumbnailLatestCard(item: latestList[index]); 
+            }
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 
@@ -1304,10 +1341,7 @@ class HomeScreen extends StatelessWidget {
               Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) ...[const SizedBox(width: 6), Icon(icon, color: iconColor, size: 20)]]), 
               GestureDetector(
                 onTap: () { 
-                  if (isCW) { Navigator.push(context, MaterialPageRoute(builder: (_) => CWSeeAllPage(cwList: cwList!))); } else {
-                    bool isLatest = title == "Latest Episodes";
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: animeList!, isLatestOnly: isLatest))); 
-                  }
+                  if (isCW) { Navigator.push(context, MaterialPageRoute(builder: (_) => CWSeeAllPage(cwList: cwList!))); } 
                 }, 
                 child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13))
               )
@@ -1319,15 +1353,77 @@ class HomeScreen extends StatelessWidget {
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: itemCount, 
             itemBuilder: (context, index) { 
-              if (isCW) { return CWAnimeCard(item: cwList![index]); } else {
-                bool isLatest = title == "Latest Episodes";
-                return ThumbnailLatestCard(anime: animeList![index], isLatestOnly: isLatest); 
-              }
+              return CWAnimeCard(item: cwList![index]); 
             }
           ),
         ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+}
+
+// ==========================================
+// NEW: LATEST EPISODES "SEE ALL" PAGE
+// ==========================================
+class LatestEpisodesSeeAllPage extends StatelessWidget {
+  final List<LatestEpisodeItem> latestList;
+  const LatestEpisodesSeeAllPage({super.key, required this.latestList});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(title: Text("Latest Episodes", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold)), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context)), elevation: 0),
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), itemCount: latestList.length,
+        itemBuilder: (context, index) {
+          final item = latestList[index];
+          String epImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
+          String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
+
+          return GestureDetector(
+            onTap: () => attemptPlayEpisode(context, item.anime, item.seasonIndex, item.episodeIndex),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16), height: 110,
+              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))]),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 160, height: double.infinity,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(epImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)),
+                          Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(displayTitle, style: TextStyle(color: getText(context), fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 6),
+                          Text(item.anime.title, style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 8),
+                          Row(children: [Icon(Icons.access_time, color: getSubText(context), size: 14), const SizedBox(width: 4), Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: getSubText(context), fontSize: 12))])
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -1405,9 +1501,8 @@ class CWSeeAllPage extends StatelessWidget {
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
   final List<Anime> animeList; 
-  final bool isLatestOnly;
   
-  const SeeAllCategoryPage({super.key, required this.title, required this.animeList, this.isLatestOnly = false});
+  const SeeAllCategoryPage({super.key, required this.title, required this.animeList});
 
   @override
   Widget build(BuildContext context) {
@@ -1418,7 +1513,7 @@ class SeeAllCategoryPage extends StatelessWidget {
         padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), 
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.70, crossAxisSpacing: 14, mainAxisSpacing: 16), 
         itemCount: animeList.length, 
-        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title, isLatestOnly: isLatestOnly)
+        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title)
       ),
     );
   }
@@ -1475,8 +1570,7 @@ class OverlayPopularCard extends StatelessWidget {
 class GridCategoryCard extends StatefulWidget {
   final Anime anime; 
   final String pageTitle; 
-  final bool isLatestOnly;
-  const GridCategoryCard({super.key, required this.anime, required this.pageTitle, this.isLatestOnly = false});
+  const GridCategoryCard({super.key, required this.anime, required this.pageTitle});
 
   @override
   State<GridCategoryCard> createState() => _GridCategoryCardState();
@@ -1508,18 +1602,11 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       tagText = "ORIGINAL"; tagBgColor = Colors.redAccent; tagTextColor = Colors.white; 
     }
     
-    if (widget.pageTitle == "Latest Episodes" && widget.anime.isNew) { tagText = "NEW"; tagBgColor = Colors.green; tagTextColor = Colors.white; }
-
     final bool isSaved = myListNotifier.value.any((item) => item.anime.title == widget.anime.title);
     
     return GestureDetector(
       onTap: () {
-        if (widget.isLatestOnly) {
-          if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList.last.episodes.isNotEmpty) {
-            int sIndex = widget.anime.seasonsList.length - 1; int eIndex = widget.anime.seasonsList.last.episodes.length - 1;
-            attemptPlayEpisode(context, widget.anime, sIndex, eIndex);
-          } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!"))); }
-        } else { Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime, isLatestOnly: widget.isLatestOnly))); }
+        Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime)));
       }, 
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 1.5)), 
@@ -1556,30 +1643,24 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
+// 🔥 REVISED: LATEST EPISODE CARD (SHOWS EPISODE DETAILS, NOT JUST ANIME) 🔥
 class ThumbnailLatestCard extends StatelessWidget {
-  final Anime anime; 
-  final bool isLatestOnly;
-  const ThumbnailLatestCard({super.key, required this.anime, this.isLatestOnly = false});
+  final LatestEpisodeItem item; 
+  const ThumbnailLatestCard({super.key, required this.item});
   
   @override
   Widget build(BuildContext context) {
-    // 🔥 NEW: SHOW ACTUAL EPISODE NAME & IMAGE
-    Episode? latestEp;
-    int latestEpNum = 1;
-    if (anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty) {
-      latestEp = anime.seasonsList.last.episodes.last;
-      latestEpNum = anime.seasonsList.last.episodes.length;
-    }
+    int latestEpNum = item.episodeIndex + 1;
+    String displayImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
+    String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
 
-    String displayImage = (latestEp != null && latestEp.image.isNotEmpty) ? latestEp.image : anime.image;
-    String displayTitle = (latestEp != null && latestEp.title.isNotEmpty && latestEp.title != "Episode") ? latestEp.title : anime.title;
+    // Check if new (less than 7 days)
+    int daysOld = DateTime.now().difference(item.episode.createdAt).inDays;
+    bool isBrandNew = daysOld < 7;
 
     return GestureDetector(
       onTap: () {
-        if (anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty) {
-          int sIndex = anime.seasonsList.length - 1; int eIndex = anime.seasonsList.last.episodes.length - 1;
-          attemptPlayEpisode(context, anime, sIndex, eIndex);
-        } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!"))); }
+        attemptPlayEpisode(context, item.anime, item.seasonIndex, item.episodeIndex);
       }, 
       child: Container(
         width: 180, margin: const EdgeInsets.only(right: 14), 
@@ -1596,6 +1677,8 @@ class ThumbnailLatestCard extends StatelessWidget {
                     fit: StackFit.expand, 
                     children:[
                       Image.network(displayImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)), 
+                      Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.8), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))),
+                      if (isBrandNew) Positioned(top: 6, right: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)), child: const Text("NEW", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
                       Positioned(bottom: 6, right: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), child: Text("Ep $latestEpNum", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
                     ]
                   )
@@ -1603,11 +1686,9 @@ class ThumbnailLatestCard extends StatelessWidget {
               ),
             ), 
             const SizedBox(height: 8), 
-            // EPISODE TITLE BOLD
             Text(displayTitle, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
             const SizedBox(height: 2), 
-            // ANIME TITLE SMALL
-            Text(anime.title, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)
+            Text(item.anime.title, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)
           ]
         )
       ),
@@ -2437,7 +2518,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN (COMPLETELY REDESIGNED)
+// PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -2565,7 +2646,6 @@ class ProfileScreen extends StatelessWidget {
                   Text("General Settings", style: TextStyle(color: getSubText(context), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                   const SizedBox(height: 10),
                   _buildMenuGroup([
-                    // 🔥 NEW APP GUIDE OPTION 🔥
                     _buildGroupedItem(context: context, title: "App Guide", icon: Icons.menu_book_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AppGuidePage()))),
                     _buildGroupedItem(context: context, title: "App Theme", icon: Icons.palette_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
                     _buildGroupedItem(context: context, title: "Change Password", icon: Icons.lock_outline, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage()))),
@@ -2584,7 +2664,7 @@ class ProfileScreen extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: InkWell(
-                      onTap: () async { await logoutUser(context); },
+                      onTap: () async { await logoutUser(context); Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AuthGate())); },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.redAccent.withOpacity(0.5))),
@@ -2603,7 +2683,7 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // ==========================================
-// APP GUIDE PAGE (NEW)
+// APP GUIDE PAGE (PARAGRAPH FORMAT)
 // ==========================================
 class AppGuidePage extends StatelessWidget {
   const AppGuidePage({super.key});
@@ -2615,44 +2695,47 @@ class AppGuidePage extends StatelessWidget {
       backgroundColor: getBg(context),
       appBar: AppBar(title: Text("App Guide", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20), decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), gradient: LinearGradient(colors:[primColor, primColor.withOpacity(0.7)])), 
-              child: Row(children:[Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.menu_book, color: Colors.white, size: 30)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text("Welcome to Anime MX", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), Text("Learn how everything works.", style: TextStyle(color: Colors.white70, fontSize: 12))]))])
-            ), 
-            const SizedBox(height: 30),
-            Text("Premium Plans", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 16),
-            _buildGuideCard(context, Icons.info_outline, "Basic Plan (₹55)", "Enjoy Ad-free streaming on 1 Device. Note: New episodes will be locked for 7 days. You can watch them after the countdown ends."),
-            _buildGuideCard(context, Icons.star_border, "Standard Plan (₹99)", "Stream on 3 Devices simultaneously. Get instant Early Access to all brand new episodes."),
-            _buildGuideCard(context, Icons.workspace_premium, "Elite Plan (₹149)", "The ultimate experience. Stream on up to 7 Devices simultaneously. Includes instant Early Access."),
-            const SizedBox(height: 20),
-            Text("Important Rules", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 16),
-            _buildGuideCard(context, Icons.devices, "Device Limits & Auto-Kick", "If you share your password and the device limit is reached, logging in on a new device will automatically kick out the oldest device."),
-            _buildGuideCard(context, Icons.payment, "Payments & Verification", "After paying via UPI, you must submit a screenshot and your 12-digit UTR. Your plan will be activated within 24 hours."),
+            Text("Navigation & Basic Usage", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            Text(
+              "Anime MX is designed to be simple and user-friendly. At the bottom of the screen, you will find tabs to navigate between the Home screen, Search, Dubs section, My List, and your Account settings. You can use the Search tab to quickly find any anime, movie, or episode. Tap the 'Save' icon on any anime to add it directly to your My List for quick access later.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
+            ),
+            const SizedBox(height: 24),
+
+            Text("Premium Plans", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            Text(
+              "We offer three premium plans to suit your needs:\n\n• Basic Plan (₹55): Enjoy uninterrupted Ad-free streaming on a single device. Note that new episodes are locked for 7 days after upload. A countdown timer will show you exactly when the episode unlocks.\n\n• Standard Plan (₹99): Stream on up to 3 devices simultaneously. This plan includes instant Early Access, meaning you can watch new episodes immediately without any waiting period.\n\n• Elite Plan (₹149): Our ultimate package. Share your account with friends and family on up to 7 devices simultaneously. Like the Standard plan, this includes instant Early Access to all newly added content.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
+            ),
+            const SizedBox(height: 24),
+
+            Text("Strict Device Limits", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            Text(
+              "To ensure account security and prevent unauthorized sharing, Anime MX uses a strict hardware-based device tracking system. If your plan allows 1 device, logging into a second device will automatically 'Auto-Kick' and log out the first device. This prevents simultaneous streaming beyond your plan's limit.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
+            ),
+            const SizedBox(height: 24),
+
+            Text("Payments & Verification", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            Text(
+              "Upgrading is simple. Go to the Premium Page, choose your plan, and scan the UPI QR code to make a payment. Once paid, note down your 12-digit UTR (Transaction ID) and take a screenshot. Submit these details on the 'Payment Verification' page. Our team will verify your payment and activate your premium account within 24 hours.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildGuideCard(BuildContext context, IconData icon, String title, String desc) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [Icon(icon, color: Theme.of(context).primaryColor, size: 20), const SizedBox(width: 10), Text(title, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold))]),
-          const SizedBox(height: 8),
-          Text(desc, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)),
-        ],
-      ),
-    );
-  }
 }
-
 
 // ==========================================
 // CHANGE PASSWORD PAGE
@@ -2762,7 +2845,36 @@ class PrivacyPolicyPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: getBg(context), 
       appBar: AppBar(title: Text("Privacy Policy", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
-      body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Text("Privacy Policy\n\nWelcome to AnimeMX. At AnimeMX, we value your privacy. This Privacy Policy outlines how we collect, use, and protect your data.\n\nWe do not sell your personal data to third parties. All user preferences, including recent searches and saved episodes, are stored locally on your device unless connected via cloud synchronization. For more details, please contact our support team.", style: TextStyle(color: getSubText(context), fontSize: 14, height: 1.5)))
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20), 
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Your Privacy Matters", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            const Text(
+              "At Anime MX, your privacy and security are our highest priorities. We are fully committed to providing a safe, ad-free streaming experience without compromising your personal data. We strongly believe that your data belongs to you.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
+            ),
+            const SizedBox(height: 20),
+
+            Text("Data Security & Storage", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            const Text(
+              "We utilize state-of-the-art encryption protocols through Supabase to protect your account details and hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized. We strictly do not sell, rent, or trade your personal information to any third-party advertisers or data brokers.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
+            ),
+            const SizedBox(height: 20),
+
+            Text("Hardware & Device Tracking", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
+            const SizedBox(height: 10),
+            const Text(
+              "To enforce our Premium Plan rules and prevent unauthorized account sharing, Anime MX securely scans and hashes your device's hardware ID. This fingerprinting is strictly used for device limit verification (Auto-Kick system) and is never used to track your activities outside of the application.",
+              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
+            ),
+          ],
+        )
+      )
     ); 
   } 
 }
@@ -3101,7 +3213,7 @@ class SupportPage extends StatelessWidget {
 }
 
 // ==========================================
-// ACTIVITY PAGE
+// ACTIVITY PAGE (WITH EXPIRED STATUS)
 // ==========================================
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
@@ -3130,7 +3242,16 @@ class _ActivityPageState extends State<ActivityPage> {
           List<String> planParts = fullPlanName.split(' - ');
           String planNameOnly = planParts.length > 0 ? planParts[0] : fullPlanName;
           String priceOnly = planParts.length > 1 ? planParts[1] : '₹0';
-          fetchedList.add(OrderItem(planName: planNameOnly, amount: priceOnly, status: data['status'] ?? 'Pending', date: data['created_at'] != null ? data['created_at'].substring(0, 10) : 'N/A'));
+          
+          String displayStatus = data['status'] ?? 'Pending';
+          DateTime itemDate = DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now();
+          
+          // 🔥 NEW: Check if 30 days have passed for Approved/Verified plans
+          if ((displayStatus == 'Verified' || displayStatus == 'Approved') && DateTime.now().isAfter(itemDate.add(const Duration(days: 30)))) {
+            displayStatus = 'Expired';
+          }
+
+          fetchedList.add(OrderItem(planName: planNameOnly, amount: priceOnly, status: displayStatus, date: data['created_at'] != null ? data['created_at'].substring(0, 10) : 'N/A'));
         }
         setState(() { _fetchedOrders = fetchedList; _isLoading = false; });
       } else { setState(() => _isLoading = false); }
@@ -3150,7 +3271,16 @@ class _ActivityPageState extends State<ActivityPage> {
               itemBuilder: (context, index) { 
                 final item = _fetchedOrders[index]; 
                 Color statusColor; 
-                if (item.status == "Verified" || item.status == "Approved") { statusColor = Colors.green; } else if (item.status == "Pending") { statusColor = Colors.orange; } else { statusColor = Colors.redAccent; }
+                if (item.status == "Verified" || item.status == "Approved") { 
+                  statusColor = Colors.green; 
+                } else if (item.status == "Pending") { 
+                  statusColor = Colors.orange; 
+                } else if (item.status == "Expired") {
+                  statusColor = Colors.grey; 
+                } else { 
+                  statusColor = Colors.redAccent; 
+                }
+                
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
                   child: Row(
