@@ -30,6 +30,11 @@ bool hasAcceptedCookies = false;
 String globalWebsiteUrl = "https://google.com"; 
 String globalAppLogoUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiFzvJT7KpnCHDQckDOecr6TEu9HUcVPgdS5BOzz5ls1LoEKDjIX-F54jeXoVEaa3JpHA4hOwfncf03-6bC95v5MHp7tLEOhDd4rsq8zngT0jKI0J02rlTKKgZVau6YGIBYax2MO-GILv-tsamob8AzWw8LAuvGfV8Mif5P-WZ76nEIdHUoQEnsdyT-E5c/s1254/IMG-20260426-WA0001.webp"; 
 
+// 🔥 NAYE GLOBAL VARIABLES SOCIAL LINKS KE LIYE 🔥
+String globalTelegramLink = "";
+String globalYoutubeLink = "";
+String globalWhatsappLink = "";
+
 List<String> globalRecentSearches = [];
 
 final ValueNotifier<List<Anime>> animeListNotifier = ValueNotifier([]);
@@ -223,7 +228,6 @@ class OrderItem {
   OrderItem({required this.planName, required this.amount, required this.status, required this.date});
 }
 
-// 🔥 NEW MODEL FOR FLATTENED EPISODES 🔥
 class LatestEpisodeItem {
   final Anime anime;
   final int seasonIndex;
@@ -264,12 +268,13 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     return;
   }
 
+  // Exact Logic For Basic Plan (₹55) WITH EXPLICIT COUNTDOWN
   if (userActivePlan.toLowerCase().contains("basic") || userActivePlan.contains("55")) {
     final episode = anime.seasonsList[seasonIndex].episodes[episodeIndex];
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded;
+      int daysLeft = 7 - daysSinceAdded; // Shows 7, 6, 5...
       _showPremiumDialog(
         context, 
         "⏳ Early Access Locked", 
@@ -313,6 +318,7 @@ void _showPremiumDialog(BuildContext context, String title, String msg) {
 // UTILITY FUNCTIONS for Links and Contacts
 // ==========================================
 Future<void> launchInBrowser(String url) async {
+  if (url.isEmpty) return;
   final Uri uri = Uri.parse(url);
   if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
     print('Could not launch $uri');
@@ -320,6 +326,7 @@ Future<void> launchInBrowser(String url) async {
 }
 
 Future<void> launchWhatsApp(String number) async {
+  if (number.isEmpty) return;
   final cleanNumber = number.replaceAll(RegExp(r'\D'), '');
   final Uri uri = Uri.parse("https://wa.me/$cleanNumber");
   if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -328,6 +335,7 @@ Future<void> launchWhatsApp(String number) async {
 }
 
 Future<void> launchTelegram(String contact) async {
+  if (contact.isEmpty) return;
   final cleanContact = contact.replaceAll(RegExp(r'\s+'), '');
   final Uri uri = Uri.parse("https://t.me/$cleanContact");
   if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
@@ -679,10 +687,14 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchSettings() async {
     try {
-      final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url').limit(1).maybeSingle();
+      // 🔥 NEW: FETCHING SOCIAL LINKS FROM SUPABASE 🔥
+      final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url, telegram_url, youtube_url, whatsapp_url').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
         if(res['app_logo_url'] != null) globalAppLogoUrl = res['app_logo_url'];
+        if(res['telegram_url'] != null) globalTelegramLink = res['telegram_url'];
+        if(res['youtube_url'] != null) globalYoutubeLink = res['youtube_url'];
+        if(res['whatsapp_url'] != null) globalWhatsappLink = res['whatsapp_url'];
       }
     } catch(e) { }
   }
@@ -747,7 +759,9 @@ class _MainScreenState extends State<MainScreen> {
 
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
-      if (registeredDevices.contains(currentHardwareId)) return; 
+      if (registeredDevices.contains(currentHardwareId)) {
+        return; 
+      }
 
       if (registeredDevices.length < limit) {
         await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
@@ -1186,7 +1200,6 @@ class HomeScreen extends StatelessWidget {
                   return viewsB.compareTo(viewsA); 
                 });
 
-                // 🔥 NEW LOGIC FOR LATEST EPISODES: FLATTEN LIST 🔥
                 List<LatestEpisodeItem> latestEpisodesFlatList = [];
                 for (var anime in allAnime) {
                   for (int s = 0; s < anime.seasonsList.length; s++) {
@@ -1195,9 +1208,8 @@ class HomeScreen extends StatelessWidget {
                     }
                   }
                 }
-                // Sort by episode createdAt descending
                 latestEpisodesFlatList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
-                if (latestEpisodesFlatList.length > 20) latestEpisodesFlatList = latestEpisodesFlatList.sublist(0, 20); // Top 20 latest uploads
+                if (latestEpisodesFlatList.length > 20) latestEpisodesFlatList = latestEpisodesFlatList.sublist(0, 20); 
 
                 return Column(
                   children: [
@@ -1205,7 +1217,6 @@ class HomeScreen extends StatelessWidget {
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", Icons.local_fire_department_rounded, primColor, trendingList),
                     if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", Icons.emoji_events, Colors.amber, popularList),
                     
-                    // LATEST EPISODES SECTION USING NEW FLAT LIST
                     if (latestEpisodesFlatList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestEpisodesFlatList),
                     
                     if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
@@ -1223,7 +1234,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // --- 🔥 NEW BUILDER FOR LATEST EPISODES ONLY 🔥 ---
   Widget _buildLatestEpisodesSection(BuildContext context, String title, Color primColor, List<LatestEpisodeItem> latestList) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1501,8 +1511,9 @@ class CWSeeAllPage extends StatelessWidget {
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; 
   final List<Anime> animeList; 
+  final bool isLatestOnly;
   
-  const SeeAllCategoryPage({super.key, required this.title, required this.animeList});
+  const SeeAllCategoryPage({super.key, required this.title, required this.animeList, this.isLatestOnly = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1513,7 +1524,7 @@ class SeeAllCategoryPage extends StatelessWidget {
         padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), 
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.70, crossAxisSpacing: 14, mainAxisSpacing: 16), 
         itemCount: animeList.length, 
-        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title)
+        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title, isLatestOnly: isLatestOnly)
       ),
     );
   }
@@ -1570,7 +1581,8 @@ class OverlayPopularCard extends StatelessWidget {
 class GridCategoryCard extends StatefulWidget {
   final Anime anime; 
   final String pageTitle; 
-  const GridCategoryCard({super.key, required this.anime, required this.pageTitle});
+  final bool isLatestOnly;
+  const GridCategoryCard({super.key, required this.anime, required this.pageTitle, this.isLatestOnly = false});
 
   @override
   State<GridCategoryCard> createState() => _GridCategoryCardState();
@@ -1643,7 +1655,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
-// 🔥 REVISED: LATEST EPISODE CARD (SHOWS EPISODE DETAILS, NOT JUST ANIME) 🔥
+// 🔥 REVISED: LATEST EPISODE CARD (SHOWS EPISODE DETAILS AND 14 DAY NEW TAG) 🔥
 class ThumbnailLatestCard extends StatelessWidget {
   final LatestEpisodeItem item; 
   const ThumbnailLatestCard({super.key, required this.item});
@@ -1654,9 +1666,9 @@ class ThumbnailLatestCard extends StatelessWidget {
     String displayImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
     String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
 
-    // Check if new (less than 7 days)
+    // 🔥 NEW: 14 Days logic for the "NEW" green tag
     int daysOld = DateTime.now().difference(item.episode.createdAt).inDays;
-    bool isBrandNew = daysOld < 7;
+    bool isBrandNew = daysOld <= 14;
 
     return GestureDetector(
       onTap: () {
@@ -1994,7 +2006,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }); 
   }
 
-  // --- 🔥 AUTO-KICK FUNCTION 🔥 ---
   Future<String> _getHardwareDeviceId() async {
     try {
       final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -2518,7 +2529,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN
+// PROFILE SCREEN (COMPLETELY REDESIGNED)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -2550,6 +2561,18 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // 🔥 NEW FUNCTION: BUILD SOCIAL ICONS ROW 🔥
+  Widget _buildSocialIcon(IconData icon, Color bgColor, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: bgColor.withOpacity(0.15), shape: BoxShape.circle, border: Border.all(color: bgColor.withOpacity(0.5), width: 1.5)),
+        child: Icon(icon, color: bgColor, size: 28),
       ),
     );
   }
@@ -2660,6 +2683,31 @@ class ProfileScreen extends StatelessWidget {
                   ], context),
 
                   const SizedBox(height: 10),
+
+                  // 🔥 NEW: SOCIAL MEDIA LINKS ROW 🔥
+                  Center(
+                    child: Column(
+                      children: [
+                        Text("Join Our Community", style: TextStyle(color: Colors.white38, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // TELEGRAM (Left)
+                            _buildSocialIcon(Icons.send_rounded, Colors.blueAccent, () => launchInBrowser(globalTelegramLink)),
+                            const SizedBox(width: 25),
+                            // YOUTUBE (Center)
+                            _buildSocialIcon(Icons.play_circle_filled_rounded, Colors.redAccent, () => launchInBrowser(globalYoutubeLink)),
+                            const SizedBox(width: 25),
+                            // WHATSAPP (Right)
+                            _buildSocialIcon(Icons.chat_rounded, Colors.greenAccent, () => launchInBrowser(globalWhatsappLink)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 30),
                   
                   Align(
                     alignment: Alignment.centerLeft,
@@ -2701,7 +2749,7 @@ class AppGuidePage extends StatelessWidget {
           children: [
             Text("Navigation & Basic Usage", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
-            Text(
+            const Text(
               "Anime MX is designed to be simple and user-friendly. At the bottom of the screen, you will find tabs to navigate between the Home screen, Search, Dubs section, My List, and your Account settings. You can use the Search tab to quickly find any anime, movie, or episode. Tap the 'Save' icon on any anime to add it directly to your My List for quick access later.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
@@ -2709,7 +2757,7 @@ class AppGuidePage extends StatelessWidget {
 
             Text("Premium Plans", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
-            Text(
+            const Text(
               "We offer three premium plans to suit your needs:\n\n• Basic Plan (₹55): Enjoy uninterrupted Ad-free streaming on a single device. Note that new episodes are locked for 7 days after upload. A countdown timer will show you exactly when the episode unlocks.\n\n• Standard Plan (₹99): Stream on up to 3 devices simultaneously. This plan includes instant Early Access, meaning you can watch new episodes immediately without any waiting period.\n\n• Elite Plan (₹149): Our ultimate package. Share your account with friends and family on up to 7 devices simultaneously. Like the Standard plan, this includes instant Early Access to all newly added content.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
@@ -2717,7 +2765,7 @@ class AppGuidePage extends StatelessWidget {
 
             Text("Strict Device Limits", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
-            Text(
+            const Text(
               "To ensure account security and prevent unauthorized sharing, Anime MX uses a strict hardware-based device tracking system. If your plan allows 1 device, logging into a second device will automatically 'Auto-Kick' and log out the first device. This prevents simultaneous streaming beyond your plan's limit.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
@@ -2725,7 +2773,7 @@ class AppGuidePage extends StatelessWidget {
 
             Text("Payments & Verification", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
-            Text(
+            const Text(
               "Upgrading is simple. Go to the Premium Page, choose your plan, and scan the UPI QR code to make a payment. Once paid, note down your 12-digit UTR (Transaction ID) and take a screenshot. Submit these details on the 'Payment Verification' page. Our team will verify your payment and activate your premium account within 24 hours.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
@@ -2736,6 +2784,7 @@ class AppGuidePage extends StatelessWidget {
     );
   }
 }
+
 
 // ==========================================
 // CHANGE PASSWORD PAGE
@@ -3246,7 +3295,6 @@ class _ActivityPageState extends State<ActivityPage> {
           String displayStatus = data['status'] ?? 'Pending';
           DateTime itemDate = DateTime.tryParse(data['created_at'].toString()) ?? DateTime.now();
           
-          // 🔥 NEW: Check if 30 days have passed for Approved/Verified plans
           if ((displayStatus == 'Verified' || displayStatus == 'Approved') && DateTime.now().isAfter(itemDate.add(const Duration(days: 30)))) {
             displayStatus = 'Expired';
           }
