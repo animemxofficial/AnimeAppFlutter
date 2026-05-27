@@ -10,7 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:device_info_plus/device_info_plus.dart'; // NAYA PACKAGE HARDWARE SCAN KE LIYE
+import 'package:device_info_plus/device_info_plus.dart';
 
 // ==========================================
 // APP VERSION FOR OTA UPDATES
@@ -254,17 +254,17 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     return;
   }
 
-  // Exact Logic For Basic Plan (₹55) locking ONLY the latest episodes
+  // Exact Logic For Basic Plan (₹55) WITH EXPLICIT COUNTDOWN
   if (userActivePlan.toLowerCase().contains("basic") || userActivePlan.contains("55")) {
     final episode = anime.seasonsList[seasonIndex].episodes[episodeIndex];
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded;
+      int daysLeft = 7 - daysSinceAdded; // This will show 7, 6, 5...
       _showPremiumDialog(
         context, 
-        "Early Access Locked", 
-        "Basic Plan (₹55) users can watch new episodes 7 days after release.\n\nThis episode will unlock automatically in $daysLeft day(s).\n\nUpgrade to Standard (₹99) or Elite (₹149) Plan to watch instantly!"
+        "⏳ Early Access Locked", 
+        "Basic Plan (₹55) users can watch new episodes 7 days after release.\n\nTime Remaining: $daysLeft Day(s)\n\nUpgrade to Standard (₹99) or Elite (₹149) Plan to bypass the timer and watch instantly!"
       );
       return;
     }
@@ -328,10 +328,15 @@ Future<void> launchTelegram(String contact) async {
 
 Future<void> logoutUser(BuildContext context) async {
   try {
-    await Supabase.instance.client.auth.signOut();
+    final prefs = await SharedPreferences.getInstance();
+    String? dId = prefs.getString('device_id');
+    if (dId != null && currentUserEmail.isNotEmpty) {
+      await Supabase.instance.client.from('user_devices').delete().eq('device_id', dId).eq('email', currentUserEmail);
+    }
   } catch (e) {
     print("Logout error: $e");
   }
+  await Supabase.instance.client.auth.signOut();
 }
 
 // ==========================================
@@ -508,7 +513,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // 🔥 NAYA LOGIN PAGE LOGO LAGA DIYA GAYA HAI
                     Image.network('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhUPBKRxJds9wTfxrq3wkqiODrcM8Q332dP8zk5brD5kYajr-IdOzKALD9v1x0BCvO2JTbRaxRs6uI6CLPZKRCZiIIx8SNIBZbGhbi8mD7_nXRVOUW_ULugp4K3Tt6dYOaUWAsWjn6RSNM_jEXrVXLepX0Qn3HGKqyWf9weVlo8QZY20TsyBpd_bASpPe4/s1005/Anime%20MX.webp', height: 120),
                     const SizedBox(height: 16),
                     RichText(text: const TextSpan(children: [TextSpan(text: "Anime ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)), TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5))])),
@@ -699,7 +703,7 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) { print("Plan fetch error: $e"); }
   }
 
-  // --- 🔥 NEW: STRICT HARDWARE FINGERPRINTING SYSTEM 🔥 ---
+  // --- 🔥 AUTO-KICK (NETFLIX STYLE) DEVICE LIMIT SYSTEM 🔥 ---
   Future<String> _getHardwareDeviceId() async {
     try {
       final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -708,7 +712,7 @@ class _MainScreenState extends State<MainScreen> {
         String brand = androidInfo.brand.replaceAll(' ', '');
         String model = androidInfo.model.replaceAll(' ', '');
         String id = androidInfo.id;
-        return "${brand}_${model}_$id"; // Exampe: Samsung_SMG998B_a8b9c7d6
+        return "${brand}_${model}_$id"; 
       } else if (Platform.isIOS) {
         IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
         return "${iosInfo.name}_${iosInfo.identifierForVendor}";
@@ -716,7 +720,6 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) {
       print("Hardware ID Error: $e");
     }
-    // Fallback if hardware scan fails
     return const Uuid().v4(); 
   }
 
@@ -736,50 +739,26 @@ class _MainScreenState extends State<MainScreen> {
 
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
-      // If current device is already in DB, simply allow entry (Even if clear data was done)
       if (registeredDevices.contains(currentHardwareId)) {
         return; 
       }
 
-      // If it's a completely NEW device trying to login
       if (registeredDevices.length < limit) {
-        // Space available, register this hardware ID
         await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
       } else {
-        // LIMIT REACHED. STRICT BLOCK.
-        _showDeviceLimitDialog(limit);
+        String oldestDevice = registeredDevices.first;
+        await Supabase.instance.client.from('user_devices').delete().eq('device_id', oldestDevice);
+        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Session transferred! Your older device was logged out."),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ));
+        }
       }
-    } catch(e) {
-      print("Device Check Error: $e");
-    }
-  }
-
-  void _showDeviceLimitDialog(int limit) {
-    showDialog(
-      context: context, barrierDismissible: false,
-      builder: (ctx) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          backgroundColor: getCard(context),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white12)),
-          title: Row(
-            children: const [
-              Icon(Icons.devices, color: Colors.redAccent, size: 28),
-              SizedBox(width: 10),
-              Expanded(child: Text("Device Limit Reached", style: TextStyle(color: Colors.white, fontSize: 18))),
-            ],
-          ),
-          content: Text("Your current plan allows a maximum of $limit device(s).\n\nThis account is already active on other devices. You cannot login from this new device.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
-          actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
-              child: const Text("Log Out securely", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
-          ]
-        )
-      )
-    );
+    } catch(e) {}
   }
 
   bool _isVersionGreater(String latest, String current) {
@@ -831,7 +810,6 @@ class _MainScreenState extends State<MainScreen> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Fake sparkles to match screenshot
                     Positioned(top: 0, left: 10, child: Text("✦", style: TextStyle(color: const Color(0xFF8A2BE2).withOpacity(0.8), fontSize: 16))),
                     Positioned(top: 15, right: 15, child: const Text("✦", style: TextStyle(color: Colors.white54, fontSize: 10))),
                     Positioned(bottom: 10, left: 5, child: const Text("★", style: TextStyle(color: Colors.white54, fontSize: 8))),
@@ -911,14 +889,12 @@ class _MainScreenState extends State<MainScreen> {
       var animeResponse;
       bool hasEpDate = true;
 
-      // FIRST TRY: Getting Episode's Created At (For 100% accurate 7-day lock)
       try {
         animeResponse = await Supabase.instance.client.from('anime_list').select('''
           id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at,
           anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url, created_at))
         ''').order('created_at', ascending: false);
       } catch (e) {
-        // SECOND TRY: Fallback if episode table doesn't have created_at column
         hasEpDate = false;
         animeResponse = await Supabase.instance.client.from('anime_list').select('''
           id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at,
@@ -1022,7 +998,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
-// HOME SCREEN (WITH PROFESSIONAL DRAWER)
+// HOME SCREEN
 // ==========================================
 class HomeScreen extends StatelessWidget {
   final VoidCallback onSearchTap;
@@ -1587,7 +1563,17 @@ class ThumbnailLatestCard extends StatelessWidget {
   
   @override
   Widget build(BuildContext context) {
-    int latestEpNum = anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty ? anime.seasonsList.last.episodes.length : 1;
+    // 🔥 NEW: SHOW ACTUAL EPISODE NAME & IMAGE
+    Episode? latestEp;
+    int latestEpNum = 1;
+    if (anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty) {
+      latestEp = anime.seasonsList.last.episodes.last;
+      latestEpNum = anime.seasonsList.last.episodes.length;
+    }
+
+    String displayImage = (latestEp != null && latestEp.image.isNotEmpty) ? latestEp.image : anime.image;
+    String displayTitle = (latestEp != null && latestEp.title.isNotEmpty && latestEp.title != "Episode") ? latestEp.title : anime.title;
+
     return GestureDetector(
       onTap: () {
         if (anime.seasonsList.isNotEmpty && anime.seasonsList.last.episodes.isNotEmpty) {
@@ -1609,7 +1595,7 @@ class ThumbnailLatestCard extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand, 
                     children:[
-                      Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)), 
+                      Image.network(displayImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)), 
                       Positioned(bottom: 6, right: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), child: Text("Ep $latestEpNum", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
                     ]
                   )
@@ -1617,9 +1603,11 @@ class ThumbnailLatestCard extends StatelessWidget {
               ),
             ), 
             const SizedBox(height: 8), 
-            Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
+            // EPISODE TITLE BOLD
+            Text(displayTitle, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
             const SizedBox(height: 2), 
-            Text("Latest Episode", style: TextStyle(color: getSubText(context), fontSize: 11))
+            // ANIME TITLE SMALL
+            Text(anime.title, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)
           ]
         )
       ),
@@ -1916,11 +1904,52 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _incrementAndFetchViews(); 
     _fetchLikesDislikes(); 
     
+    _enforceSingleScreen();
+
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex]; 
     _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl), videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))..initialize().then((_) { 
       if (widget.startPosition != null) { _controller.seekTo(widget.startPosition!); } 
       setState(() {}); _controller.play(); 
     }); 
+  }
+
+  // --- 🔥 AUTO-KICK FUNCTION 🔥 ---
+  Future<String> _getHardwareDeviceId() async {
+    try {
+      final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        String brand = androidInfo.brand.replaceAll(' ', '');
+        String model = androidInfo.model.replaceAll(' ', '');
+        String id = androidInfo.id;
+        return "${brand}_${model}_$id"; 
+      } else if (Platform.isIOS) {
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+        return "${iosInfo.name}_${iosInfo.identifierForVendor}";
+      }
+    } catch (e) {
+      print("Hardware ID Error: $e");
+    }
+    return const Uuid().v4(); 
+  }
+
+  Future<void> _enforceSingleScreen() async {
+    String currentHardwareId = await _getHardwareDeviceId();
+    if (currentHardwareId.isNotEmpty) {
+      final check = await Supabase.instance.client.from('user_devices').select('device_id').eq('device_id', currentHardwareId).maybeSingle();
+      if (check == null) {
+        _controller.pause();
+        await Supabase.instance.client.auth.signOut();
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const AuthGate()), (route) => false);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Account in use on another device! Please upgrade your plan."),
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 5),
+          ));
+        }
+      }
+    }
   }
 
   @override 
@@ -2536,6 +2565,8 @@ class ProfileScreen extends StatelessWidget {
                   Text("General Settings", style: TextStyle(color: getSubText(context), fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                   const SizedBox(height: 10),
                   _buildMenuGroup([
+                    // 🔥 NEW APP GUIDE OPTION 🔥
+                    _buildGroupedItem(context: context, title: "App Guide", icon: Icons.menu_book_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AppGuidePage()))),
                     _buildGroupedItem(context: context, title: "App Theme", icon: Icons.palette_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ThemeSettingsPage())), trailingText: "Customize"),
                     _buildGroupedItem(context: context, title: "Change Password", icon: Icons.lock_outline, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ChangePasswordPage()))),
                   ], context),
@@ -2570,6 +2601,58 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 }
+
+// ==========================================
+// APP GUIDE PAGE (NEW)
+// ==========================================
+class AppGuidePage extends StatelessWidget {
+  const AppGuidePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(title: Text("App Guide", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20), decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), gradient: LinearGradient(colors:[primColor, primColor.withOpacity(0.7)])), 
+              child: Row(children:[Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.menu_book, color: Colors.white, size: 30)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text("Welcome to Anime MX", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), Text("Learn how everything works.", style: TextStyle(color: Colors.white70, fontSize: 12))]))])
+            ), 
+            const SizedBox(height: 30),
+            Text("Premium Plans", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 16),
+            _buildGuideCard(context, Icons.info_outline, "Basic Plan (₹55)", "Enjoy Ad-free streaming on 1 Device. Note: New episodes will be locked for 7 days. You can watch them after the countdown ends."),
+            _buildGuideCard(context, Icons.star_border, "Standard Plan (₹99)", "Stream on 3 Devices simultaneously. Get instant Early Access to all brand new episodes."),
+            _buildGuideCard(context, Icons.workspace_premium, "Elite Plan (₹149)", "The ultimate experience. Stream on up to 7 Devices simultaneously. Includes instant Early Access."),
+            const SizedBox(height: 20),
+            Text("Important Rules", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 16),
+            _buildGuideCard(context, Icons.devices, "Device Limits & Auto-Kick", "If you share your password and the device limit is reached, logging in on a new device will automatically kick out the oldest device."),
+            _buildGuideCard(context, Icons.payment, "Payments & Verification", "After paying via UPI, you must submit a screenshot and your 12-digit UTR. Your plan will be activated within 24 hours."),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideCard(BuildContext context, IconData icon, String title, String desc) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [Icon(icon, color: Theme.of(context).primaryColor, size: 20), const SizedBox(width: 10), Text(title, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold))]),
+          const SizedBox(height: 8),
+          Text(desc, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)),
+        ],
+      ),
+    );
+  }
+}
+
 
 // ==========================================
 // CHANGE PASSWORD PAGE
