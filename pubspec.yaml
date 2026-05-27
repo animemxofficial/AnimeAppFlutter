@@ -46,6 +46,7 @@ dependencies:
   uuid: ^4.3.3
   dio: any
   path_provider: any
+  device_info_plus: any
   open_filex: any
 
 dev_dependencies:

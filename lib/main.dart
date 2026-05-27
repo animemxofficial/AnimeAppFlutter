@@ -10,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:convert'; 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
+import 'package:device_info_plus/device_info_plus.dart'; // NAYA PACKAGE HARDWARE SCAN KE LIYE
 
 // ==========================================
 // APP VERSION FOR OTA UPDATES
@@ -327,15 +328,10 @@ Future<void> launchTelegram(String contact) async {
 
 Future<void> logoutUser(BuildContext context) async {
   try {
-    final prefs = await SharedPreferences.getInstance();
-    String? dId = prefs.getString('device_id');
-    if (dId != null && currentUserEmail.isNotEmpty) {
-      await Supabase.instance.client.from('user_devices').delete().eq('device_id', dId).eq('email', currentUserEmail);
-    }
+    await Supabase.instance.client.auth.signOut();
   } catch (e) {
     print("Logout error: $e");
   }
-  await Supabase.instance.client.auth.signOut();
 }
 
 // ==========================================
@@ -459,7 +455,7 @@ class _LoginScreenState extends State<LoginScreen> {
       await Supabase.instance.client.auth.resetPasswordForEmail(_emailController.text.trim());
       if(mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Reset link sent! Apne email ka Inbox/Spam check karein naya password set karne ke liye."), 
+          content: Text("Reset link sent! Apne email ka Inbox check karein naya password set karne ke liye."), 
           backgroundColor: Colors.green,
           duration: Duration(seconds: 4),
         ));
@@ -512,7 +508,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.network('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiFzvJT7KpnCHDQckDOecr6TEu9HUcVPgdS5BOzz5ls1LoEKDjIX-F54jeXoVEaa3JpHA4hOwfncf03-6bC95v5MHp7tLEOhDd4rsq8zngT0jKI0J02rlTKKgZVau6YGIBYax2MO-GILv-tsamob8AzWw8LAuvGfV8Mif5P-WZ76nEIdHUoQEnsdyT-E5c/s1254/IMG-20260426-WA0001.webp', height: 120),
+                    // 🔥 NAYA LOGIN PAGE LOGO LAGA DIYA GAYA HAI
+                    Image.network('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhUPBKRxJds9wTfxrq3wkqiODrcM8Q332dP8zk5brD5kYajr-IdOzKALD9v1x0BCvO2JTbRaxRs6uI6CLPZKRCZiIIx8SNIBZbGhbi8mD7_nXRVOUW_ULugp4K3Tt6dYOaUWAsWjn6RSNM_jEXrVXLepX0Qn3HGKqyWf9weVlo8QZY20TsyBpd_bASpPe4/s1005/Anime%20MX.webp', height: 120),
                     const SizedBox(height: 16),
                     RichText(text: const TextSpan(children: [TextSpan(text: "Anime ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)), TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5))])),
                     const SizedBox(height: 6),
@@ -702,16 +699,35 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) { print("Plan fetch error: $e"); }
   }
 
-  // --- 🔥 AUTO-KICK (NETFLIX STYLE) DEVICE LIMIT SYSTEM 🔥 ---
+  // --- 🔥 NEW: STRICT HARDWARE FINGERPRINTING SYSTEM 🔥 ---
+  Future<String> _getHardwareDeviceId() async {
+    try {
+      final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      if (Platform.isAndroid) {
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        String brand = androidInfo.brand.replaceAll(' ', '');
+        String model = androidInfo.model.replaceAll(' ', '');
+        String id = androidInfo.id;
+        return "${brand}_${model}_$id"; // Exampe: Samsung_SMG998B_a8b9c7d6
+      } else if (Platform.isIOS) {
+        IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+        return "${iosInfo.name}_${iosInfo.identifierForVendor}";
+      }
+    } catch (e) {
+      print("Hardware ID Error: $e");
+    }
+    // Fallback if hardware scan fails
+    return const Uuid().v4(); 
+  }
+
   Future<void> _checkDeviceLimit() async {
     int limit = 1; 
     if (userActivePlan.toLowerCase().contains("standard")) limit = 3;
     if (userActivePlan.toLowerCase().contains("elite")) limit = 7;
 
-    final prefs = await SharedPreferences.getInstance();
-    String? dId = prefs.getString('device_id');
-    
     try {
+      String currentHardwareId = await _getHardwareDeviceId();
+
       final dbDevices = await Supabase.instance.client
           .from('user_devices')
           .select('device_id, created_at')
@@ -720,34 +736,50 @@ class _MainScreenState extends State<MainScreen> {
 
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
-      if (dId == null) {
-        dId = const Uuid().v4();
-        await prefs.setString('device_id', dId);
+      // If current device is already in DB, simply allow entry (Even if clear data was done)
+      if (registeredDevices.contains(currentHardwareId)) {
+        return; 
       }
 
-      if (registeredDevices.contains(dId)) {
-        return; // All good, current device is safely registered
-      }
-
-      // If new device or cleared data...
+      // If it's a completely NEW device trying to login
       if (registeredDevices.length < limit) {
-        // Space available, simply register
-        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
+        // Space available, register this hardware ID
+        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
       } else {
-        // LIMIT FULL: Session Takeover (Kicks the oldest device)
-        String oldestDevice = registeredDevices.first;
-        await Supabase.instance.client.from('user_devices').delete().eq('device_id', oldestDevice);
-        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': dId});
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Session transferred! Your older device was logged out."),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 4),
-          ));
-        }
+        // LIMIT REACHED. STRICT BLOCK.
+        _showDeviceLimitDialog(limit);
       }
-    } catch(e) {}
+    } catch(e) {
+      print("Device Check Error: $e");
+    }
+  }
+
+  void _showDeviceLimitDialog(int limit) {
+    showDialog(
+      context: context, barrierDismissible: false,
+      builder: (ctx) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          backgroundColor: getCard(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white12)),
+          title: Row(
+            children: const [
+              Icon(Icons.devices, color: Colors.redAccent, size: 28),
+              SizedBox(width: 10),
+              Expanded(child: Text("Device Limit Reached", style: TextStyle(color: Colors.white, fontSize: 18))),
+            ],
+          ),
+          content: Text("Your current plan allows a maximum of $limit device(s).\n\nThis account is already active on other devices. You cannot login from this new device.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
+              child: const Text("Log Out securely", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
+          ]
+        )
+      )
+    );
   }
 
   bool _isVersionGreater(String latest, String current) {
@@ -1884,35 +1916,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _incrementAndFetchViews(); 
     _fetchLikesDislikes(); 
     
-    // 🔥 NEW: Check real-time if device limit is broken while trying to play
-    _enforceSingleScreen();
-
     final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[widget.episodeIndex]; 
     _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl), videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))..initialize().then((_) { 
       if (widget.startPosition != null) { _controller.seekTo(widget.startPosition!); } 
       setState(() {}); _controller.play(); 
     }); 
-  }
-
-  Future<void> _enforceSingleScreen() async {
-    final prefs = await SharedPreferences.getInstance();
-    String? dId = prefs.getString('device_id');
-    if (dId != null) {
-      final check = await Supabase.instance.client.from('user_devices').select('device_id').eq('device_id', dId).maybeSingle();
-      if (check == null) {
-        // DEVICE WAS KICKED OUT BY ANOTHER DEVICE
-        _controller.pause();
-        await Supabase.instance.client.auth.signOut();
-        if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const AuthGate()), (route) => false);
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Account in use on another device! Please upgrade your plan."),
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 5),
-          ));
-        }
-      }
-    }
   }
 
   @override 
