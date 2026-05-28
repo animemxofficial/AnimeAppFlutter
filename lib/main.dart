@@ -34,7 +34,7 @@ String globalTelegramLink = "";
 String globalYoutubeLink = "";
 String globalWhatsappLink = "";
 
-// 🔥 NAYE GLOBAL VARIABLES QR AUR UPI KE LIYE 🔥
+// 🔥 DYNAMIC PAYMENT SETTINGS 🔥
 String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 String globalUpiId = "wicvlox.i@oksbi";
 
@@ -277,7 +277,7 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded; // Shows 7, 6, 5...
+      int daysLeft = 7 - daysSinceAdded;
       _showPremiumDialog(
         context, 
         "⏳ Early Access Locked", 
@@ -475,8 +475,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // 🔥 ALL MESSAGES IN PROFESSIONAL ENGLISH 🔥
-  Future<void> _sendResetOtp() async {
+  Future<void> _forgotPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter your email address first!")));
       return;
@@ -541,7 +540,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ));
       }
     } catch (e) {
-      // 🔥 ENGLISH ERROR MESSAGE 🔥
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid OTP or Error. Code does not match!"), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -605,7 +603,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            onTap: _sendResetOtp, 
+                            onTap: _forgotPassword, 
                             child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
                           ),
                         ),
@@ -643,14 +641,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ] 
                     
-                    // 🔥 RESET PASSWORD OTP MODE 🔥
                     else ...[
                       Container(
                         padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green.withOpacity(0.5))),
                         child: Text("Code sent to ${_emailController.text}", style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
                       ),
                       const SizedBox(height: 20),
-                      // 🔥 CHANGED HINT TEXT TO "Enter OTP" 🔥
                       _buildInputField(label: "Enter OTP", hint: "123456", prefixIcon: Icons.message, controller: _otpController, inputType: TextInputType.number),
                       const SizedBox(height: 20),
                       _buildInputField(label: "New Password", hint: "Create new password", prefixIcon: Icons.lock_reset, controller: _newResetPasswordController, isPassword: true),
@@ -777,7 +773,6 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchSettings() async {
     try {
-      // 🔥 FETCHING ALL SETTINGS FROM SUPABASE 🔥
       final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url, telegram_url, youtube_url, whatsapp_url, payment_qr_url, upi_id').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
@@ -786,7 +781,6 @@ class _MainScreenState extends State<MainScreen> {
         if(res['youtube_url'] != null) globalYoutubeLink = res['youtube_url'];
         if(res['whatsapp_url'] != null) globalWhatsappLink = res['whatsapp_url'];
         
-        // Dynamic QR and UPI
         if(res['payment_qr_url'] != null && res['payment_qr_url'].toString().isNotEmpty) {
           globalPaymentQrUrl = res['payment_qr_url'];
         }
@@ -822,6 +816,7 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) { print("Plan fetch error: $e"); }
   }
 
+  // 🔥 STRICT HARDWARE LIMIT WITH POPUP BLOCKER 🔥
   Future<String> _getHardwareDeviceId() async {
     try {
       final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -864,19 +859,38 @@ class _MainScreenState extends State<MainScreen> {
       if (registeredDevices.length < limit) {
         await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
       } else {
-        String oldestDevice = registeredDevices.first;
-        await Supabase.instance.client.from('user_devices').delete().eq('device_id', oldestDevice);
-        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Session transferred! Your older device was logged out."),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 4),
-          ));
-        }
+        // 🔥 BLOCK POPUP INSTEAD OF AUTO-KICK 🔥
+        _showDeviceLimitDialog(limit);
       }
     } catch(e) {}
+  }
+
+  void _showDeviceLimitDialog(int limit) {
+    showDialog(
+      context: context, barrierDismissible: false,
+      builder: (ctx) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          backgroundColor: getCard(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white12)),
+          title: Row(
+            children: const [
+              Icon(Icons.devices, color: Colors.redAccent, size: 28),
+              SizedBox(width: 10),
+              Expanded(child: Text("Device Limit Reached", style: TextStyle(color: Colors.white, fontSize: 18))),
+            ],
+          ),
+          content: Text("Your current plan allows a maximum of $limit device(s).\n\nThis account is already active on other devices. You cannot login from this new device until you log out from the old one.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+              onPressed: () async { await logoutUser(context); Navigator.of(context, rootNavigator: true).pop(); },
+              child: const Text("Log Out securely", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            )
+          ]
+        )
+      )
+    );
   }
 
   bool _isVersionGreater(String latest, String current) {
@@ -2866,7 +2880,7 @@ class AppGuidePage extends StatelessWidget {
             Text("Strict Device Limits", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             const Text(
-              "To ensure account security and prevent unauthorized sharing, Anime MX uses a strict hardware-based device tracking system. If your plan allows 1 device, logging into a second device will automatically 'Auto-Kick' and log out the first device. This prevents simultaneous streaming beyond your plan's limit.",
+              "To ensure account security and prevent unauthorized sharing, Anime MX uses a strict hardware-based device tracking system. If your plan allows 1 device, logging into a second device will automatically block access and require you to log out from the previous device.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
             const SizedBox(height: 24),
@@ -3018,7 +3032,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             Text("Hardware & Device Tracking", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             const Text(
-              "To enforce our Premium Plan rules and prevent unauthorized account sharing, Anime MX securely scans and hashes your device's hardware ID. This fingerprinting is strictly used for device limit verification (Auto-Kick system) and is never used to track your activities outside of the application.",
+              "To enforce our Premium Plan rules and prevent unauthorized account sharing, Anime MX securely scans and hashes your device's hardware ID. This fingerprinting is strictly used for device limit verification and is never used to track your activities outside of the application.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
           ],
@@ -3118,7 +3132,7 @@ class PremiumPage extends StatelessWidget {
 }
 
 // ==========================================
-// NEW QR CODE PAYMENT PAGE (DYNAMIC FETCH)
+// NEW QR CODE PAYMENT PAGE
 // ==========================================
 class QRCodePaymentPage extends StatelessWidget {
   final String planName;
@@ -3147,10 +3161,10 @@ class QRCodePaymentPage extends StatelessWidget {
               Text("Payment for $planName", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center), const SizedBox(height: 8),
               Text("Amount to Pay: ₹$price", style: TextStyle(color: primColor, fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 40),
               
-              // 🔥 DYNAMIC QR CODE 🔥
+              // 🔥 DYNAMIC QR CODE DISPLAY 🔥
               Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: primColor.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)]), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(globalPaymentQrUrl, width: 250, height: 250, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(width: 250, height: 250, color: Colors.grey, child: const Icon(Icons.qr_code_scanner, size: 80, color: Colors.white))))), const SizedBox(height: 20),
               
-              // 🔥 DYNAMIC UPI ID 🔥
+              // 🔥 DYNAMIC UPI DISPLAY 🔥
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)), child: Column(mainAxisSize: MainAxisSize.min, children: [Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)), const SizedBox(height: 4), Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1))]))]), const SizedBox(height: 20),
               
               SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => _launchUPIApp(context), icon: const Icon(Icons.payment, color: Colors.white), label: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))), const SizedBox(height: 40),
