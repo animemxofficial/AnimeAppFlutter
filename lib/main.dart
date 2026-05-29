@@ -34,7 +34,6 @@ String globalTelegramLink = "";
 String globalYoutubeLink = "";
 String globalWhatsappLink = "";
 
-// 🔥 DYNAMIC PAYMENT SETTINGS 🔥
 String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 String globalUpiId = "wicvlox.i@oksbi";
 
@@ -277,7 +276,7 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded; // Shows 7, 6, 5...
+      int daysLeft = 7 - daysSinceAdded; 
       _showPremiumDialog(
         context, 
         "⏳ Early Access Locked", 
@@ -456,6 +455,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // 🔥 UPDATED SIGNUP MESSAGE 🔥
   Future<void> _signUp() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
@@ -464,19 +464,24 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await Supabase.instance.client.auth.signUp(email: _emailController.text.trim(), password: _passwordController.text.trim());
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sign Up Successful! Please Log In.")));
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Your account has been created successfully! A confirmation link has been sent to your email. Please verify it to continue."),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 5),
+        ));
+      }
       setState(() => _isLoginMode = true); 
     } on AuthException catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message), backgroundColor: Colors.red));
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // 🔥 ALL MESSAGES IN PROFESSIONAL ENGLISH 🔥
-  Future<void> _sendResetOtp() async {
+  Future<void> _forgotPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter your email address first!")));
       return;
@@ -541,7 +546,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ));
       }
     } catch (e) {
-      // 🔥 ENGLISH ERROR MESSAGE 🔥
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid OTP or Error. Code does not match!"), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -605,7 +609,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            onTap: _sendResetOtp, 
+                            onTap: _forgotPassword, 
                             child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
                           ),
                         ),
@@ -643,14 +647,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ] 
                     
-                    // 🔥 RESET PASSWORD OTP MODE 🔥
                     else ...[
                       Container(
                         padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green.withOpacity(0.5))),
                         child: Text("Code sent to ${_emailController.text}", style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
                       ),
                       const SizedBox(height: 20),
-                      // 🔥 CHANGED HINT TEXT TO "Enter OTP" 🔥
                       _buildInputField(label: "Enter OTP", hint: "123456", prefixIcon: Icons.message, controller: _otpController, inputType: TextInputType.number),
                       const SizedBox(height: 20),
                       _buildInputField(label: "New Password", hint: "Create new password", prefixIcon: Icons.lock_reset, controller: _newResetPasswordController, isPassword: true),
@@ -777,7 +779,6 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchSettings() async {
     try {
-      // 🔥 FETCHING ALL SETTINGS FROM SUPABASE 🔥
       final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url, telegram_url, youtube_url, whatsapp_url, payment_qr_url, upi_id').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
@@ -786,7 +787,6 @@ class _MainScreenState extends State<MainScreen> {
         if(res['youtube_url'] != null) globalYoutubeLink = res['youtube_url'];
         if(res['whatsapp_url'] != null) globalWhatsappLink = res['whatsapp_url'];
         
-        // Dynamic QR and UPI
         if(res['payment_qr_url'] != null && res['payment_qr_url'].toString().isNotEmpty) {
           globalPaymentQrUrl = res['payment_qr_url'];
         }
@@ -841,6 +841,7 @@ class _MainScreenState extends State<MainScreen> {
     return const Uuid().v4(); 
   }
 
+  // 🔥 PLAN DOWNGRADE AND ORIGINAL CREATOR LOGIC (UPDATED) 🔥
   Future<void> _checkDeviceLimit() async {
     int limit = 1; 
     if (userActivePlan.toLowerCase().contains("standard")) limit = 3;
@@ -857,19 +858,41 @@ class _MainScreenState extends State<MainScreen> {
 
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
-      // 🔥 FIX: PLAN DOWNGRADE GLITCH 🔥
+      // 🔥 FIX: PLAN DOWNGRADE GLITCH (KEEP ORIGINAL CREATOR) 🔥
       if (registeredDevices.length > limit) {
-        await Supabase.instance.client.from('user_devices').delete().eq('email', currentUserEmail);
-        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text("Plan downgraded! Other devices have been securely logged out."),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 4),
-          ));
+        // Allowed devices based on oldest login
+        List<String> allowedDevices = registeredDevices.sublist(0, limit);
+        List<String> devicesToRemove = registeredDevices.sublist(limit);
+
+        // Delete newer extra devices
+        for (String dev in devicesToRemove) {
+          await Supabase.instance.client.from('user_devices').delete().eq('device_id', dev);
         }
-        return;
+        
+        registeredDevices = allowedDevices; // Update local list
+
+        // If current device was one of the removed ones (Dost ka mobile)
+        if (!registeredDevices.contains(currentHardwareId)) {
+          await Supabase.instance.client.auth.signOut();
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const AuthGate()), (route) => false);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("Plan downgraded! You have been logged out as the device limit was reduced."),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 5),
+            ));
+          }
+          return;
+        } else {
+          // If current device is the creator/owner
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("Plan downgraded! Extra devices have been securely logged out."),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ));
+          }
+        }
       }
 
       if (registeredDevices.contains(currentHardwareId)) {
@@ -881,7 +904,9 @@ class _MainScreenState extends State<MainScreen> {
       } else {
         _showDeviceLimitDialog(limit);
       }
-    } catch(e) {}
+    } catch(e) {
+      print("Device check error: $e");
+    }
   }
 
   void _showDeviceLimitDialog(int limit) {
@@ -3173,10 +3198,10 @@ class QRCodePaymentPage extends StatelessWidget {
               Text("Payment for $planName", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center), const SizedBox(height: 8),
               Text("Amount to Pay: ₹$price", style: TextStyle(color: primColor, fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 40),
               
-              // 🔥 DYNAMIC QR CODE 🔥
+              // 🔥 DYNAMIC QR CODE DISPLAY 🔥
               Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: primColor.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)]), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(globalPaymentQrUrl, width: 250, height: 250, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(width: 250, height: 250, color: Colors.grey, child: const Icon(Icons.qr_code_scanner, size: 80, color: Colors.white))))), const SizedBox(height: 20),
               
-              // 🔥 DYNAMIC UPI ID 🔥
+              // 🔥 DYNAMIC UPI DISPLAY 🔥
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)), child: Column(mainAxisSize: MainAxisSize.min, children: [Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)), const SizedBox(height: 4), Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1))]))]), const SizedBox(height: 20),
               
               SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => _launchUPIApp(context), icon: const Icon(Icons.payment, color: Colors.white), label: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))), const SizedBox(height: 40),
@@ -3354,8 +3379,8 @@ class SupportPage extends StatelessWidget {
             ), const SizedBox(height: 30), 
             Text("Contact Options", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 16), 
             
-            _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent, context, onTap: () => launchTelegram("+918987927874")), 
-            _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green, context, onTap: () => launchWhatsApp("+918987927874")), 
+            _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent, context, onTap: () => launchTelegram(globalTelegramLink)), 
+            _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green, context, onTap: () => launchWhatsApp(globalWhatsappLink)), 
             _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent, context, onTap: () => launchInBrowser("mailto:animemx.official@gmail.com")),
 
             const SizedBox(height: 30),
