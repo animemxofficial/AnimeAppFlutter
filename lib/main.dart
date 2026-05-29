@@ -277,7 +277,7 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded;
+      int daysLeft = 7 - daysSinceAdded; // Shows 7, 6, 5...
       _showPremiumDialog(
         context, 
         "⏳ Early Access Locked", 
@@ -475,7 +475,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _forgotPassword() async {
+  // 🔥 ALL MESSAGES IN PROFESSIONAL ENGLISH 🔥
+  Future<void> _sendResetOtp() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter your email address first!")));
       return;
@@ -540,6 +541,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ));
       }
     } catch (e) {
+      // 🔥 ENGLISH ERROR MESSAGE 🔥
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Invalid OTP or Error. Code does not match!"), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -603,7 +605,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            onTap: _forgotPassword, 
+                            onTap: _sendResetOtp, 
                             child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
                           ),
                         ),
@@ -641,12 +643,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ] 
                     
+                    // 🔥 RESET PASSWORD OTP MODE 🔥
                     else ...[
                       Container(
                         padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.green.withOpacity(0.5))),
                         child: Text("Code sent to ${_emailController.text}", style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
                       ),
                       const SizedBox(height: 20),
+                      // 🔥 CHANGED HINT TEXT TO "Enter OTP" 🔥
                       _buildInputField(label: "Enter OTP", hint: "123456", prefixIcon: Icons.message, controller: _otpController, inputType: TextInputType.number),
                       const SizedBox(height: 20),
                       _buildInputField(label: "New Password", hint: "Create new password", prefixIcon: Icons.lock_reset, controller: _newResetPasswordController, isPassword: true),
@@ -773,6 +777,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchSettings() async {
     try {
+      // 🔥 FETCHING ALL SETTINGS FROM SUPABASE 🔥
       final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url, telegram_url, youtube_url, whatsapp_url, payment_qr_url, upi_id').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
@@ -781,6 +786,7 @@ class _MainScreenState extends State<MainScreen> {
         if(res['youtube_url'] != null) globalYoutubeLink = res['youtube_url'];
         if(res['whatsapp_url'] != null) globalWhatsappLink = res['whatsapp_url'];
         
+        // Dynamic QR and UPI
         if(res['payment_qr_url'] != null && res['payment_qr_url'].toString().isNotEmpty) {
           globalPaymentQrUrl = res['payment_qr_url'];
         }
@@ -816,7 +822,6 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) { print("Plan fetch error: $e"); }
   }
 
-  // 🔥 STRICT HARDWARE LIMIT WITH POPUP BLOCKER 🔥
   Future<String> _getHardwareDeviceId() async {
     try {
       final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -852,6 +857,21 @@ class _MainScreenState extends State<MainScreen> {
 
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
+      // 🔥 FIX: PLAN DOWNGRADE GLITCH 🔥
+      if (registeredDevices.length > limit) {
+        await Supabase.instance.client.from('user_devices').delete().eq('email', currentUserEmail);
+        await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Plan downgraded! Other devices have been securely logged out."),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ));
+        }
+        return;
+      }
+
       if (registeredDevices.contains(currentHardwareId)) {
         return; 
       }
@@ -859,7 +879,6 @@ class _MainScreenState extends State<MainScreen> {
       if (registeredDevices.length < limit) {
         await Supabase.instance.client.from('user_devices').insert({'email': currentUserEmail, 'device_id': currentHardwareId});
       } else {
-        // 🔥 BLOCK POPUP INSTEAD OF AUTO-KICK 🔥
         _showDeviceLimitDialog(limit);
       }
     } catch(e) {}
@@ -1726,18 +1745,11 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
       tagText = "ORIGINAL"; tagBgColor = Colors.redAccent; tagTextColor = Colors.white; 
     }
     
-    if (widget.pageTitle == "Latest Episodes" && widget.anime.isNew) { tagText = "NEW"; tagBgColor = Colors.green; tagTextColor = Colors.white; }
-
     final bool isSaved = myListNotifier.value.any((item) => item.anime.title == widget.anime.title);
     
     return GestureDetector(
       onTap: () {
-        if (widget.isLatestOnly) {
-          if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList.last.episodes.isNotEmpty) {
-            int sIndex = widget.anime.seasonsList.length - 1; int eIndex = widget.anime.seasonsList.last.episodes.length - 1;
-            attemptPlayEpisode(context, widget.anime, sIndex, eIndex);
-          } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episodes coming soon!"))); }
-        } else { Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime, isLatestOnly: widget.isLatestOnly))); }
+        Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime)));
       }, 
       child: Container(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 1.5)), 
@@ -1774,7 +1786,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
-// 🔥 LATEST EPISODE CARD (WITH 14 DAY TAG LOGIC) 🔥
+// 🔥 REVISED: LATEST EPISODE CARD (SHOWS EPISODE DETAILS AND 14 DAY NEW TAG) 🔥
 class ThumbnailLatestCard extends StatelessWidget {
   final LatestEpisodeItem item; 
   const ThumbnailLatestCard({super.key, required this.item});
@@ -3132,7 +3144,7 @@ class PremiumPage extends StatelessWidget {
 }
 
 // ==========================================
-// NEW QR CODE PAYMENT PAGE
+// NEW QR CODE PAYMENT PAGE (DYNAMIC FETCH)
 // ==========================================
 class QRCodePaymentPage extends StatelessWidget {
   final String planName;
@@ -3161,10 +3173,10 @@ class QRCodePaymentPage extends StatelessWidget {
               Text("Payment for $planName", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center), const SizedBox(height: 8),
               Text("Amount to Pay: ₹$price", style: TextStyle(color: primColor, fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 40),
               
-              // 🔥 DYNAMIC QR CODE DISPLAY 🔥
+              // 🔥 DYNAMIC QR CODE 🔥
               Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: primColor.withOpacity(0.2), blurRadius: 20, spreadRadius: 5)]), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(globalPaymentQrUrl, width: 250, height: 250, fit: BoxFit.cover, errorBuilder: (c,e,s) => Container(width: 250, height: 250, color: Colors.grey, child: const Icon(Icons.qr_code_scanner, size: 80, color: Colors.white))))), const SizedBox(height: 20),
               
-              // 🔥 DYNAMIC UPI DISPLAY 🔥
+              // 🔥 DYNAMIC UPI ID 🔥
               Row(mainAxisAlignment: MainAxisAlignment.center, children: [Container(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)), child: Column(mainAxisSize: MainAxisSize.min, children: [Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)), const SizedBox(height: 4), Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1))]))]), const SizedBox(height: 20),
               
               SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => _launchUPIApp(context), icon: const Icon(Icons.payment, color: Colors.white), label: const Text("Pay Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))), const SizedBox(height: 40),
