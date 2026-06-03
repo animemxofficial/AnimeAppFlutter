@@ -257,7 +257,7 @@ void main() async {
   ));
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   
-  runApp(const AnimeMX());
+  runApp(const AVDubbedApp());
 }
 
 // ==========================================
@@ -276,7 +276,7 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded; 
+      int daysLeft = 7 - daysSinceAdded; // Shows 7, 6, 5...
       _showPremiumDialog(
         context, 
         "⏳ Early Access Locked", 
@@ -361,8 +361,8 @@ Future<void> logoutUser(BuildContext context) async {
 // ==========================================
 // ROOT APP
 // ==========================================
-class AnimeMX extends StatelessWidget {
-  const AnimeMX({super.key});
+class AVDubbedApp extends StatelessWidget {
+  const AVDubbedApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -372,6 +372,7 @@ class AnimeMX extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           themeMode: ThemeMode.dark,
+          title: "AV Dubbed",
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             primaryColor: currentColor,
@@ -455,7 +456,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // 🔥 UPDATED SIGNUP MESSAGE 🔥
   Future<void> _signUp() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter email and password")));
@@ -594,7 +594,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Image.network('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhUPBKRxJds9wTfxrq3wkqiODrcM8Q332dP8zk5brD5kYajr-IdOzKALD9v1x0BCvO2JTbRaxRs6uI6CLPZKRCZiIIx8SNIBZbGhbi8mD7_nXRVOUW_ULugp4K3Tt6dYOaUWAsWjn6RSNM_jEXrVXLepX0Qn3HGKqyWf9weVlo8QZY20TsyBpd_bASpPe4/s1005/Anime%20MX.webp', height: 120),
                     const SizedBox(height: 16),
-                    RichText(text: const TextSpan(children: [TextSpan(text: "Anime ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)), TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5))])),
+                    RichText(text: const TextSpan(children: [TextSpan(text: "AV ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)), TextSpan(text: "Dubbed", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5))])),
                     const SizedBox(height: 6),
                     Text(_isResetMode ? "Create New Password" : "Watch Anime, Anytime", style: const TextStyle(color: Colors.white54, fontSize: 14)),
                     const SizedBox(height: 40),
@@ -609,7 +609,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            onTap: _forgotPassword, 
+                            onTap: _sendResetOtp, 
                             child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
                           ),
                         ),
@@ -841,7 +841,6 @@ class _MainScreenState extends State<MainScreen> {
     return const Uuid().v4(); 
   }
 
-  // 🔥 PLAN DOWNGRADE AND ORIGINAL CREATOR LOGIC (UPDATED) 🔥
   Future<void> _checkDeviceLimit() async {
     int limit = 1; 
     if (userActivePlan.toLowerCase().contains("standard")) limit = 3;
@@ -858,20 +857,16 @@ class _MainScreenState extends State<MainScreen> {
 
       List<String> registeredDevices = (dbDevices as List).map((e) => e['device_id'].toString()).toList();
 
-      // 🔥 FIX: PLAN DOWNGRADE GLITCH (KEEP ORIGINAL CREATOR) 🔥
       if (registeredDevices.length > limit) {
-        // Allowed devices based on oldest login
         List<String> allowedDevices = registeredDevices.sublist(0, limit);
         List<String> devicesToRemove = registeredDevices.sublist(limit);
 
-        // Delete newer extra devices
         for (String dev in devicesToRemove) {
           await Supabase.instance.client.from('user_devices').delete().eq('device_id', dev);
         }
         
-        registeredDevices = allowedDevices; // Update local list
+        registeredDevices = allowedDevices; 
 
-        // If current device was one of the removed ones (Dost ka mobile)
         if (!registeredDevices.contains(currentHardwareId)) {
           await Supabase.instance.client.auth.signOut();
           if (mounted) {
@@ -884,7 +879,6 @@ class _MainScreenState extends State<MainScreen> {
           }
           return;
         } else {
-          // If current device is the creator/owner
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text("Plan downgraded! Extra devices have been securely logged out."),
@@ -904,9 +898,7 @@ class _MainScreenState extends State<MainScreen> {
       } else {
         _showDeviceLimitDialog(limit);
       }
-    } catch(e) {
-      print("Device check error: $e");
-    }
+    } catch(e) {}
   }
 
   void _showDeviceLimitDialog(int limit) {
@@ -958,13 +950,13 @@ class _MainScreenState extends State<MainScreen> {
         if (updateUrl.isEmpty) updateUrl = globalWebsiteUrl;
 
         if (_isVersionGreater(latestVersion, CURRENT_APP_VERSION)) {
-          _showUpdateDialog(updateUrl);
+          _showUpdateDialog(latestVersion, updateUrl);
         }
       }
     } catch (e) { print("Update check error: $e"); }
   }
 
-  void _showUpdateDialog(String updateUrl) {
+  void _showUpdateDialog(String latestVersion, String updateUrl) {
     showDialog(
       context: context,
       barrierDismissible: false, 
@@ -1005,7 +997,7 @@ class _MainScreenState extends State<MainScreen> {
               const SizedBox(height: 10),
               
               Text(
-                "A new version of Anime MX is available.\nInstall now to enjoy the latest features\nand improvements.",
+                "A new version of AV Dubbed is available.\nInstall now to enjoy the latest features\nand improvements.",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.4),
               ),
@@ -1260,7 +1252,7 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: getBg(context), elevation: 0,
         leading: Builder(builder: (context) { return IconButton(icon: Icon(Icons.menu, color: getText(context)), onPressed: () => Scaffold.of(context).openDrawer()); }),
-        title: Text("Anime MX", style: TextStyle(color: primColor, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)),
+        title: Text("AV Dubbed", style: TextStyle(color: primColor, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)),
         actions:[IconButton(icon: Icon(Icons.search, color: getText(context)), onPressed: onSearchTap)],
       ),
       body: SingleChildScrollView(
@@ -2028,7 +2020,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    widget.anime.description.isNotEmpty ? widget.anime.description : "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School. Watch it now on AnimeMX!", 
+                    widget.anime.description.isNotEmpty ? widget.anime.description : "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School. Watch it now on AV Dubbed!", 
                     maxLines: _isExpanded ? null : 2, overflow: _isExpanded ? null : TextOverflow.ellipsis, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
                   ),
                   const SizedBox(height: 6),
@@ -2352,7 +2344,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             left: _isFullScreen ? 50 : 10,
             child: Opacity(
               opacity: 0.3,
-              child: Text("Anime MX", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)])),
+              child: Text("AV Dubbed", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)])),
             ),
           ),
         
@@ -2901,7 +2893,7 @@ class AppGuidePage extends StatelessWidget {
             Text("Navigation & Basic Usage", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             const Text(
-              "Anime MX is designed to be simple and user-friendly. At the bottom of the screen, you will find tabs to navigate between the Home screen, Search, Dubs section, My List, and your Account settings. You can use the Search tab to quickly find any anime, movie, or episode. Tap the 'Save' icon on any anime to add it directly to your My List for quick access later.",
+              "AV Dubbed is designed to be simple and user-friendly. At the bottom of the screen, you will find tabs to navigate between the Home screen, Search, Dubs section, My List, and your Account settings. You can use the Search tab to quickly find any anime, movie, or episode. Tap the 'Save' icon on any anime to add it directly to your My List for quick access later.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
             const SizedBox(height: 24),
@@ -2917,7 +2909,7 @@ class AppGuidePage extends StatelessWidget {
             Text("Strict Device Limits", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             const Text(
-              "To ensure account security and prevent unauthorized sharing, Anime MX uses a strict hardware-based device tracking system. If your plan allows 1 device, logging into a second device will automatically block access and require you to log out from the previous device.",
+              "To ensure account security and prevent unauthorized sharing, AV Dubbed uses a strict hardware-based device tracking system. If your plan allows 1 device, logging into a second device will automatically block access and require you to log out from the previous device.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
             const SizedBox(height: 24),
@@ -3005,7 +2997,7 @@ class ThemeSettingsPage extends StatelessWidget {
             Wrap(
               spacing: 15, runSpacing: 15,
               children: [
-                _buildColorOption(animeMxPurple, "AnimeMX", context), _buildColorOption(Colors.red, "Red", context), _buildColorOption(Colors.blue, "Blue", context),
+                _buildColorOption(animeMxPurple, "AVDubbed", context), _buildColorOption(Colors.red, "Red", context), _buildColorOption(Colors.blue, "Blue", context),
                 _buildColorOption(Colors.green, "Green", context), _buildColorOption(Colors.orange, "Orange", context), _buildColorOption(Colors.pink, "Pink", context),
               ],
             )
@@ -3053,7 +3045,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             Text("Your Privacy Matters", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             const Text(
-              "At Anime MX, your privacy and security are our highest priorities. We are fully committed to providing a safe, ad-free streaming experience without compromising your personal data. We strongly believe that your data belongs to you.",
+              "At AV Dubbed, your privacy and security are our highest priorities. We are fully committed to providing a safe, ad-free streaming experience without compromising your personal data. We strongly believe that your data belongs to you.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
             const SizedBox(height: 20),
@@ -3069,7 +3061,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             Text("Hardware & Device Tracking", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
             const SizedBox(height: 10),
             const Text(
-              "To enforce our Premium Plan rules and prevent unauthorized account sharing, Anime MX securely scans and hashes your device's hardware ID. This fingerprinting is strictly used for device limit verification and is never used to track your activities outside of the application.",
+              "To enforce our Premium Plan rules and prevent unauthorized account sharing, AV Dubbed securely scans and hashes your device's hardware ID. This fingerprinting is strictly used for device limit verification and is never used to track your activities outside of the application.",
               style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
             ),
           ],
@@ -3178,7 +3170,7 @@ class QRCodePaymentPage extends StatelessWidget {
 
   void _launchUPIApp(BuildContext context) async {
     String cleanPrice = price.replaceAll("₹", "");
-    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=AnimeMX&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
+    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=AVDubbed&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
     if (await canLaunchUrl(uri)) { await launchUrl(uri, mode: LaunchMode.externalApplication); } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!"))); }
   }
 
@@ -3414,7 +3406,7 @@ class SupportPage extends StatelessWidget {
 }
 
 // ==========================================
-// ACTIVITY PAGE
+// ACTIVITY PAGE (WITH EXPIRED STATUS)
 // ==========================================
 class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
