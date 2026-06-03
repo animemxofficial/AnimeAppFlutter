@@ -34,6 +34,7 @@ String globalTelegramLink = "";
 String globalYoutubeLink = "";
 String globalWhatsappLink = "";
 
+// 🔥 DYNAMIC PAYMENT SETTINGS 🔥
 String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 String globalUpiId = "wicvlox.i@oksbi";
 
@@ -418,7 +419,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN 
+// LOGIN SCREEN (OTP SYSTEM FIXED)
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -481,7 +482,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _forgotPassword() async {
+  // 🔥 CORRECT OTP SENDER METHOD 🔥
+  Future<void> _sendResetOtp() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter your email address first!")));
       return;
@@ -508,6 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // 🔥 CORRECT OTP VERIFIER METHOD 🔥
   Future<void> _verifyOtpAndSavePassword() async {
     if (_otpController.text.isEmpty || _newResetPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter OTP and New Password")));
@@ -609,7 +612,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            onTap: _sendResetOtp, 
+                            onTap: _sendResetOtp, // 🔥 POINTING TO CORRECT FUNCTION NOW 🔥
                             child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
                           ),
                         ),
@@ -950,13 +953,13 @@ class _MainScreenState extends State<MainScreen> {
         if (updateUrl.isEmpty) updateUrl = globalWebsiteUrl;
 
         if (_isVersionGreater(latestVersion, CURRENT_APP_VERSION)) {
-          _showUpdateDialog(latestVersion, updateUrl);
+          _showUpdateDialog(updateUrl);
         }
       }
     } catch (e) { print("Update check error: $e"); }
   }
 
-  void _showUpdateDialog(String latestVersion, String updateUrl) {
+  void _showUpdateDialog(String updateUrl) {
     showDialog(
       context: context,
       barrierDismissible: false, 
@@ -1803,7 +1806,6 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
-// 🔥 REVISED: LATEST EPISODE CARD (SHOWS EPISODE DETAILS AND 14 DAY NEW TAG) 🔥
 class ThumbnailLatestCard extends StatelessWidget {
   final LatestEpisodeItem item; 
   const ThumbnailLatestCard({super.key, required this.item});
@@ -1814,7 +1816,6 @@ class ThumbnailLatestCard extends StatelessWidget {
     String displayImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
     String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
 
-    // 🔥 NEW: 14 Days logic for the "NEW" green tag
     int daysOld = DateTime.now().difference(item.episode.createdAt).inDays;
     bool isBrandNew = daysOld <= 14;
 
