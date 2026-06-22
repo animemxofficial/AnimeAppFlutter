@@ -34,9 +34,13 @@ String globalTelegramLink = "";
 String globalYoutubeLink = "";
 String globalWhatsappLink = "";
 
-// 🔥 DYNAMIC PAYMENT SETTINGS 🔥
 String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 String globalUpiId = "wicvlox.i@oksbi";
+
+// 🔥 NAYE GLOBAL VARIABLES PRIVACY & GUIDE KE LIYE 🔥
+String globalPrivacyPolicy = "At SYNEX DUB, your privacy and security are our highest priorities. We are fully committed to providing a safe, ad-free streaming experience for both Anime and Movies without compromising your personal data.\n\nData Security & Storage\nWe utilize state-of-the-art encryption to protect your account details and hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized.\n\nContent Information\nSYNEX DUB provides a vast library of Anime and Movies. To ensure fast and consistent releases, a large portion of our dubbed content is powered by high-quality AI Dubbing technology, alongside our Original dubs.\n\nHardware Tracking\nTo enforce our Premium Plan rules and prevent unauthorized account sharing, SYNEX DUB securely scans and hashes your device's hardware ID. This is strictly used for device limit verification.";
+
+String globalAppGuide = "Welcome to SYNEX DUB!\n\nNavigation & Basic Usage\nSYNEX DUB is designed to be user-friendly. Use the tabs at the bottom to navigate between Home, Search, Dubs, My List, and Account. You can Search to quickly find any anime, movie, or episode.\n\nAbout Our Content\nWe offer an expansive collection of Anime and Movies. To bring you the latest content as quickly as possible, much of our library uses advanced AI Dubbing, while we also feature Original dubbed releases.\n\nPremium Plans\n• Basic Plan (₹55): Ad-free streaming on 1 Device. New episodes are locked for 7 days.\n• Standard Plan (₹99): Stream on up to 3 devices simultaneously. Get instant Early Access.\n• Elite Plan (₹149): Stream on up to 7 devices simultaneously. Includes instant Early Access.\n\nDevice Limits & Auto-Kick\nTo prevent unauthorized sharing, SYNEX DUB uses a strict hardware-based tracking system. Logging into a new device beyond your plan's limit will safely log out your older device automatically.\n\nPayments & Verification\nGo to the Premium Page, select your plan, and scan the UPI QR code to make a payment. Once paid, submit your 12-digit UTR and screenshot on the Verification page.";
 
 List<String> globalRecentSearches = [];
 
@@ -258,7 +262,7 @@ void main() async {
   ));
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   
-  runApp(const AVDubbedApp());
+  runApp(const SynexDubApp());
 }
 
 // ==========================================
@@ -271,13 +275,12 @@ void attemptPlayEpisode(BuildContext context, Anime anime, int seasonIndex, int 
     return;
   }
 
-  // Exact Logic For Basic Plan (₹55) WITH EXPLICIT COUNTDOWN
   if (userActivePlan.toLowerCase().contains("basic") || userActivePlan.contains("55")) {
     final episode = anime.seasonsList[seasonIndex].episodes[episodeIndex];
     final int daysSinceAdded = DateTime.now().difference(episode.createdAt).inDays;
     
     if (daysSinceAdded < 7) {
-      int daysLeft = 7 - daysSinceAdded; // Shows 7, 6, 5...
+      int daysLeft = 7 - daysSinceAdded; 
       _showPremiumDialog(
         context, 
         "⏳ Early Access Locked", 
@@ -362,8 +365,8 @@ Future<void> logoutUser(BuildContext context) async {
 // ==========================================
 // ROOT APP
 // ==========================================
-class AVDubbedApp extends StatelessWidget {
-  const AVDubbedApp({super.key});
+class SynexDubApp extends StatelessWidget {
+  const SynexDubApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -373,7 +376,7 @@ class AVDubbedApp extends StatelessWidget {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           themeMode: ThemeMode.dark,
-          title: "AV Dubbed",
+          title: "SYNEX DUB",
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             primaryColor: currentColor,
@@ -419,7 +422,7 @@ class AuthGate extends StatelessWidget {
 }
 
 // ==========================================
-// LOGIN SCREEN (OTP SYSTEM FIXED)
+// LOGIN SCREEN 
 // ==========================================
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -482,8 +485,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // 🔥 CORRECT OTP SENDER METHOD 🔥
-  Future<void> _sendResetOtp() async {
+  Future<void> _forgotPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter your email address first!")));
       return;
@@ -510,7 +512,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // 🔥 CORRECT OTP VERIFIER METHOD 🔥
   Future<void> _verifyOtpAndSavePassword() async {
     if (_otpController.text.isEmpty || _newResetPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter OTP and New Password")));
@@ -597,9 +598,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Image.network('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhUPBKRxJds9wTfxrq3wkqiODrcM8Q332dP8zk5brD5kYajr-IdOzKALD9v1x0BCvO2JTbRaxRs6uI6CLPZKRCZiIIx8SNIBZbGhbi8mD7_nXRVOUW_ULugp4K3Tt6dYOaUWAsWjn6RSNM_jEXrVXLepX0Qn3HGKqyWf9weVlo8QZY20TsyBpd_bASpPe4/s1005/Anime%20MX.webp', height: 120),
                     const SizedBox(height: 16),
-                    RichText(text: const TextSpan(children: [TextSpan(text: "AV ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)), TextSpan(text: "Dubbed", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5))])),
+                    // 🔥 NEW PROFESSIONAL LOGO TEXT 🔥
+                    RichText(text: const TextSpan(children: [
+                      TextSpan(text: "SYNEX ", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), 
+                      TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2, shadows: [Shadow(color: Color(0xFF8A2BE2), blurRadius: 10)]))
+                    ])),
                     const SizedBox(height: 6),
-                    Text(_isResetMode ? "Create New Password" : "Watch Anime, Anytime", style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                    Text(_isResetMode ? "Create New Password" : "Watch Anime, Movie, Anytime", style: const TextStyle(color: Colors.white54, fontSize: 14)),
                     const SizedBox(height: 40),
                     
                     if (!_isResetMode) ...[
@@ -612,7 +617,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Align(
                           alignment: Alignment.centerRight,
                           child: GestureDetector(
-                            onTap: _sendResetOtp, // 🔥 POINTING TO CORRECT FUNCTION NOW 🔥
+                            onTap: _sendResetOtp, 
                             child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
                           ),
                         ),
@@ -782,7 +787,8 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchSettings() async {
     try {
-      final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url, telegram_url, youtube_url, whatsapp_url, payment_qr_url, upi_id').limit(1).maybeSingle();
+      // 🔥 FETCHING PRIVACY & GUIDE ALSO 🔥
+      final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url, telegram_url, youtube_url, whatsapp_url, payment_qr_url, upi_id, privacy_policy, app_guide').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
         if(res['app_logo_url'] != null) globalAppLogoUrl = res['app_logo_url'];
@@ -795,6 +801,12 @@ class _MainScreenState extends State<MainScreen> {
         }
         if(res['upi_id'] != null && res['upi_id'].toString().isNotEmpty) {
           globalUpiId = res['upi_id'];
+        }
+        if(res['privacy_policy'] != null && res['privacy_policy'].toString().isNotEmpty) {
+          globalPrivacyPolicy = res['privacy_policy'];
+        }
+        if(res['app_guide'] != null && res['app_guide'].toString().isNotEmpty) {
+          globalAppGuide = res['app_guide'];
         }
       }
     } catch(e) { }
@@ -1000,7 +1012,7 @@ class _MainScreenState extends State<MainScreen> {
               const SizedBox(height: 10),
               
               Text(
-                "A new version of AV Dubbed is available.\nInstall now to enjoy the latest features\nand improvements.",
+                "A new version of SYNEX DUB is available.\nInstall now to enjoy the latest features\nand improvements.",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.4),
               ),
@@ -1255,7 +1267,10 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: getBg(context), elevation: 0,
         leading: Builder(builder: (context) { return IconButton(icon: Icon(Icons.menu, color: getText(context)), onPressed: () => Scaffold.of(context).openDrawer()); }),
-        title: Text("AV Dubbed", style: TextStyle(color: primColor, fontWeight: FontWeight.w900, fontSize: 22, letterSpacing: -0.5)),
+        title: RichText(text: const TextSpan(children: [
+          TextSpan(text: "SYNEX ", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
+          TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
+        ])),
         actions:[IconButton(icon: Icon(Icons.search, color: getText(context)), onPressed: onSearchTap)],
       ),
       body: SingleChildScrollView(
@@ -1756,7 +1771,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
     if (widget.pageTitle == "Trending Now") { tagText = "TRENDING"; tagBgColor = primColor; tagTextColor = Colors.white; } 
     else if (widget.pageTitle == "Popular Anime") { tagText = "POPULAR"; tagBgColor = Colors.cyan; tagTextColor = Colors.black; } 
     else if (widget.pageTitle == "DUB" || widget.anime.dubStatus == "DUB" || widget.anime.dubStatus == "AMX DUB") { 
-      tagText = "AMX DUB"; tagBgColor = const Color(0xFF8A2BE2); tagTextColor = Colors.white; 
+      tagText = "SYNEX DUB"; tagBgColor = const Color(0xFF8A2BE2); tagTextColor = Colors.white; 
     }
     else if (widget.anime.dubStatus == "MIX" || widget.anime.dubStatus == "MIX O/D") { 
       tagText = "MIX O/D"; tagBgColor = Colors.blue; tagTextColor = Colors.white; 
@@ -1806,6 +1821,7 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
   }
 }
 
+// 🔥 REVISED: LATEST EPISODE CARD (SHOWS EPISODE DETAILS AND 14 DAY NEW TAG) 🔥
 class ThumbnailLatestCard extends StatelessWidget {
   final LatestEpisodeItem item; 
   const ThumbnailLatestCard({super.key, required this.item});
@@ -1816,6 +1832,7 @@ class ThumbnailLatestCard extends StatelessWidget {
     String displayImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
     String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
 
+    // 🔥 NEW: 14 Days logic for the "NEW" green tag
     int daysOld = DateTime.now().difference(item.episode.createdAt).inDays;
     bool isBrandNew = daysOld <= 14;
 
@@ -2021,7 +2038,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    widget.anime.description.isNotEmpty ? widget.anime.description : "Kiyotaka Ayanokouji enters the prestigious Tokyo Metropolitan Advanced Nurturing High School. Watch it now on AV Dubbed!", 
+                    widget.anime.description.isNotEmpty ? widget.anime.description : "Watch it now on SYNEX DUB!", 
                     maxLines: _isExpanded ? null : 2, overflow: _isExpanded ? null : TextOverflow.ellipsis, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
                   ),
                   const SizedBox(height: 6),
@@ -2345,7 +2362,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
             left: _isFullScreen ? 50 : 10,
             child: Opacity(
               opacity: 0.3,
-              child: Text("AV Dubbed", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)])),
+              child: Text("SYNEX DUB", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 4)])),
             ),
           ),
         
@@ -2563,7 +2580,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
               if (_searchController.text.isNotEmpty) ...[
                 Text("Search Results for '${_searchController.text}'", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
                 const SizedBox(height: 12), 
-                if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No anime found.", style: TextStyle(color: Colors.grey)))) 
+                if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey)))) 
                 else GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16), itemCount: _searchResults.length, itemBuilder: (context, index) => GridCategoryCard(anime: _searchResults[index], pageTitle: ""))
               ] else ...[
                 Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
@@ -2891,36 +2908,7 @@ class AppGuidePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Navigation & Basic Usage", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            const Text(
-              "AV Dubbed is designed to be simple and user-friendly. At the bottom of the screen, you will find tabs to navigate between the Home screen, Search, Dubs section, My List, and your Account settings. You can use the Search tab to quickly find any anime, movie, or episode. Tap the 'Save' icon on any anime to add it directly to your My List for quick access later.",
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
-            ),
-            const SizedBox(height: 24),
-
-            Text("Premium Plans", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            const Text(
-              "We offer three premium plans to suit your needs:\n\n• Basic Plan (₹55): Enjoy uninterrupted Ad-free streaming on a single device. Note that new episodes are locked for 7 days after upload. A countdown timer will show you exactly when the episode unlocks.\n\n• Standard Plan (₹99): Stream on up to 3 devices simultaneously. This plan includes instant Early Access, meaning you can watch new episodes immediately without any waiting period.\n\n• Elite Plan (₹149): Our ultimate package. Share your account with friends and family on up to 7 devices simultaneously. Like the Standard plan, this includes instant Early Access to all newly added content.",
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
-            ),
-            const SizedBox(height: 24),
-
-            Text("Strict Device Limits", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            const Text(
-              "To ensure account security and prevent unauthorized sharing, AV Dubbed uses a strict hardware-based device tracking system. If your plan allows 1 device, logging into a second device will automatically block access and require you to log out from the previous device.",
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
-            ),
-            const SizedBox(height: 24),
-
-            Text("Payments & Verification", style: TextStyle(color: primColor, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            const Text(
-              "Upgrading is simple. Go to the Premium Page, choose your plan, and scan the UPI QR code to make a payment. Once paid, note down your 12-digit UTR (Transaction ID) and take a screenshot. Submit these details on the 'Payment Verification' page. Our team will verify your payment and activate your premium account within 24 hours.",
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
-            ),
+            Text(globalAppGuide, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)),
             const SizedBox(height: 40),
           ],
         ),
@@ -2998,7 +2986,7 @@ class ThemeSettingsPage extends StatelessWidget {
             Wrap(
               spacing: 15, runSpacing: 15,
               children: [
-                _buildColorOption(animeMxPurple, "AVDubbed", context), _buildColorOption(Colors.red, "Red", context), _buildColorOption(Colors.blue, "Blue", context),
+                _buildColorOption(animeMxPurple, "SYNEX DUB", context), _buildColorOption(Colors.red, "Red", context), _buildColorOption(Colors.blue, "Blue", context),
                 _buildColorOption(Colors.green, "Green", context), _buildColorOption(Colors.orange, "Orange", context), _buildColorOption(Colors.pink, "Pink", context),
               ],
             )
@@ -3040,33 +3028,7 @@ class PrivacyPolicyPage extends StatelessWidget {
       appBar: AppBar(title: Text("Privacy Policy", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))), 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20), 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Your Privacy Matters", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            const Text(
-              "At AV Dubbed, your privacy and security are our highest priorities. We are fully committed to providing a safe, ad-free streaming experience without compromising your personal data. We strongly believe that your data belongs to you.",
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
-            ),
-            const SizedBox(height: 20),
-
-            Text("Data Security & Storage", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            const Text(
-              "We utilize state-of-the-art encryption protocols through Supabase to protect your account details and hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized. We strictly do not sell, rent, or trade your personal information to any third-party advertisers or data brokers.",
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
-            ),
-            const SizedBox(height: 20),
-
-            Text("Hardware & Device Tracking", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 18, fontWeight: FontWeight.bold)), 
-            const SizedBox(height: 10),
-            const Text(
-              "To enforce our Premium Plan rules and prevent unauthorized account sharing, AV Dubbed securely scans and hashes your device's hardware ID. This fingerprinting is strictly used for device limit verification and is never used to track your activities outside of the application.",
-              style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)
-            ),
-          ],
-        )
+        child: Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6))
       )
     ); 
   } 
@@ -3171,7 +3133,7 @@ class QRCodePaymentPage extends StatelessWidget {
 
   void _launchUPIApp(BuildContext context) async {
     String cleanPrice = price.replaceAll("₹", "");
-    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=AVDubbed&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
+    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=SYNEXDUB&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
     if (await canLaunchUrl(uri)) { await launchUrl(uri, mode: LaunchMode.externalApplication); } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found on this device!"))); }
   }
 
@@ -3374,7 +3336,7 @@ class SupportPage extends StatelessWidget {
             
             _buildSupportTile(Icons.telegram, "Telegram", "Instant Chat Support", Colors.blueAccent, context, onTap: () => launchTelegram(globalTelegramLink)), 
             _buildSupportTile(Icons.chat, "WhatsApp", "Chat Support", Colors.green, context, onTap: () => launchWhatsApp(globalWhatsappLink)), 
-            _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent, context, onTap: () => launchInBrowser("mailto:animemx.official@gmail.com")),
+            _buildSupportTile(Icons.email, "Email", "24-hour Response", Colors.orangeAccent, context, onTap: () => launchInBrowser("mailto:synexdub.official@gmail.com")), // Yahan main email change kar diya hai
 
             const SizedBox(height: 30),
             Text("Frequently Asked Questions", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 16), 
