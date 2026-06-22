@@ -612,16 +612,16 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 20),
                       _buildInputField(label: "Password", hint: "Password", prefixIcon: Icons.lock_outline, controller: _passwordController, isPassword: true),
                       
-                      if (_isLoginMode) ...[
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: GestureDetector(
-                            onTap: _sendResetOtp, 
-                            child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
-                          ),
-                        ),
-                      ],
+                     if (_isLoginMode) ...[
+  const SizedBox(height: 12),
+  Align(
+    alignment: Alignment.centerRight,
+    child: GestureDetector(
+      onTap: _forgotPassword, // ✅ Isko _forgotPassword kar do
+      child: const Text("Forgot Password?", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 12, fontWeight: FontWeight.bold))
+    ),
+  ),
+],
                       const SizedBox(height: 30),
 
                       Container(
