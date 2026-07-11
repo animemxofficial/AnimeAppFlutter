@@ -25,6 +25,8 @@ bool hasAcceptedCookies = false;
 
 String globalWebsiteUrl = "https://google.com"; 
 
+String globalTelegramLink = "";
+
 String globalPrivacyPolicy = "At SYNEX MX, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience for both Anime and Movies without compromising your personal data.\n\nData Security & Storage\nWe utilize encryption to protect your hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized to your device.\n\nContent Information\nSYNEX MX provides a vast library of Anime and Movies. To ensure fast and consistent releases, a large portion of our dubbed content is powered by high-quality AI Dubbing technology, alongside our Original dubs.\n\nHardware Tracking\nSYNEX MX securely scans and hashes your device's hardware ID to keep your account safe without needing passwords.";
 
 List<String> globalRecentSearches = [];
@@ -32,6 +34,7 @@ List<String> recommendedSearches = ["Naruto", "One Piece", "Solo Leveling", "Act
 
 final ValueNotifier<List<Anime>> animeListNotifier = ValueNotifier([]);
 final ValueNotifier<List<Map<String, dynamic>>> heroSliderNotifier = ValueNotifier([]);
+final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 
@@ -98,6 +101,15 @@ Future<String> getHardwareDeviceId() async {
 // ==========================================
 // SUPABASE DATA PERSISTENCE SERVICES
 // ==========================================
+class CWService {
+  Future<void> saveCWList(String devId, List<CWItem> cwList) async {
+    final savedData = cwList.map((item) => item.toJson()).toList();
+    try {
+      await Supabase.instance.client.from('user_preferences').upsert({'device_id': devId, 'continue_watching': savedData}, onConflict: 'device_id');
+    } catch (e) {}
+  }
+}
+
 class RecentSearchesService {
   Future<void> saveRecentSearches(String devId, List<String> searches) async {
     final newSearches = [...searches];
@@ -121,6 +133,33 @@ class MyListService {
 // ==========================================
 // DATA MODELS
 // ==========================================
+class CWItem {
+  final Anime anime;
+  int seasonIndex;
+  int episodeIndex;
+  Duration position;
+  Duration totalDuration;
+
+  CWItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.position, required this.totalDuration});
+  
+  Map<String, dynamic> toJson() => {
+    'animeTitle': anime.title, 
+    'seasonIndex': seasonIndex, 
+    'episodeIndex': episodeIndex, 
+    'positionInSeconds': position.inSeconds, 
+    'totalDurationInSeconds': totalDuration.inSeconds
+  };
+  
+  static CWItem fromJson(Map<String, dynamic> json, List<Anime> allAnime) {
+    try {
+      final animeMatch = allAnime.firstWhere((anime) => anime.title == json['animeTitle']);
+      return CWItem(anime: animeMatch, seasonIndex: json['seasonIndex'], episodeIndex: json['episodeIndex'], position: Duration(seconds: json['positionInSeconds']), totalDuration: Duration(seconds: json['totalDurationInSeconds']));
+    } catch (e) {
+      return CWItem(anime: allAnime.isNotEmpty ? allAnime[0] : _getDummyAnime(), seasonIndex: 0, episodeIndex: 0, position: Duration(seconds: json['positionInSeconds'] ?? 0), totalDuration: Duration(seconds: json['totalDurationInSeconds'] ?? 0));
+    }
+  }
+}
+
 class SavedEpisode {
   final Anime anime;
   final int seasonIndex;
@@ -172,6 +211,8 @@ class Anime {
     required this.createdAt,
   });
 }
+
+Anime _getDummyAnime() => Anime(id: '0', title: 'Loading...', image: '', seasonsList: [], createdAt: DateTime.now());
 
 class LatestEpisodeItem {
   final Anime anime;
@@ -339,7 +380,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.network('https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhUPBKRxJds9wTfxrq3wkqiODrcM8Q332dP8zk5brD5kYajr-IdOzKALD9v1x0BCvO2JTbRaxRs6uI6CLPZKRCZiIIx8SNIBZbGhbi8mD7_nXRVOUW_ULugp4K3Tt6dYOaUWAsWjn6RSNM_jEXrVXLepX0Qn3HGKqyWf9weVlo8QZY20TsyBpd_bASpPe4/s1005/Anime%20MX.webp', height: 120),
+              const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100),
               const SizedBox(height: 20),
               RichText(text: const TextSpan(children: [
                 TextSpan(text: "SYNEX ", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900, letterSpacing: 1.2)), 
@@ -416,6 +457,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _loadEverything() async {
     await _checkCookies(); 
+    await _fetchSettings(); 
     await _checkForUpdates(context); 
     await fetchGlobalAnimeViews(); 
     await _fetchDatabaseCatalog();
@@ -440,21 +482,32 @@ class _MainScreenState extends State<MainScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [Icon(Icons.cookie, color: primColor, size: 32), const SizedBox(width: 12), const Text("Cookie Policy", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))]),
-            const SizedBox(height: 15),
-            const Text("We use cookies to improve your experience, personalize content, and analyze traffic.", style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
-            const SizedBox(height: 25),
+            Row(children: [Icon(Icons.cookie, color: primColor, size: 32), const SizedBox(width: 12), const Text("Cookie Policy", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold))]),
+            const SizedBox(height: 20),
+            const Text("We use cookies to improve your experience, personalize content, and analyze traffic.", style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5)),
+            const SizedBox(height: 30),
             Row(
               children: [
-                Expanded(child: OutlinedButton(style: OutlinedButton.styleFrom(side: BorderSide(color: primColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: () async { final prefs = await SharedPreferences.getInstance(); await prefs.setBool('cookies_accepted', true); hasAcceptedCookies = true; Navigator.pop(context); }, child: Text("Decline", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 14)))),
+                Expanded(child: OutlinedButton(style: OutlinedButton.styleFrom(side: BorderSide(color: primColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 16)), onPressed: () async { final prefs = await SharedPreferences.getInstance(); await prefs.setBool('cookies_accepted', true); hasAcceptedCookies = true; Navigator.pop(context); }, child: Text("Decline", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 16)))),
                 const SizedBox(width: 15),
-                Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: () async { final prefs = await SharedPreferences.getInstance(); await prefs.setBool('cookies_accepted', true); hasAcceptedCookies = true; Navigator.pop(context); }, child: const Text("Accept All", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)))),
+                Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 16)), onPressed: () async { final prefs = await SharedPreferences.getInstance(); await prefs.setBool('cookies_accepted', true); hasAcceptedCookies = true; Navigator.pop(context); }, child: const Text("Accept All", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)))),
               ],
             )
           ],
         )
       )
     );
+  }
+
+  Future<void> _fetchSettings() async {
+    try {
+      final res = await Supabase.instance.client.from('app_settings').select('website_url, app_logo_url, telegram_url, privacy_policy').limit(1).maybeSingle();
+      if (res != null) {
+        if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
+        if(res['telegram_url'] != null) globalTelegramLink = res['telegram_url'];
+        if(res['privacy_policy'] != null && res['privacy_policy'].toString().isNotEmpty) globalPrivacyPolicy = res['privacy_policy'];
+      }
+    } catch(e) { }
   }
 
   bool _isVersionGreater(String latest, String current) {
@@ -490,14 +543,14 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               Container(width: 80, height: 80, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [Color(0xFF9D4EDD), Color(0xFF6B21A8)])), child: const Icon(Icons.download_rounded, color: Colors.white, size: 40)),
               const SizedBox(height: 20),
-              const Text("Install New Version", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-              Text("A new version of SYNEX MX is available.\nInstall now to enjoy the latest features.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5)),
+              const Text("Install New Version", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
+              Text("A new version of SYNEX MX is available.\nInstall now to enjoy the latest features.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 15, height: 1.5)),
               const SizedBox(height: 30),
               Row(
                 children: [
-                  Expanded(child: GestureDetector(onTap: () => Navigator.pop(ctx), child: Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(16)), alignment: Alignment.center, child: const Text("Later", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))))),
+                  Expanded(child: GestureDetector(onTap: () => Navigator.pop(ctx), child: Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(16)), alignment: Alignment.center, child: const Text("Later", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16))))),
                   const SizedBox(width: 16),
-                  Expanded(child: GestureDetector(onTap: () { launchInBrowser(updateUrl); Navigator.pop(ctx); }, child: Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]), borderRadius: BorderRadius.circular(16)), alignment: Alignment.center, child: const Text("Install Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))))),
+                  Expanded(child: GestureDetector(onTap: () { launchInBrowser(updateUrl); Navigator.pop(ctx); }, child: Container(padding: const EdgeInsets.symmetric(vertical: 14), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]), borderRadius: BorderRadius.circular(16)), alignment: Alignment.center, child: const Text("Install Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16))))),
                 ],
               ),
             ],
@@ -547,8 +600,12 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchUserPreferences() async {
     try {
-      final response = await Supabase.instance.client.from('user_preferences').select('saved_anime').eq('device_id', currentDeviceId).maybeSingle();
+      final response = await Supabase.instance.client.from('user_preferences').select('continue_watching, saved_anime').eq('device_id', currentDeviceId).maybeSingle();
       if (response != null) {
+        if (response['continue_watching'] != null) {
+          final List<dynamic> cwData = response['continue_watching'];
+          continueWatchingNotifier.value = cwData.map((data) => CWItem.fromJson(data, animeListNotifier.value)).toList();
+        }
         if (response['saved_anime'] != null) {
           final List<dynamic> savedData = response['saved_anime'];
           final List<SavedEpisode> fetchedList = [];
@@ -572,30 +629,34 @@ class _MainScreenState extends State<MainScreen> {
 
     final List<Widget> pages = [
       HomeScreen(onSearchTap: _goToSearch), 
-      BrowseScreen(), 
-      MoviesScreen(), 
-      MyListScreen(), 
-      ProfileScreen()
+      const BrowseScreen(), 
+      const MoviesScreen(), 
+      const MyListScreen(), 
+      const ProfileScreen()
     ];
 
     return Scaffold(
       extendBody: true,
       body: pages[_index],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: getCard(context), 
-        type: BottomNavigationBarType.fixed, 
-        selectedItemColor: Theme.of(context).primaryColor, 
-        unselectedItemColor: Colors.grey[500], 
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), 
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
-        currentIndex: _index, onTap: (i) => setState(() => _index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.movie_creation_rounded), label: "Movies"),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
-        ],
+      bottomNavigationBar: SizedBox(
+        height: 80,
+        child: BottomNavigationBar(
+          backgroundColor: getCard(context), 
+          type: BottomNavigationBarType.fixed, 
+          selectedItemColor: Theme.of(context).primaryColor, 
+          unselectedItemColor: Colors.grey[500], 
+          iconSize: 26, 
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), 
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
+          currentIndex: _index, onTap: (i) => setState(() => _index = i),
+          items: const [
+            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 6), child: Icon(Icons.home_filled)), label: "Home"),
+            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 6), child: Icon(Icons.search)), label: "Search"),
+            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 6), child: Icon(Icons.movie_creation_rounded)), label: "Movies"),
+            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 6), child: Icon(Icons.list_alt)), label: "My List"),
+            BottomNavigationBarItem(icon: Padding(padding: EdgeInsets.only(bottom: 6), child: Icon(Icons.person)), label: "Account"),
+          ],
+        ),
       ),
     );
   }
@@ -617,17 +678,16 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: getBg(context), elevation: 0,
         title: RichText(text: const TextSpan(children: [
-          TextSpan(text: "SYNEX ", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
-          TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5))
+          TextSpan(text: "SYNEX ", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
+          TextSpan(text: "MX", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: -0.5))
         ])),
-        actions:[IconButton(icon: Icon(Icons.search, color: getText(context)), onPressed: onSearchTap)],
+        actions:[IconButton(icon: Icon(Icons.search, color: getText(context), size: 28), onPressed: onSearchTap)],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
-            // 🔥 HERO SLIDER 🔥
             ValueListenableBuilder<List<Map<String,dynamic>>>(
               valueListenable: heroSliderNotifier,
               builder: (context, heroList, child) {
@@ -778,7 +838,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 210, 
+          height: 260, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
             itemBuilder: (context, index) { 
@@ -786,7 +846,7 @@ class HomeScreen extends StatelessWidget {
               return GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: list[index]))), 
                 child: Container(
-                  width: 120, margin: const EdgeInsets.only(right: 12), 
+                  width: 140, margin: const EdgeInsets.only(right: 14), 
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children:[
@@ -816,7 +876,7 @@ class HomeScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), const SizedBox(width: 6), Icon(icon, color: iconColor, size: 20)]), 
+              Row(children:[Text(title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: getText(context))), const SizedBox(width: 8), Icon(icon, color: iconColor, size: 24)]), 
               GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
             ]
           ),
@@ -858,7 +918,7 @@ class LatestEpisodesSeeAllPage extends StatelessWidget {
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex))),
             child: Container(
               margin: const EdgeInsets.only(bottom: 16), height: 110,
-              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))]),
+              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
               child: Row(
                 children: [
                   SizedBox(
@@ -885,6 +945,73 @@ class LatestEpisodesSeeAllPage extends StatelessWidget {
                           Text(item.anime.title, style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 8),
                           Row(children: [Icon(Icons.access_time, color: getSubText(context), size: 14), const SizedBox(width: 4), Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: getSubText(context), fontSize: 12))])
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ==========================================
+// CONTINUE WATCHING "SEE ALL" PAGE
+// ==========================================
+class CWSeeAllPage extends StatelessWidget {
+  final List<CWItem> cwList;
+  const CWSeeAllPage({super.key, required this.cwList});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(title: Text("Continue Watching", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold)), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context)), elevation: 0),
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), itemCount: cwList.length,
+        itemBuilder: (context, index) {
+          final item = cwList[index];
+          double progress = 0.0;
+          if (item.totalDuration.inMilliseconds > 0) progress = item.position.inMilliseconds / item.totalDuration.inMilliseconds;
+          final ep = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex];
+
+          return GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16), height: 110,
+              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 160, height: double.infinity,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(ep.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)),
+                          Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                          if (progress > 0.0) Positioned(bottom: 0, left: 0, right: 0, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black54, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 4))
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(item.anime.title, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 6),
+                          Text("Episode ${item.episodeIndex + 1}: ${ep.title}", style: TextStyle(color: getSubText(context), fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 8),
+                          Row(children: [Icon(Icons.access_time, color: primColor, size: 14), const SizedBox(width: 4), Text("${(progress * 100).toInt()}% Watched", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold))])
                         ],
                       ),
                     ),
@@ -1259,7 +1386,7 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: getBg(context),
       body: Stack(
         children: [
-          const ParticlesBackground(), // 🔥 PARTICLES EFFECT ADDED 🔥
+          const ParticlesBackground(),
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
@@ -1296,7 +1423,6 @@ class ProfileScreen extends StatelessWidget {
                   
                   const SizedBox(height: 60), 
                   
-                  // 🔥 PRIVACY POLICY LIKHA HUA HAI YAHIN PAR 🔥
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text("Privacy Policy", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -1509,6 +1635,69 @@ class ThumbnailLatestCard extends StatelessWidget {
   }
 }
 
+class CWAnimeCard extends StatefulWidget {
+  final CWItem item; 
+  const CWAnimeCard({super.key, required this.item});
+  
+  @override 
+  State<CWAnimeCard> createState() => _CWAnimeCardState();
+}
+class _CWAnimeCardState extends State<CWAnimeCard> {
+  bool _isTapped = false;
+  
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    double progress = 0.0;
+    if (widget.item.totalDuration.inMilliseconds > 0) progress = widget.item.position.inMilliseconds / widget.item.totalDuration.inMilliseconds;
+    
+    String epImage = "";
+    if (widget.item.anime.seasonsList.length > widget.item.seasonIndex) {
+      if (widget.item.anime.seasonsList[widget.item.seasonIndex].episodes.length > widget.item.episodeIndex) {
+        epImage = widget.item.anime.seasonsList[widget.item.seasonIndex].episodes[widget.item.episodeIndex].image;
+      }
+    }
+    if (epImage.isEmpty) epImage = widget.item.anime.image;
+
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _isTapped = true), 
+      onTapUp: (_) { 
+        setState(() => _isTapped = false); 
+        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.item.anime, seasonIndex: widget.item.seasonIndex, episodeIndex: widget.item.episodeIndex, startPosition: widget.item.position)));
+      }, 
+      onTapCancel: () => setState(() => _isTapped = false), 
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150), curve: Curves.easeOut, transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0), width: 180, margin: const EdgeInsets.only(right: 12), 
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, 
+          children:[
+            Container(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 1.5)),
+              child: AspectRatio(
+                aspectRatio: 16 / 9, 
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10), 
+                  child: Stack(
+                    fit: StackFit.expand, 
+                    children: [
+                      Image.network(epImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)), 
+                      Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)), 
+                      Positioned(bottom: 0, left: 0, right: 0, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white24, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 4))
+                    ]
+                  )
+                )
+              ),
+            ), 
+            const SizedBox(height: 8), 
+            Text(widget.item.anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
+            Text("Episode ${widget.item.episodeIndex + 1}", style: TextStyle(color: getSubText(context), fontSize: 11))
+          ]
+        )
+      ),
+    );
+  }
+}
+
 // ==========================================
 // DETAILS PAGE 
 // ==========================================
@@ -1567,7 +1756,7 @@ class _DetailsPageState extends State<DetailsPage> {
         slivers:[
           SliverAppBar(
             expandedHeight: 250, pinned: true, backgroundColor: getBg(context), 
-            leading: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: getText(context)), onPressed: () => Navigator.pop(context)),
+            leading: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: getText(context), size: 28), onPressed: () => Navigator.pop(context)),
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand, 
@@ -1588,7 +1777,7 @@ class _DetailsPageState extends State<DetailsPage> {
                   const SizedBox(height: 10),
                   Row(
                     children:[
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)), child: Text(widget.anime.rating, style: TextStyle(color: getText(context), fontSize: 11, fontWeight: FontWeight.bold))), 
+                      Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(12)), child: Text(widget.anime.rating, style: TextStyle(color: getText(context), fontSize: 13, fontWeight: FontWeight.bold))), 
                       const SizedBox(width: 10), 
                       Expanded(child: Text("• ${widget.anime.dubStatus} | ${widget.anime.genre.isNotEmpty ? widget.anime.genre : widget.anime.category}", style: TextStyle(color: getSubText(context), fontSize: 13), overflow: TextOverflow.ellipsis))
                     ]
@@ -1596,31 +1785,32 @@ class _DetailsPageState extends State<DetailsPage> {
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity, 
+                    height: 55,
                     child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: primColor, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 5), 
+                      style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 5), 
                       onPressed: () { 
                         if (episodesList.isNotEmpty) {
                           int playIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : 0;
                           Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex)));
                         }
                       }, 
-                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28), 
-                      label: const Text("Play Now", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                      icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 32), 
+                      label: const Text("Play Now", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))
                     )
                   ),
                   const SizedBox(height: 24),
                   Text(
                     widget.anime.description.isNotEmpty ? widget.anime.description : "Watch it now on SYNEX MX!", 
-                    maxLines: _isExpanded ? null : 2, overflow: _isExpanded ? null : TextOverflow.ellipsis, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
+                    maxLines: _isExpanded ? null : 3, overflow: _isExpanded ? null : TextOverflow.ellipsis, style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5)
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   GestureDetector(onTap: () => setState(() => _isExpanded = !_isExpanded), child: Text(_isExpanded ? "Read Less" : "Read More", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13))),
                   const SizedBox(height: 30),
                   
                   if (!widget.isLatestOnly) ...[
                     Text("Seasons", style: TextStyle(color: getText(context), fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
-                    SizedBox(height: 40, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: widget.anime.seasonsList.length, itemBuilder: (context, index) { return Padding(padding: const EdgeInsets.only(right: 10), child: _buildSeasonTab(index, widget.anime.seasonsList[index].name, primColor)); })),
+                    SizedBox(height: 40, child: ListView.builder(scrollDirection: Axis.horizontal, itemCount: widget.anime.seasonsList.length, itemBuilder: (context, index) { return Padding(padding: const EdgeInsets.only(right: 12), child: _buildSeasonTab(index, widget.anime.seasonsList[index].name, primColor)); })),
                     const SizedBox(height: 24),
                   ],
 
@@ -1702,7 +1892,7 @@ class _DetailsPageState extends State<DetailsPage> {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE 
+// FAST LOAD VIDEO PLAYER PAGE (SYNEX MX STYLE)
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -1837,7 +2027,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     Color primColor = Theme.of(context).primaryColor; 
     final currentSeason = widget.anime.seasonsList[widget.seasonIndex]; 
 
-    // THE VIDEO PLAYER WIDGET
     Widget videoContent = Stack(
       children:[
         _controller.value.isInitialized 
@@ -1889,7 +2078,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       ],
     );
 
-    // FULL SCREEN VIEW
     if (_isFullScreen) {
       return Scaffold(
         backgroundColor: Colors.black,
@@ -1897,7 +2085,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       );
     }
 
-    // NORMAL VIEW (VIDEO ON TOP, EPISODES BELOW)
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -1910,10 +2097,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       ),
       body: Column(
         children: [
-          // 1. VIDEO PLAYER AREA
           AspectRatio(aspectRatio: 16 / 9, child: videoContent),
           
-          // 2. SCROLLABLE DETAILS & EPISODES AREA
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: 30),
@@ -1926,7 +2111,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   const SizedBox(height: 8),
                   const Text("If current player not working, select other server.", style: TextStyle(color: Colors.white54, fontSize: 12)),
                   
-                  // TELEGRAM BANNER
                   GestureDetector(
                     onTap: () => launchInBrowser(globalTelegramLink),
                     child: Container(
@@ -1948,12 +2132,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               )
                             )
                           ),
+                          const Icon(Icons.close, color: Colors.white54, size: 16),
                         ],
                       ),
                     ),
                   ),
 
-                  // DUB & DOWNLOAD CARD
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
@@ -1996,7 +2180,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
                   const SizedBox(height: 24),
                   
-                  // EPISODE LIST SECTION
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
@@ -2019,7 +2202,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // EPISODE GRID (SQUARES)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Align(
@@ -2053,7 +2235,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
                   const SizedBox(height: 40),
 
-                  // RATING SECTION
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16),
                     padding: const EdgeInsets.all(20),
