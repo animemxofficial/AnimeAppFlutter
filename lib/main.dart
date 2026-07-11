@@ -630,7 +630,6 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     if (_isDataLoading) return Scaffold(backgroundColor: Colors.black, body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)));
 
-    // 🔥 BUG FIX: Removed 'const' keywords from the array items
     final List<Widget> pages = [
       HomeScreen(onSearchTap: _goToSearch), 
       BrowseScreen(), 
@@ -942,6 +941,138 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ==========================================
+// LATEST EPISODES "SEE ALL" PAGE
+// ==========================================
+class LatestEpisodesSeeAllPage extends StatelessWidget {
+  final List<LatestEpisodeItem> latestList;
+  const LatestEpisodesSeeAllPage({super.key, required this.latestList});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(title: Text("Latest Episodes", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold)), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context)), elevation: 0),
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), itemCount: latestList.length,
+        itemBuilder: (context, index) {
+          final item = latestList[index];
+          String epImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
+          String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
+
+          return GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex))),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16), height: 110,
+              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 160, height: double.infinity,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(epImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)),
+                          Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(displayTitle, style: TextStyle(color: getText(context), fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 6),
+                          Text(item.anime.title, style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 8),
+                          Row(children: [Icon(Icons.access_time, color: getSubText(context), size: 14), const SizedBox(width: 4), Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: getSubText(context), fontSize: 12))])
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ==========================================
+// CONTINUE WATCHING "SEE ALL" PAGE
+// ==========================================
+class CWSeeAllPage extends StatelessWidget {
+  final List<CWItem> cwList;
+  const CWSeeAllPage({super.key, required this.cwList});
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(title: Text("Continue Watching", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold)), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context)), elevation: 0),
+      body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), itemCount: cwList.length,
+        itemBuilder: (context, index) {
+          final item = cwList[index];
+          double progress = 0.0;
+          if (item.totalDuration.inMilliseconds > 0) progress = item.position.inMilliseconds / item.totalDuration.inMilliseconds;
+          final ep = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex];
+
+          return GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16), height: 110,
+              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 160, height: double.infinity,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), bottomLeft: Radius.circular(16)),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(ep.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)),
+                          Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
+                          if (progress > 0.0) Positioned(bottom: 0, left: 0, right: 0, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black54, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 4))
+                        ],
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(item.anime.title, style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 6),
+                          Text("Episode ${item.episodeIndex + 1}: ${ep.title}", style: TextStyle(color: getSubText(context), fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 8),
+                          Row(children: [Icon(Icons.access_time, color: primColor, size: 14), const SizedBox(width: 4), Text("${(progress * 100).toInt()}% Watched", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold))])
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ==========================================
 // BROWSE (SEARCH) SCREEN 
 // ==========================================
 class BrowseScreen extends StatefulWidget {
@@ -1021,8 +1152,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
               const SizedBox(height: 30),
               
               if (_searchController.text.isNotEmpty) ...[
-                Text("Search Results for '${_searchController.text}'", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
-                const SizedBox(height: 12), 
                 if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 18)))) 
                 else GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16), itemCount: _searchResults.length, itemBuilder: (context, index) => GridCategoryCard(anime: _searchResults[index], pageTitle: ""))
               ] else ...[
@@ -1221,7 +1350,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN
+// CLEAN & MINIMAL PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -1755,7 +1884,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _forwardOpacity = 0.0; 
   double _rewindOpacity = 0.0;
   
-  int _currentEpisodeIndex = 0; // State variable to track episode changes on the same screen
+  int _currentEpisodeIndex = 0; 
 
   bool _isLiked = false; 
   bool _isDisliked = false;
@@ -1781,7 +1910,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   void _changeEpisode(int newIndex) {
     if (newIndex == _currentEpisodeIndex) return;
-    _updateContinueWatching(); // Save current progress before switching
+    _updateContinueWatching(); 
     _controller.pause();
     _controller.dispose();
     
@@ -1868,7 +1997,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor; 
     final currentSeason = widget.anime.seasonsList[widget.seasonIndex]; 
-    final currentEpisode = currentSeason.episodes[_currentEpisodeIndex]; 
 
     // THE VIDEO PLAYER WIDGET
     Widget videoContent = Stack(
