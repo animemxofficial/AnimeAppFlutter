@@ -27,6 +27,7 @@ dependencies:
   path_provider: any
   device_info_plus: any
   open_filex: any
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:
