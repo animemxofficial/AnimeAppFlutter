@@ -53,6 +53,26 @@ String formatViewsCount(int views) {
 }
 
 // ==========================================
+// HELPER: Dynamic Season & Episode Logic
+// ==========================================
+String getSeasonText(Anime anime) {
+  if (anime.category.toLowerCase().contains("movie")) return "MOVIE";
+  if (anime.seasonsList.isEmpty) return "SEASON 1";
+  List<String> sNums = [];
+  for (var s in anime.seasonsList) {
+    String num = s.name.replaceAll(RegExp(r'[^0-9]'), '');
+    if (num.isNotEmpty) sNums.add(num);
+  }
+  if (sNums.isEmpty) return "SEASON 1";
+  return "SEASON ${sNums.join(',')}";
+}
+
+int getTotalEpisodes(Anime anime) {
+  if (anime.seasonsList.isEmpty) return 0;
+  return anime.seasonsList.fold(0, (sum, season) => sum + season.episodes.length);
+}
+
+// ==========================================
 // SECURITY: VPN CHECKER & ID HASHER
 // ==========================================
 Future<bool> checkVpnConnection() async {
@@ -162,7 +182,7 @@ class Season {
 class Anime {
   final String id, title, image, genre, rating, dubStatus, season, status, views, category, subCategory, description; 
   final Color dubColor; final List<Season> seasonsList; final bool isNew; final DateTime createdAt; 
-  Anime({required this.id, required this.title, required this.image, this.genre = "Action", this.rating = "PG-13", this.dubStatus = "DUB", this.season = "Season 1", this.status = "Completed", this.views = "0", this.dubColor = const Color(0xFFFF4D4D), required this.seasonsList, this.category = "", this.subCategory = "", this.isNew = false, this.description = "", required this.createdAt});
+  Anime({required this.id, required this.title, required this.image, this.genre = "Action", this.rating = "PG-13", this.dubStatus = "DUB", this.season = "Season 1", this.status = "Ongoing", this.views = "0", this.dubColor = const Color(0xFFFF4D4D), required this.seasonsList, this.category = "", this.subCategory = "", this.isNew = false, this.description = "", required this.createdAt});
 }
 
 Anime _getDummyAnime() => Anime(id: '0', title: 'Loading...', image: '', seasonsList: [], createdAt: DateTime.now());
@@ -399,12 +419,8 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchUserPreferences() async {
     try {
-      final response = await Supabase.instance.client.from('user_preferences').select('continue_watching, saved_anime').eq('device_id', currentDeviceId).maybeSingle();
+      final response = await Supabase.instance.client.from('user_preferences').select('saved_anime').eq('device_id', currentDeviceId).maybeSingle();
       if (response != null) {
-        if (response['continue_watching'] != null) {
-          final List<dynamic> cwData = response['continue_watching'];
-          continueWatchingNotifier.value = cwData.map((data) => CWItem.fromJson(data, animeListNotifier.value)).toList();
-        }
         if (response['saved_anime'] != null) {
           final List<dynamic> savedData = response['saved_anime'];
           final List<SavedEpisode> fetchedList = [];
@@ -455,11 +471,11 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 20),
         const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
         const SizedBox(height: 10),
-        SizedBox(height: 260, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 140, height: 260)))),
+        SizedBox(height: 220, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 130, height: 220)))),
         const SizedBox(height: 20),
         const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
         const SizedBox(height: 10),
-        SizedBox(height: 260, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 140, height: 260)))),
+        SizedBox(height: 220, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 130, height: 220)))),
       ],
     );
   }
@@ -489,6 +505,7 @@ class HomeScreen extends StatelessWidget {
               valueListenable: heroSliderNotifier,
               builder: (context, heroList, child) {
                 if (heroList.isEmpty) return const SizedBox.shrink();
+
                 return CarouselSlider.builder(
                   itemCount: heroList.length, 
                   options: CarouselOptions(height: 220, autoPlay: true, enlargeCenterPage: false, viewportFraction: 1.0),
@@ -504,7 +521,7 @@ class HomeScreen extends StatelessWidget {
                     return GestureDetector(
                       onTap: () { 
                         if (isCustom || hero['anime_id'] == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!"))); } 
-                        else { try { final linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString()); Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: linkedAnime))); } catch(e) { } }
+                        else { try { final linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString()); Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: linkedAnime, seasonIndex: 0, episodeIndex: 0))); } catch(e) { } }
                       }, 
                       child: Stack(
                         fit: StackFit.expand, 
@@ -539,6 +556,11 @@ class HomeScreen extends StatelessWidget {
                 if (allAnime.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No Content found in Database", style: TextStyle(color: Colors.white54))));
                 
                 final trendingList = allAnime.where((a) => a.category.trim().toLowerCase().contains("trending")).toList();
+                final actionList = allAnime.where((a) => a.category.trim().toLowerCase().contains("action") || a.subCategory.trim().toLowerCase().contains("action")).toList();
+                final romanceList = allAnime.where((a) => a.category.trim().toLowerCase().contains("romance") || a.subCategory.trim().toLowerCase().contains("romance")).toList();
+                final comedyList = allAnime.where((a) => a.category.trim().toLowerCase().contains("comedy") || a.subCategory.trim().toLowerCase().contains("comedy")).toList();
+                final mysteryList = allAnime.where((a) => a.category.trim().toLowerCase().contains("mystery") || a.subCategory.trim().toLowerCase().contains("mystery")).toList();
+                final horrorList = allAnime.where((a) => a.category.trim().toLowerCase().contains("horror") || a.subCategory.trim().toLowerCase().contains("horror")).toList();
                 
                 List<Anime> popularList = List.from(allAnime);
                 popularList.sort((a, b) {
@@ -563,6 +585,11 @@ class HomeScreen extends StatelessWidget {
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", null, null, trendingList),
                     if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", null, null, popularList),
                     if (latestEpisodesFlatList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestEpisodesFlatList),
+                    if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
+                    if (romanceList.isNotEmpty) _buildPortraitSection(context, "Romance", null, null, romanceList),
+                    if (comedyList.isNotEmpty) _buildPortraitSection(context, "Comedy", null, null, comedyList),
+                    if (mysteryList.isNotEmpty) _buildPortraitSection(context, "Mystery", null, null, mysteryList),
+                    if (horrorList.isNotEmpty) _buildPortraitSection(context, "Horror", null, null, horrorList),
                   ],
                 );
               }
@@ -621,21 +648,20 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 260, 
+          height: 220, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
             itemBuilder: (context, index) { 
               Anime anime = list[index];
-              bool isCompleted = anime.status.toLowerCase() == "completed";
-              String epCount = "E${anime.seasonsList.isNotEmpty ? anime.seasonsList.first.episodes.length : 0}";
+              String epCount = "E${getTotalEpisodes(anime)}";
               String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-              String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "SERIES  ■  $views";
+              String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
               String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
 
               return GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: anime))), 
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))), 
                 child: Container(
-                  width: 140, margin: const EdgeInsets.only(right: 14), 
+                  width: 130, margin: const EdgeInsets.only(right: 12), 
                   decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
@@ -647,15 +673,6 @@ class HomeScreen extends StatelessWidget {
                             fit: StackFit.expand,
                             children: [
                               Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                              
-                              if (isCompleted)
-                                Positioned(
-                                  top: 15, left: -35,
-                                  child: Transform.rotate(
-                                    angle: -0.785398, 
-                                    child: Container(color: Colors.redAccent.withOpacity(0.9), padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4), child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
-                                  ),
-                                ),
                               Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
                               Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
                               Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
@@ -667,9 +684,9 @@ class HomeScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
+                              Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis), 
                               const SizedBox(height: 4),
-                              Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
                             ],
                           ),
                         )
@@ -696,7 +713,7 @@ class HomeScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) const SizedBox(width: 6), if (icon != null) Icon(icon, color: iconColor, size: 20)]), 
+              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if(icon != null) const SizedBox(width: 6), if(icon != null) Icon(icon, color: iconColor, size: 20)]), 
               GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
             ]
           ),
@@ -715,7 +732,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ==========================================
-// THUMBNAIL LATEST CARD (ADDED BACK)
+// THUMBNAIL LATEST CARD
 // ==========================================
 class ThumbnailLatestCard extends StatelessWidget {
   final LatestEpisodeItem item; 
@@ -760,68 +777,6 @@ class ThumbnailLatestCard extends StatelessWidget {
             Text(displayTitle, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
             const SizedBox(height: 2), 
             Text(item.anime.title, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)
-          ]
-        )
-      ),
-    );
-  }
-}
-
-// ==========================================
-// CW ANIME CARD (ADDED BACK)
-// ==========================================
-class CWAnimeCard extends StatefulWidget {
-  final CWItem item; 
-  const CWAnimeCard({super.key, required this.item});
-  @override State<CWAnimeCard> createState() => _CWAnimeCardState();
-}
-class _CWAnimeCardState extends State<CWAnimeCard> {
-  bool _isTapped = false;
-  @override Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    double progress = 0.0;
-    if (widget.item.totalDuration.inMilliseconds > 0) progress = widget.item.position.inMilliseconds / widget.item.totalDuration.inMilliseconds;
-    
-    String epImage = "";
-    if (widget.item.anime.seasonsList.length > widget.item.seasonIndex) {
-      if (widget.item.anime.seasonsList[widget.item.seasonIndex].episodes.length > widget.item.episodeIndex) {
-        epImage = widget.item.anime.seasonsList[widget.item.seasonIndex].episodes[widget.item.episodeIndex].image;
-      }
-    }
-    if (epImage.isEmpty) epImage = widget.item.anime.image;
-
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isTapped = true), 
-      onTapUp: (_) { 
-        setState(() => _isTapped = false); 
-        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.item.anime, seasonIndex: widget.item.seasonIndex, episodeIndex: widget.item.episodeIndex, startPosition: widget.item.position)));
-      }, 
-      onTapCancel: () => setState(() => _isTapped = false), 
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150), curve: Curves.easeOut, transform: Matrix4.identity()..scale(_isTapped ? 0.96 : 1.0), width: 140, margin: const EdgeInsets.only(right: 12), 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, 
-          children:[
-            Container(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 1.5)),
-              child: AspectRatio(
-                aspectRatio: 16 / 9, 
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10), 
-                  child: Stack(
-                    fit: StackFit.expand, 
-                    children: [
-                      Image.network(epImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)), 
-                      Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 30)),
-                      Positioned(bottom: 0, left: 0, right: 0, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white24, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 4))
-                    ]
-                  )
-                )
-              ),
-            ), 
-            const SizedBox(height: 8), 
-            Text(widget.item.anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
-            Text("Episode ${widget.item.episodeIndex + 1}", style: TextStyle(color: getSubText(context), fontSize: 11))
           ]
         )
       ),
@@ -880,73 +835,6 @@ class LatestEpisodesSeeAllPage extends StatelessWidget {
                           Text(item.anime.title, style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 8),
                           Row(children: [Icon(Icons.access_time, color: getSubText(context), size: 14), const SizedBox(width: 4), Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: getSubText(context), fontSize: 12))])
-                        ],
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ==========================================
-// CONTINUE WATCHING "SEE ALL" PAGE
-// ==========================================
-class CWSeeAllPage extends StatelessWidget {
-  final List<CWItem> cwList;
-  const CWSeeAllPage({super.key, required this.cwList});
-
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(title: Text("Continue Watching", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context)), elevation: 0),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), itemCount: cwList.length,
-        itemBuilder: (context, index) {
-          final item = cwList[index];
-          double progress = 0.0;
-          if (item.totalDuration.inMilliseconds > 0) progress = item.position.inMilliseconds / item.totalDuration.inMilliseconds;
-          final ep = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex];
-
-          return GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16), height: 110,
-              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 160, height: double.infinity,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(ep.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)),
-                          Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
-                          if (progress > 0.0) Positioned(bottom: 0, left: 0, right: 0, child: LinearProgressIndicator(value: progress, backgroundColor: Colors.black54, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 4))
-                        ],
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(item.anime.title, style: TextStyle(color: getText(context), fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 6),
-                          Text("Episode ${item.episodeIndex + 1}: ${ep.title}", style: TextStyle(color: getSubText(context), fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 8),
-                          Row(children: [Icon(Icons.access_time, color: primColor, size: 14), const SizedBox(width: 4), Text("${(progress * 100).toInt()}% Watched", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold))])
                         ],
                       ),
                     ),
@@ -1216,108 +1104,47 @@ class _ServersScreenState extends State<ServersScreen> {
 // ==========================================
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
-
-  @override
-  State<MyListScreen> createState() => _MyListScreenState();
+  @override State<MyListScreen> createState() => _MyListScreenState();
 }
-
 class _MyListScreenState extends State<MyListScreen> {
   bool _isLoadingSavedAnime = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchSavedAnime();
-  }
-
+  @override void initState() { super.initState(); _fetchSavedAnime(); }
   Future<void> _fetchSavedAnime() async {
     try {
       final response = await Supabase.instance.client.from('user_preferences').select('saved_anime').eq('device_id', currentDeviceId).maybeSingle();
       if (response != null && response['saved_anime'] != null) {
-        final List<dynamic> savedData = response['saved_anime'];
-        final List<SavedEpisode> fetchedList = [];
-        for (var data in savedData) {
-          try {
-            final animeMatch = animeListNotifier.value.firstWhere((anime) => anime.title == data['animeTitle']);
-            fetchedList.add(SavedEpisode(anime: animeMatch, seasonIndex: data['seasonIndex'] ?? 0, episodeIndex: data['episodeIndex'] ?? 0));
-          } catch (e) {}
-        }
+        final List<dynamic> savedData = response['saved_anime']; final List<SavedEpisode> fetchedList = [];
+        for (var data in savedData) { try { final animeMatch = animeListNotifier.value.firstWhere((anime) => anime.title == data['animeTitle']); fetchedList.add(SavedEpisode(anime: animeMatch, seasonIndex: data['seasonIndex'] ?? 0, episodeIndex: data['episodeIndex'] ?? 0)); } catch (e) {} }
         setState(() { myListNotifier.value = fetchedList; _isLoadingSavedAnime = false; });
       } else { setState(() => _isLoadingSavedAnime = false); }
     } catch (e) { setState(() => _isLoadingSavedAnime = false); }
   }
-
   void _removeSavedAnime(SavedEpisode episode) {
-    final list = List<SavedEpisode>.from(myListNotifier.value);
-    list.removeWhere((item) => item.anime.title == episode.anime.title);
-    myListNotifier.value = list;
-    MyListService().saveMyList(currentDeviceId, list);
+    final list = List<SavedEpisode>.from(myListNotifier.value); list.removeWhere((item) => item.anime.title == episode.anime.title); myListNotifier.value = list; MyListService().saveMyList(currentDeviceId, list);
   }
-
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
-
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(title: Text("My List", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), backgroundColor: getBg(context), elevation: 0),
-      body: _isLoadingSavedAnime
-          ? Center(child: CircularProgressIndicator(color: primColor))
-          : ValueListenableBuilder<List<SavedEpisode>>(
-              valueListenable: myListNotifier,
-              builder: (context, savedList, child) {
-                if (savedList.isEmpty) return Center(child: Text("Your watch list is empty.", style: TextStyle(color: getSubText(context), fontSize: 16)));
-                
-                return ListView.builder(
-                  padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), 
-                  itemCount: savedList.length, 
-                  itemBuilder: (context, index) { 
-                    final anime = savedList[index].anime;
-                    return GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: anime))),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        height: 110,
-                        decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))]),
-                        child: Row(
-                          children: [
-                            ClipRRect(
-                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)), 
-                              child: Image.network(anime.image, width: 85, height: 110, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image))
-                            ),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                    const SizedBox(height: 6),
-                                    Text("${anime.season} • ${anime.dubStatus}", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.w600)),
-                                  ]
-                                )
-                              )
-                            ),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                IconButton(icon: Icon(Icons.play_circle_fill, color: primColor, size: 36), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: anime)))),
-                                GestureDetector(
-                                  onTap: () => _removeSavedAnime(savedList[index]),
-                                  child: const Padding(padding: EdgeInsets.only(bottom: 8), child: Icon(Icons.delete_outline, color: Colors.white54, size: 20)),
-                                )
-                              ],
-                            ),
-                            const SizedBox(width: 8),
-                          ]
-                        )
-                      ),
-                    );
-                  }
-                );
-              },
-            ),
+      body: _isLoadingSavedAnime ? Center(child: CircularProgressIndicator(color: primColor)) : ValueListenableBuilder<List<SavedEpisode>>(
+        valueListenable: myListNotifier,
+        builder: (context, savedList, child) {
+          if (savedList.isEmpty) return Center(child: Text("Your watch list is empty.", style: TextStyle(color: getSubText(context), fontSize: 16)));
+          return ListView.builder(
+            padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), itemCount: savedList.length, 
+            itemBuilder: (context, index) { 
+              final anime = savedList[index].anime;
+              return GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))),
+                child: Container(margin: const EdgeInsets.only(bottom: 12), height: 110, decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))]),
+                  child: Row(children: [ClipRRect(borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)), child: Image.network(anime.image, width: 85, height: 110, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image))), Expanded(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 6), Text("${anime.season} • ${anime.dubStatus}", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.w600))]))), Column(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [IconButton(icon: Icon(Icons.play_circle_fill, color: primColor, size: 36), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0)))), GestureDetector(onTap: () => _removeSavedAnime(savedList[index]), child: const Padding(padding: EdgeInsets.only(bottom: 8), child: Icon(Icons.delete_outline, color: Colors.white54, size: 20)))]), const SizedBox(width: 8)])
+                ),
+              );
+            }
+          );
+        },
+      ),
     );
   }
 }
@@ -1327,80 +1154,33 @@ class _MyListScreenState extends State<MyListScreen> {
 // ==========================================
 class ParticlesBackground extends StatefulWidget {
   const ParticlesBackground({super.key});
-  @override
-  _ParticlesBackgroundState createState() => _ParticlesBackgroundState();
+  @override _ParticlesBackgroundState createState() => _ParticlesBackgroundState();
 }
-
 class _ParticlesBackgroundState extends State<ParticlesBackground> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  List<Particle> particles = [];
-
-  @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 40; i++) {
-      particles.add(Particle());
-    }
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
-  }
-
-  @override
-  void dispose() { 
-    _controller.dispose(); 
-    super.dispose(); 
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        for (var p in particles) { p.update(); }
-        return CustomPaint(painter: ParticlePainter(particles, Theme.of(context).primaryColor), size: Size.infinite);
-      },
-    );
-  }
+  late AnimationController _controller; List<Particle> particles = [];
+  @override void initState() { super.initState(); for (int i = 0; i < 40; i++) { particles.add(Particle()); } _controller = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat(); }
+  @override void dispose() { _controller.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) { return AnimatedBuilder(animation: _controller, builder: (context, child) { for (var p in particles) { p.update(); } return CustomPaint(painter: ParticlePainter(particles, Theme.of(context).primaryColor), size: Size.infinite); }); }
 }
-
 class Particle {
-  double x = Random().nextDouble() * 400; 
-  double y = Random().nextDouble() * 800;
-  double speed = Random().nextDouble() * 1 + 0.5;
-  double radius = Random().nextDouble() * 2 + 1;
-  void update() {
-    y -= speed;
-    if (y < 0) { y = 800; x = Random().nextDouble() * 400; }
-  }
+  double x = Random().nextDouble() * 400; double y = Random().nextDouble() * 800; double speed = Random().nextDouble() * 1 + 0.5; double radius = Random().nextDouble() * 2 + 1;
+  void update() { y -= speed; if (y < 0) { y = 800; x = Random().nextDouble() * 400; } }
 }
-
 class ParticlePainter extends CustomPainter {
-  final List<Particle> particles;
-  final Color pColor;
+  final List<Particle> particles; final Color pColor;
   ParticlePainter(this.particles, this.pColor);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = pColor.withOpacity(0.3);
-    for (var p in particles) {
-      double dx = (p.x / 400) * size.width;
-      double dy = (p.y / 800) * size.height;
-      canvas.drawCircle(Offset(dx, dy), p.radius, paint);
-    }
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  @override void paint(Canvas canvas, Size size) { final paint = Paint()..color = pColor.withOpacity(0.3); for (var p in particles) { double dx = (p.x / 400) * size.width; double dy = (p.y / 800) * size.height; canvas.drawCircle(Offset(dx, dy), p.radius, paint); } }
+  @override bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // ==========================================
-// CLEAN PROFILE SCREEN (WITH PARTICLES)
+// PROFILE SCREEN
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
-
   @override
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
-
     return Scaffold(
       backgroundColor: getBg(context),
       body: Stack(
@@ -1412,40 +1192,22 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center, 
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(4), 
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2)),
-                    child: CircleAvatar(radius: 45, backgroundColor: getAvatarColor(currentUserName), child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold))),
-                  ),
+                  Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2)), child: CircleAvatar(radius: 45, backgroundColor: getAvatarColor(currentUserName), child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)))),
                   const SizedBox(height: 16),
-                  
                   Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
                   const SizedBox(height: 6),
                   Text("ID: $currentDeviceId", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12, letterSpacing: 1.2)),
-                  
                   const SizedBox(height: 60),
-                  
                   Container(
                     decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.15), shape: BoxShape.circle),
-                        child: const Icon(Icons.telegram, color: Colors.blueAccent, size: 28),
-                      ),
-                      title: const Text("Join our Community", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16),
-                      onTap: () => launchInBrowser(globalTelegramLink),
+                      leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.telegram, color: Colors.blueAccent, size: 28)),
+                      title: const Text("Join our Community", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16), onTap: () => launchInBrowser(globalTelegramLink),
                     ),
                   ),
-                  
-                  const SizedBox(height: 60), 
-                  
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text("Privacy Policy", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  ),
+                  const SizedBox(height: 60),
+                  const Align(alignment: Alignment.centerLeft, child: Text("Privacy Policy", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
                   const SizedBox(height: 12),
                   Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
                   const SizedBox(height: 80),
@@ -1463,23 +1225,12 @@ class ProfileScreen extends StatelessWidget {
 // CATEGORY PAGES & CARDS 
 // ==========================================
 class SeeAllCategoryPage extends StatelessWidget {
-  final String title; 
-  final List<Anime> animeList; 
-  final bool isLatestOnly;
-  
+  final String title; final List<Anime> animeList; final bool isLatestOnly;
   const SeeAllCategoryPage({super.key, required this.title, required this.animeList, this.isLatestOnly = false});
-
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: IconThemeData(color: getText(context))),
-      body: GridView.builder(
-        padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), 
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.70, crossAxisSpacing: 14, mainAxisSpacing: 16), 
-        itemCount: animeList.length, 
-        itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title, isLatestOnly: isLatestOnly)
-      ),
+      backgroundColor: getBg(context), appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: IconThemeData(color: getText(context))),
+      body: GridView.builder(padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.70, crossAxisSpacing: 14, mainAxisSpacing: 16), itemCount: animeList.length, itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title, isLatestOnly: isLatestOnly))
     );
   }
 }
@@ -1487,57 +1238,19 @@ class SeeAllCategoryPage extends StatelessWidget {
 class OverlayPopularCard extends StatelessWidget {
   final Anime anime; 
   const OverlayPopularCard({super.key, required this.anime});
-  
-  @override
-  Widget build(BuildContext context) {
-    bool isCompleted = anime.status.toLowerCase() == "completed";
-    String epCount = "E${anime.seasonsList.isNotEmpty ? anime.seasonsList.first.episodes.length : 0}";
+  @override Widget build(BuildContext context) {
+    String epCount = "E${getTotalEpisodes(anime)}";
     String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-    String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "SERIES  ■  $views";
+    String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
     String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
-
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: anime))), 
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))), 
       child: Container(
-        width: 140, margin: const EdgeInsets.only(right: 12), 
-        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
+        width: 140, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
-            children:[
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                    if (isCompleted)
-                      Positioned(
-                        top: 15, left: -35,
-                        child: Transform.rotate(
-                          angle: -0.785398, 
-                          child: Container(color: Colors.redAccent.withOpacity(0.9), padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4), child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
-                        ),
-                      ),
-                    Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
-                    Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
-                    Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
-                  ],
-                )
-              ), 
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
-                    const SizedBox(height: 4),
-                    Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              )
-            ]
-          ),
+          borderRadius: BorderRadius.circular(8), 
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Expanded(child: Stack(fit: StackFit.expand, children: [Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))), Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))), Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))])), Padding(padding: const EdgeInsets.all(8.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)]))]
+          )
         )
       )
     );
@@ -1545,79 +1258,30 @@ class OverlayPopularCard extends StatelessWidget {
 }
 
 class GridCategoryCard extends StatefulWidget {
-  final Anime anime; 
-  final String pageTitle; 
-  final bool isLatestOnly;
+  final Anime anime; final String pageTitle; final bool isLatestOnly;
   const GridCategoryCard({super.key, required this.anime, required this.pageTitle, this.isLatestOnly = false});
-
-  @override
-  State<GridCategoryCard> createState() => _GridCategoryCardState();
+  @override State<GridCategoryCard> createState() => _GridCategoryCardState();
 }
-
 class _GridCategoryCardState extends State<GridCategoryCard> {
   void _toggleSaveAnime() {
-    final list = List<SavedEpisode>.from(myListNotifier.value);
-    final isSaved = list.any((item) => item.anime.title == widget.anime.title);
+    final list = List<SavedEpisode>.from(myListNotifier.value); final isSaved = list.any((item) => item.anime.title == widget.anime.title);
     if (isSaved) { list.removeWhere((item) => item.anime.title == widget.anime.title); } else { list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); }
-    myListNotifier.value = list;
-    MyListService().saveMyList(currentDeviceId, list);
+    myListNotifier.value = list; MyListService().saveMyList(currentDeviceId, list);
   }
-
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    
-    bool isCompleted = widget.anime.status.toLowerCase() == "completed";
-    String epCount = "E${widget.anime.seasonsList.isNotEmpty ? widget.anime.seasonsList.first.episodes.length : 0}";
+  @override Widget build(BuildContext context) {
+    String epCount = "E${getTotalEpisodes(widget.anime)}";
     String views = formatViewsCount(globalAnimeViewsNotifier.value[widget.anime.title] ?? 0);
-    String bottomLine = widget.anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "SERIES  ■  $views";
+    String bottomLine = widget.anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(widget.anime)}  ■  $views";
     String tagLang = widget.anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
     
-    final bool isSaved = myListNotifier.value.any((item) => item.anime.title == widget.anime.title);
-    
     return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => DetailsPage(anime: widget.anime)));
-      }, 
+      onTap: () { Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.anime, seasonIndex: 0, episodeIndex: 0))); }, 
       child: Container(
-        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
+        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)), 
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start, 
-            children:[
-              Expanded(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(widget.anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                    if (isCompleted)
-                      Positioned(
-                        top: 15, left: -35,
-                        child: Transform.rotate(
-                          angle: -0.785398, 
-                          child: Container(color: Colors.redAccent.withOpacity(0.9), padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4), child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
-                        ),
-                      ),
-                    Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
-                    Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
-                    Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
-                  ],
-                )
-              ), 
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(widget.anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
-                    const SizedBox(height: 4),
-                    Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              )
-            ]
-          ),
+          borderRadius: BorderRadius.circular(8), 
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Expanded(child: Stack(fit: StackFit.expand, children: [Image.network(widget.anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))), Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))), Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))])), Padding(padding: const EdgeInsets.all(8.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)]))]
+          )
         )
       )
     );
@@ -1625,221 +1289,27 @@ class _GridCategoryCardState extends State<GridCategoryCard> {
 }
 
 // ==========================================
-// DETAILS PAGE (NEW DESIGN)
+// SEPARATE DESCRIPTION PAGE 
 // ==========================================
-class DetailsPage extends StatefulWidget {
-  final Anime anime; 
-  final bool isLatestOnly; 
-  const DetailsPage({super.key, required this.anime, this.isLatestOnly = false});
-  @override 
-  State<DetailsPage> createState() => _DetailsPageState();
-}
-
-class _DetailsPageState extends State<DetailsPage> {
-  int _selectedSeasonIndex = 0; 
-  Map<int, String> _episodeViews = {}; 
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.isLatestOnly && widget.anime.seasonsList.isNotEmpty) {
-      _selectedSeasonIndex = widget.anime.seasonsList.length - 1;
-    }
-    _fetchEpisodeViews();
-  }
-
-  Future<void> _fetchEpisodeViews() async {
-    try {
-      final response = await Supabase.instance.client.from('episode_views').select('episode_id, view_count').like('episode_id', '${widget.anime.title}_${_selectedSeasonIndex}_%');
-      if (mounted && response != null) {
-        Map<int, String> viewsMap = {};
-        for (var row in response) {
-          String epId = row['episode_id']; int vCount = row['view_count'] ?? 0;
-          List<String> parts = epId.split('_');
-          if (parts.isNotEmpty) { int? eIdx = int.tryParse(parts.last); if (eIdx != null) { viewsMap[eIdx] = formatViewsCount(vCount); } }
-        }
-        setState(() { _episodeViews = viewsMap; });
-      }
-    } catch (e) { }
-  }
-
-  void _toggleSaveAnime() {
-    final list = List<SavedEpisode>.from(myListNotifier.value);
-    final isSaved = list.any((item) => item.anime.title == widget.anime.title);
-    if (isSaved) { list.removeWhere((item) => item.anime.title == widget.anime.title); } else { list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); }
-    myListNotifier.value = list;
-    MyListService().saveMyList(currentDeviceId, list);
-    setState(() {});
-  }
+class DescriptionPage extends StatelessWidget {
+  final Anime anime;
+  const DescriptionPage({super.key, required this.anime});
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor; 
-    
-    if (widget.anime.seasonsList.isEmpty) { 
-      return Scaffold(backgroundColor: getBg(context), appBar: AppBar(backgroundColor: getBg(context), title: Text(widget.anime.title, style: TextStyle(color: getText(context)))), body: Center(child: Text("Episodes Coming Soon!", style: TextStyle(color: getText(context))))); 
-    }
-
-    Season currentSeason = widget.anime.seasonsList[_selectedSeasonIndex]; 
-    List<Episode> episodesList = currentSeason.episodes;
-    if (widget.isLatestOnly && episodesList.isNotEmpty) { episodesList = [episodesList.last]; }
-
-    int totalViews = globalAnimeViewsNotifier.value[widget.anime.title] ?? 0;
-    String formatViews = formatViewsCount(totalViews);
-    bool isSaved = myListNotifier.value.any((item) => item.anime.title == widget.anime.title);
-    String typeTag = widget.anime.category.toLowerCase().contains("movie") ? "MOVIE" : "SERIES";
-    String dubTag = widget.anime.dubStatus.toUpperCase().contains("DUB") ? "FANDUB" : "MULTI";
-
     return Scaffold(
-      backgroundColor: const Color(0xFF1E1E1E), 
-      appBar: AppBar(
-        backgroundColor: Colors.transparent, elevation: 0, 
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-      ),
-      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 16))),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 80),
-            Container(
-              height: 300,
-              width: 220,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.red, width: 3), boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 5))]),
-              child: ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(widget.anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, size: 50, color: Colors.white54))),
-            ),
-            const SizedBox(height: 20),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(widget.anime.title, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 16),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.white, child: Text(dubTag, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.amber.shade200, child: Text(typeTag, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.lightGreen.shade300, child: Text("Ep ${episodesList.length}", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))),
-                Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), color: Colors.lightBlue.shade300, child: Text(formatViews, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12))),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
-                  onPressed: () { 
-                    if (episodesList.isNotEmpty) {
-                      int playIndex = widget.isLatestOnly ? currentSeason.episodes.length - 1 : 0;
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.anime, seasonIndex: _selectedSeasonIndex, episodeIndex: playIndex)));
-                    }
-                  },
-                  icon: const Icon(Icons.play_arrow, color: Colors.white), 
-                  label: const Text("Watch Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
-                  onPressed: _toggleSaveAnime,
-                  icon: Icon(isSaved ? Icons.check : Icons.add, color: Colors.black), 
-                  label: const Text("Add to List", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
-                  onPressed: () {},
-                  icon: const Icon(Icons.reply, color: Colors.white), 
-                  label: const Text("Share", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                ),
-              ),
-            ),
-            const SizedBox(height: 40),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF2A2A35), Color(0xFF1E1E1E)], begin: Alignment.topCenter, end: Alignment.bottomCenter)
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Overview:", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  Text(widget.anime.description.isNotEmpty ? widget.anime.description : "No description available.", style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
-                  const SizedBox(height: 20),
-
-                  _buildMetaRow("Score:", "8.75"),
-                  _buildMetaRow("English:", widget.anime.title),
-                  _buildMetaRow("Native:", "日本のタイトル"), 
-                  _buildMetaRow("Aired:", widget.anime.createdAt.toString().substring(0, 10)),
-                  _buildMetaRow("Duration:", "24m"),
-                  _buildMetaRow("Episodes:", "${episodesList.length}"),
-                  
-                  const SizedBox(height: 16),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Genre: ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Wrap(
-                          spacing: 8, runSpacing: 8,
-                          children: widget.anime.genre.split(',').map((g) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(border: Border.all(color: Colors.white54), borderRadius: BorderRadius.circular(6)),
-                            child: Text(g.trim(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                          )).toList(),
-                        ),
-                      )
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  RichText(
-                    text: const TextSpan(
-                      children: [
-                        TextSpan(text: "Producer: ", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                        TextSpan(text: "Unknown Studio", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                      ]
-                    )
-                  )
-                ],
-              ),
-            )
-          ]
-        ),
-      )
-    );
-  }
-
-  Widget _buildMetaRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 80, child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-          Expanded(child: Text(value, style: const TextStyle(color: Colors.white70, fontSize: 14))),
-        ],
+        padding: const EdgeInsets.all(20),
+        child: Text(anime.description, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
       ),
     );
   }
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE 
+// FAST LOAD VIDEO PLAYER PAGE (RE-DESIGNED)
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -1861,26 +1331,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   double _forwardOpacity = 0.0; 
   double _rewindOpacity = 0.0;
   
-  int _currentEpisodeIndex = 0; 
-  TextEditingController _searchEpController = TextEditingController();
-  String _epSearchQuery = "";
-
-  late AnimationController _glowController;
-  late Animation<Color?> _glowColorAnim;
+  late int _currentSeasonIndex;
+  late int _currentEpisodeIndex; 
 
   @override 
   void initState() { 
     super.initState(); 
+    _currentSeasonIndex = widget.seasonIndex;
     _currentEpisodeIndex = widget.episodeIndex;
     _incrementAndFetchViews(); 
     _initPlayer();
-
-    _glowController = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
-    _glowColorAnim = ColorTween(begin: Colors.redAccent.withOpacity(0.3), end: Colors.redAccent).animate(_glowController);
   }
 
   void _initPlayer() {
-    final ep = widget.anime.seasonsList[widget.seasonIndex].episodes[_currentEpisodeIndex]; 
+    final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
     _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl), videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))..initialize().then((_) { 
       if (widget.startPosition != null && _currentEpisodeIndex == widget.episodeIndex) { 
         _controller.seekTo(widget.startPosition!); 
@@ -1892,20 +1356,25 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
 
   void _changeEpisode(int newIndex) {
     if (newIndex == _currentEpisodeIndex) return;
+    _updateContinueWatching(); 
     _controller.pause();
     _controller.dispose();
-    
-    setState(() {
-      _currentEpisodeIndex = newIndex;
-      _showControls = true;
-    });
-    
+    setState(() { _currentEpisodeIndex = newIndex; _showControls = true; });
+    _initPlayer();
+  }
+
+  void _changeSeason(int newSeasonIndex) {
+    if (newSeasonIndex == _currentSeasonIndex) return;
+    _updateContinueWatching();
+    _controller.pause();
+    _controller.dispose();
+    setState(() { _currentSeasonIndex = newSeasonIndex; _currentEpisodeIndex = 0; _showControls = true; });
     _initPlayer();
   }
 
   @override 
   void dispose() { 
-    _glowController.dispose();
+    _updateContinueWatching(); 
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]); 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); 
     _controller.dispose(); 
@@ -1913,17 +1382,31 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   }
 
   Future<void> _incrementAndFetchViews() async {
-    final episodeId = "${widget.anime.title}_${widget.seasonIndex}_${_currentEpisodeIndex}";
+    final episodeId = "${widget.anime.title}_${_currentSeasonIndex}_${_currentEpisodeIndex}";
     try {
       final userView = await Supabase.instance.client.from('user_views').select().eq('device_id', currentDeviceId).eq('episode_id', episodeId).maybeSingle();
       if (userView == null) {
         await Supabase.instance.client.from('user_views').insert({'device_id': currentDeviceId, 'episode_id': episodeId});
         final response = await Supabase.instance.client.from('episode_views').select('view_count').eq('episode_id', episodeId).maybeSingle();
         int currentViews = response?['view_count'] ?? 0;
-        int newViews = currentViews + 1;
-        await Supabase.instance.client.from('episode_views').upsert({'episode_id': episodeId, 'view_count': newViews});
+        await Supabase.instance.client.from('episode_views').upsert({'episode_id': episodeId, 'view_count': currentViews + 1});
       }
     } catch (e) { }
+  }
+
+  void _updateContinueWatching() { 
+    if (!_controller.value.isInitialized) return; 
+    final pos = _controller.value.position; final dur = _controller.value.duration; 
+    if (pos > const Duration(seconds: 2)) { 
+      final list = List<CWItem>.from(continueWatchingNotifier.value); 
+      final existingIdx = list.indexWhere((item) => item.anime.title == widget.anime.title && item.seasonIndex == _currentSeasonIndex && item.episodeIndex == _currentEpisodeIndex); 
+      if (existingIdx != -1) { 
+        list[existingIdx].position = pos; list[existingIdx].totalDuration = dur; 
+        final item = list.removeAt(existingIdx); list.insert(0, item); 
+      } else { list.insert(0, CWItem(anime: widget.anime, seasonIndex: _currentSeasonIndex, episodeIndex: _currentEpisodeIndex, position: pos, totalDuration: dur)); } 
+      continueWatchingNotifier.value = list; 
+      CWService().saveCWList(currentDeviceId, list);
+    } 
   }
 
   void _toggleControls() { 
@@ -1935,10 +1418,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     setState(() => _isFullScreen = !_isFullScreen); 
     if (_isFullScreen) { 
       SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); 
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); 
     } else { 
       SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]); 
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); 
     } 
   }
 
@@ -1964,12 +1445,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor; 
-    final currentSeason = widget.anime.seasonsList[widget.seasonIndex]; 
-
-    List<Episode> displayedEpisodes = currentSeason.episodes;
-    if (_epSearchQuery.isNotEmpty) {
-      displayedEpisodes = currentSeason.episodes.where((e) => e.title.toLowerCase().contains(_epSearchQuery.toLowerCase())).toList();
-    }
+    final currentSeason = widget.anime.seasonsList[_currentSeasonIndex]; 
 
     Widget videoContent = Stack(
       children:[
@@ -2031,92 +1507,107 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18))),
-      body: Column(
-        children: [
-          AspectRatio(aspectRatio: 16 / 9, child: videoContent),
-          
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 16),
-                  const Text("You're watching", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                  Text("Episode ${_currentEpisodeIndex + 1}", style: TextStyle(color: primColor, fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  
-                  AnimatedBuilder(
-                    animation: _glowColorAnim,
-                    builder: (context, child) {
-                      return Text("If current player not working, select other server.", style: TextStyle(color: _glowColorAnim.value, fontSize: 12, fontWeight: FontWeight.bold, shadows: const [Shadow(color: Colors.red, blurRadius: 10)]));
-                    }
-                  ),
-                  
-                  GestureDetector(
-                    onTap: () => launchInBrowser(globalTelegramLink),
-                    child: Container(
-                      margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
+      body: SafeArea(
+        child: Column(
+          children: [
+            AspectRatio(aspectRatio: 16 / 9, child: videoContent),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 30),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(widget.anime.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4)),
+                    ),
+                    if (widget.anime.description.length > 100)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DescriptionPage(anime: widget.anime))),
+                          child: Text("Read More", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                        ),
+                      ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.telegram, color: Colors.white, size: 28),
-                          const SizedBox(width: 12),
-                          Expanded(child: RichText(text: const TextSpan(children: [TextSpan(text: "Join our ", style: TextStyle(color: Colors.white, fontSize: 14)), TextSpan(text: "Telegram Channel ", style: TextStyle(color: Colors.redAccent, fontSize: 14, fontWeight: FontWeight.bold)), TextSpan(text: "for updates! ❤️", style: TextStyle(color: Colors.white, fontSize: 14))]))),
+                          const Text("Episode Lists", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                          
+                          // SEASON SELECTOR (DROPDOWN)
+                          if (widget.anime.seasonsList.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<int>(
+                                  dropdownColor: getCard(context),
+                                  value: _currentSeasonIndex,
+                                  icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 20),
+                                  items: List.generate(widget.anime.seasonsList.length, (index) {
+                                    return DropdownMenuItem(
+                                      value: index,
+                                      child: Text(widget.anime.seasonsList[index].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    );
+                                  }),
+                                  onChanged: (val) {
+                                    if (val != null && val != _currentSeasonIndex) { _changeSeason(val); }
+                                  },
+                                )
+                              ),
+                            )
                         ],
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("Episode Lists", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        Container(
-                          width: 150, height: 35,
-                          decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
-                          child: TextField(
-                            controller: _searchEpController,
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
-                            decoration: const InputDecoration(hintText: "Search Episode", hintStyle: TextStyle(color: Colors.white54, fontSize: 12), prefixIcon: Icon(Icons.search, color: Colors.blueAccent, size: 16), border: InputBorder.none, contentPadding: EdgeInsets.only(bottom: 12)),
-                            onChanged: (val) { setState(() { _epSearchQuery = val; }); },
-                          ),
-                        )
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Wrap(
-                        spacing: 12, runSpacing: 12,
-                        children: List.generate(displayedEpisodes.length, (index) {
-                          int actualIndex = currentSeason.episodes.indexOf(displayedEpisodes[index]);
-                          bool isActive = actualIndex == _currentEpisodeIndex;
-                          return GestureDetector(
-                            onTap: () => _changeEpisode(actualIndex),
-                            child: Container(
-                              width: 60, height: 60,
-                              decoration: BoxDecoration(color: isActive ? Colors.redAccent : getCard(context), borderRadius: BorderRadius.circular(8), border: Border.all(color: isActive ? Colors.redAccent : Colors.white12)),
-                              child: Center(child: Text("${actualIndex + 1}", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold))),
-                            ),
-                          );
-                        }),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Wrap(
+                          spacing: 12, runSpacing: 12,
+                          children: List.generate(currentSeason.episodes.length, (index) {
+                            bool isActive = index == _currentEpisodeIndex;
+                            return GestureDetector(
+                              onTap: () => _changeEpisode(index),
+                              child: Container(
+                                width: 60, height: 60,
+                                decoration: BoxDecoration(
+                                  color: isActive ? Colors.redAccent : getCard(context),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: isActive ? Colors.redAccent : Colors.white12)
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    "${index + 1}", 
+                                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
+                                  )
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                ],
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
-            ),
-          )
-        ],
+            )
+          ],
+        ),
       ),
     );
   }
