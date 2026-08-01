@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
+import 'package:image_picker/image_picker.dart'; 
 
 const String CURRENT_APP_VERSION = "1.0.1"; 
 
@@ -21,6 +22,8 @@ bool hasAcceptedCookies = false;
 
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
+String globalUpiId = "wicvlox.i@oksbi";
+String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 
 String globalPrivacyPolicy = "At AniXplayer, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience for both Anime and Movies without compromising your personal data.\n\nData Security & Storage\nWe utilize encryption to protect your hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized to your device.\n\nContent Information\nAniXplayer provides a vast library of Anime and Movies. To ensure fast and consistent releases, a large portion of our dubbed content is powered by high-quality AI Dubbing technology, alongside our Original dubs.\n\nHardware Tracking\nAniXplayer securely scans and hashes your device's hardware ID to keep your account safe without needing passwords.";
 
@@ -52,9 +55,6 @@ String formatViewsCount(int views) {
   return views.toString();
 }
 
-// ==========================================
-// HELPER: Dynamic Season & Episode Logic
-// ==========================================
 String getSeasonText(Anime anime) {
   if (anime.category.toLowerCase().contains("movie")) return "MOVIE";
   if (anime.seasonsList.isEmpty) return "SEASON 1";
@@ -73,7 +73,7 @@ int getTotalEpisodes(Anime anime) {
 }
 
 // ==========================================
-// SECURITY: VPN CHECKER & ID HASHER
+// SECURITY & DATABASE CONFIG
 // ==========================================
 Future<bool> checkVpnConnection() async {
   bool isVpn = false;
@@ -126,9 +126,6 @@ Future<void> fetchGlobalAnimeViews() async {
   } catch (e) { }
 }
 
-// ==========================================
-// SUPABASE SERVICES
-// ==========================================
 class CWService {
   Future<void> saveCWList(String devId, List<CWItem> cwList) async {
     final savedData = cwList.map((item) => item.toJson()).toList();
@@ -332,11 +329,13 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchSettings() async {
     try {
-      final res = await Supabase.instance.client.from('app_settings').select('website_url, telegram_url, privacy_policy').limit(1).maybeSingle();
+      final res = await Supabase.instance.client.from('app_settings').select('website_url, telegram_url, privacy_policy, payment_qr_url, upi_id').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
         if(res['telegram_url'] != null) globalTelegramLink = res['telegram_url'];
-        if(res['privacy_policy'] != null && res['privacy_policy'].toString().isNotEmpty) globalPrivacyPolicy = res['privacy_policy'];
+        if(res['privacy_policy'] != null) globalPrivacyPolicy = res['privacy_policy'];
+        if(res['payment_qr_url'] != null) globalPaymentQrUrl = res['payment_qr_url'];
+        if(res['upi_id'] != null) globalUpiId = res['upi_id'];
       }
     } catch(e) { }
   }
@@ -419,8 +418,12 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchUserPreferences() async {
     try {
-      final response = await Supabase.instance.client.from('user_preferences').select('saved_anime').eq('device_id', currentDeviceId).maybeSingle();
+      final response = await Supabase.instance.client.from('user_preferences').select('continue_watching, saved_anime').eq('device_id', currentDeviceId).maybeSingle();
       if (response != null) {
+        if (response['continue_watching'] != null) {
+          final List<dynamic> cwData = response['continue_watching'];
+          continueWatchingNotifier.value = cwData.map((data) => CWItem.fromJson(data, animeListNotifier.value)).toList();
+        }
         if (response['saved_anime'] != null) {
           final List<dynamic> savedData = response['saved_anime'];
           final List<SavedEpisode> fetchedList = [];
@@ -471,11 +474,7 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 20),
         const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
         const SizedBox(height: 10),
-        SizedBox(height: 220, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 130, height: 220)))),
-        const SizedBox(height: 20),
-        const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
-        const SizedBox(height: 10),
-        SizedBox(height: 220, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 130, height: 220)))),
+        SizedBox(height: 260, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 140, height: 260)))),
       ],
     );
   }
@@ -648,7 +647,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 220, 
+          height: 260, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
             itemBuilder: (context, index) { 
@@ -661,7 +660,7 @@ class HomeScreen extends StatelessWidget {
               return GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))), 
                 child: Container(
-                  width: 130, margin: const EdgeInsets.only(right: 12), 
+                  width: 140, margin: const EdgeInsets.only(right: 14), 
                   decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
@@ -684,9 +683,9 @@ class HomeScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis), 
+                              Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
                               const SizedBox(height: 4),
-                              Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
                             ],
                           ),
                         )
@@ -713,7 +712,7 @@ class HomeScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if(icon != null) const SizedBox(width: 6), if(icon != null) Icon(icon, color: iconColor, size: 20)]), 
+              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) const SizedBox(width: 6), if (icon != null) Icon(icon, color: iconColor, size: 20)]), 
               GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
             ]
           ),
@@ -1178,6 +1177,26 @@ class ParticlePainter extends CustomPainter {
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
+
+  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent, 
+      child: InkWell(
+        onTap: onTap, borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(children: [Icon(icon, color: Theme.of(context).primaryColor, size: 22), const SizedBox(width: 14), Text(title, style: TextStyle(color: getText(context), fontSize: 15, fontWeight: FontWeight.w600))]),
+              Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
@@ -1197,20 +1216,22 @@ class ProfileScreen extends StatelessWidget {
                   Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
                   const SizedBox(height: 6),
                   Text("ID: $currentDeviceId", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12, letterSpacing: 1.2)),
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 40),
+                  
                   Container(
-                    decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.blueAccent.withOpacity(0.15), shape: BoxShape.circle), child: const Icon(Icons.telegram, color: Colors.blueAccent, size: 28)),
-                      title: const Text("Join our Community", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16), onTap: () => launchInBrowser(globalTelegramLink),
-                    ),
+                    margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
+                    child: Column(children: [
+                      _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
+                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
+                      _buildGroupedItem(context, title: "Payment Proof", icon: Icons.receipt_long_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentProofPage()))),
+                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
+                      _buildGroupedItem(context, title: "Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
+                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
+                      _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
+                    ]),
                   ),
-                  const SizedBox(height: 60),
-                  const Align(alignment: Alignment.centerLeft, child: Text("Privacy Policy", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-                  const SizedBox(height: 12),
-                  Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 20),
+                  const Text("AniXplayer v1.0.1", style: TextStyle(color: Colors.white38, fontSize: 12))
                 ],
               ),
             ),
@@ -1219,6 +1240,146 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class SubscriptionPage extends StatelessWidget {
+  const SubscriptionPage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context), appBar: AppBar(title: Text("Premium Plans", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          _buildPlanCard(context, "Basic Plan", "₹99", "1 Month", "Ad free monthly support 24/7", Colors.blueAccent),
+          const SizedBox(height: 20),
+          _buildPlanCard(context, "Standard Plan", "₹299", "3 Months", "Full access unlimited support 24/7", primColor),
+        ],
+      ),
+    );
+  }
+  Widget _buildPlanCard(BuildContext context, String title, String price, String duration, String desc, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.5), width: 2)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [Text(price, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), Text(" / $duration", style: const TextStyle(color: Colors.white54, fontSize: 14))]),
+          const SizedBox(height: 10),
+          Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 20),
+          SizedBox(width: double.infinity, height: 45, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QRCodePaymentPage(planName: title, price: price))), child: const Text("Choose Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))
+        ],
+      ),
+    );
+  }
+}
+
+class QRCodePaymentPage extends StatelessWidget {
+  final String planName; final String price;
+  const QRCodePaymentPage({super.key, required this.planName, required this.price});
+  void _launchUPIApp(BuildContext context) async {
+    String cleanPrice = price.replaceAll("₹", "");
+    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=AniXplayer&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
+    if (await canLaunchUrl(uri)) { await launchUrl(uri, mode: LaunchMode.externalApplication); } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found!"))); }
+  }
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context), appBar: AppBar(title: Text("Scan to Pay", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Payment for $planName", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center), const SizedBox(height: 8),
+              Text("Amount to Pay: $price", style: TextStyle(color: primColor, fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 30),
+              Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(globalPaymentQrUrl, width: 220, height: 220, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, size: 80, color: Colors.grey)))), const SizedBox(height: 20),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)), child: Column(children: [Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)), const SizedBox(height: 4), Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))])), const SizedBox(height: 20),
+              SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => _launchUPIApp(context), icon: const Icon(Icons.payment, color: Colors.white), label: const Text("Pay via UPI App", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))), const SizedBox(height: 30),
+              Text("After successful payment, click below to submit your screenshot.", style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5), textAlign: TextAlign.center), const SizedBox(height: 20),
+              SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => PaymentProofPage(initialPlan: planName))); }, child: const Text("Go to Verification", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PaymentProofPage extends StatefulWidget {
+  final String? initialPlan;
+  const PaymentProofPage({super.key, this.initialPlan});
+  @override State<PaymentProofPage> createState() => _PaymentProofPageState();
+}
+class _PaymentProofPageState extends State<PaymentProofPage> {
+  String? _selectedPlan; File? _imageFile; final TextEditingController _trxController = TextEditingController(); bool _isSubmitting = false;
+  final List<String> _plans = ["Basic Plan", "Standard Plan"];
+  @override void initState() { super.initState(); if (widget.initialPlan != null && _plans.contains(widget.initialPlan)) { _selectedPlan = widget.initialPlan; } }
+  Future<void> _pickImage() async { final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); if (pickedFile != null) { setState(() { _imageFile = File(pickedFile.path); }); } }
+  Future<void> _submitRequest() async {
+    if (_selectedPlan == null || _imageFile == null || _trxController.text.length != 12) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all details correctly."))); return; }
+    setState(() => _isSubmitting = true);
+    try {
+      final ext = _imageFile!.path.split('.').last; final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await Supabase.instance.client.storage.from('payment_proofs').upload(fileName, _imageFile!);
+      String imageUrl = Supabase.instance.client.storage.from('payment_proofs').getPublicUrl(fileName);
+      await Supabase.instance.client.from('payment_requests').insert({'email': currentDeviceId, 'plan': _selectedPlan, 'transaction_id': _trxController.text.trim(), 'image_path': imageUrl, 'status': 'Pending', 'created_at': DateTime.now().toIso8601String()});
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted!"), backgroundColor: Colors.green)); Navigator.pop(context); }
+    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"))); } finally { if (mounted) setState(() => _isSubmitting = false); }
+  }
+  @override Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context), appBar: AppBar(title: Text("Verify Payment", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children:[
+            Text("Select Plan", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
+            Container(padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(isExpanded: true, dropdownColor: getCard(context), hint: Text("Choose your plan", style: TextStyle(color: getSubText(context))), value: _selectedPlan, items: _plans.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(color: Colors.white)))).toList(), onChanged: (v) => setState(() => _selectedPlan = v)))), const SizedBox(height: 20),
+            Text("Screenshot", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
+            GestureDetector(onTap: _pickImage, child: Container(width: double.infinity, height: 160, decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), child: _imageFile != null ? ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_imageFile!, fit: BoxFit.cover)) : Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.cloud_upload, color: primColor, size: 40), const SizedBox(height: 10), Text("Tap to upload", style: TextStyle(color: getSubText(context)))]))), const SizedBox(height: 20),
+            Text("12-Digit UTR", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
+            TextField(controller: _trxController, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)], style: TextStyle(color: getText(context)), decoration: InputDecoration(hintText: "Enter UTR number", filled: true, fillColor: getCard(context), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))), const SizedBox(height: 40),
+            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _isSubmitting ? null : _submitRequest, child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white) : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class SupportPage extends StatelessWidget {
+  const SupportPage({super.key});
+  @override Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: getBg(context), appBar: AppBar(title: Text("Support", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            ListTile(tileColor: getCard(context), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), leading: const Icon(Icons.telegram, color: Colors.blueAccent, size: 30), title: const Text("Telegram Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), subtitle: const Text("Instant Replies", style: TextStyle(color: Colors.white54)), onTap: () => launchInBrowser(globalTelegramLink)),
+            const SizedBox(height: 16),
+            ListTile(tileColor: getCard(context), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), leading: const Icon(Icons.email, color: Colors.redAccent, size: 30), title: const Text("Email Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), subtitle: const Text("Response in 24 hrs", style: TextStyle(color: Colors.white54)), onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PrivacyPolicyPage extends StatelessWidget { 
+  const PrivacyPolicyPage({super.key});
+  @override Widget build(BuildContext context) { 
+    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Privacy Policy", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
+  } 
 }
 
 // ==========================================
@@ -1323,13 +1484,11 @@ class VideoPlayerPage extends StatefulWidget {
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
 }
 
-class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProviderStateMixin {
+class _VideoPlayerPageState extends State<VideoPlayerPage> {
   late VideoPlayerController _controller; 
   bool _showControls = true; 
   bool _isFullScreen = false; 
-  bool _isLocked = false;
-  double _forwardOpacity = 0.0; 
-  double _rewindOpacity = 0.0;
+  double _playbackSpeed = 1.0;
   
   late int _currentSeasonIndex;
   late int _currentEpisodeIndex; 
@@ -1339,11 +1498,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     super.initState(); 
     _currentSeasonIndex = widget.seasonIndex;
     _currentEpisodeIndex = widget.episodeIndex;
+    
+    // 🔥 SAFE CHECK IF EPISODES ARE EMPTY 🔥
+    if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
+      return; 
+    }
+    
     _incrementAndFetchViews(); 
     _initPlayer();
   }
 
   void _initPlayer() {
+    if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) return;
+    
     final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
     _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl), videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))..initialize().then((_) { 
       if (widget.startPosition != null && _currentEpisodeIndex == widget.episodeIndex) { 
@@ -1351,6 +1518,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
       } 
       setState(() {}); 
       _controller.play(); 
+      _controller.setPlaybackSpeed(_playbackSpeed);
     }); 
   }
 
@@ -1374,10 +1542,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
 
   @override 
   void dispose() { 
-    _updateContinueWatching(); 
+    if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
+      _updateContinueWatching(); 
+      _controller.dispose(); 
+    }
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]); 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); 
-    _controller.dispose(); 
     super.dispose(); 
   }
 
@@ -1409,10 +1579,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
     } 
   }
 
-  void _toggleControls() { 
-    if (_isLocked) return;
-    setState(() => _showControls = !_showControls); 
-  }
+  void _toggleControls() { setState(() => _showControls = !_showControls); }
 
   void _toggleFullScreen() { 
     setState(() => _isFullScreen = !_isFullScreen); 
@@ -1424,17 +1591,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   }
 
   void _skipForward() { 
-    if (_isLocked) return;
     _controller.seekTo(_controller.value.position + const Duration(seconds: 10)); 
-    setState(() => _forwardOpacity = 1.0); 
-    Future.delayed(const Duration(milliseconds: 300), () { if (mounted) setState(() => _forwardOpacity = 0.0); }); 
   }
 
   void _skipBackward() { 
-    if (_isLocked) return;
     _controller.seekTo(_controller.value.position - const Duration(seconds: 10)); 
-    setState(() => _rewindOpacity = 1.0); 
-    Future.delayed(const Duration(milliseconds: 300), () { if (mounted) setState(() => _rewindOpacity = 0.0); }); 
   }
 
   String _formatDuration(Duration duration) { 
@@ -1445,21 +1606,26 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor; 
+
+    // 🔥 SAFE CHECK FOR EMPTY EPISODES 🔥
+    if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+        body: const Center(child: Text("Episodes Coming Soon!", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+      );
+    }
+
     final currentSeason = widget.anime.seasonsList[_currentSeasonIndex]; 
+    List<Episode> displayedEpisodes = currentSeason.episodes;
 
     Widget videoContent = Stack(
       children:[
         _controller.value.isInitialized 
             ? Center(child: AspectRatio(aspectRatio: _controller.value.aspectRatio, child: VideoPlayer(_controller))) 
             : Center(child: CircularProgressIndicator(color: primColor)),
-        
-        if (!_isLocked) Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(left: 40), child: AnimatedOpacity(opacity: _rewindOpacity, duration: const Duration(milliseconds: 200), child: Container(padding: const EdgeInsets.all(20), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Column(mainAxisSize: MainAxisSize.min, children:[Icon(Icons.fast_rewind, color: Colors.white, size: 36), Text("-10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))]))))),
-        if (!_isLocked) Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(right: 40), child: AnimatedOpacity(opacity: _forwardOpacity, duration: const Duration(milliseconds: 200), child: Container(padding: const EdgeInsets.all(20), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Column(mainAxisSize: MainAxisSize.min, children:[Icon(Icons.fast_forward, color: Colors.white, size: 36), Text("+10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))]))))),
 
-        if (_isLocked) 
-          Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.all(20), child: IconButton(icon: const Icon(Icons.lock, color: Colors.white, size: 32), onPressed: () => setState(() => _isLocked = false)))),
-
-        if (_showControls && !_isLocked) 
+        if (_showControls) 
           GestureDetector(
             onTap: _toggleControls,
             child: Container(
@@ -1470,16 +1636,29 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween, 
                     children:[
-                      IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }), 
-                      Row(children:[IconButton(icon: const Icon(Icons.lock_open, color: Colors.white), onPressed: () => setState(() => _isLocked = true)), IconButton(icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white), onPressed: _toggleFullScreen)])
+                      IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }), 
+                      Row(children:[
+                        // 🔥 VIDEO SPEED CONTROLLER 🔥
+                        PopupMenuButton<double>(
+                          initialValue: _playbackSpeed,
+                          onSelected: (speed) {
+                            setState(() => _playbackSpeed = speed);
+                            _controller.setPlaybackSpeed(speed);
+                          },
+                          itemBuilder: (context) => [0.5, 1.0, 1.25, 1.5, 2.0].map((s) => PopupMenuItem(value: s, child: Text("${s}x", style: const TextStyle(color: Colors.white)))).toList(),
+                          color: getCard(context),
+                          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text("${_playbackSpeed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
+                        ),
+                        IconButton(icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white), onPressed: _toggleFullScreen)
+                      ])
                     ]
                   ), 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                     children:[
-                      IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward), 
-                      IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 60), onPressed: () { setState(() { _controller.value.isPlaying ? _controller.pause() : _controller.play(); }); }), 
-                      IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: _skipForward)
+                      IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 30), onPressed: _skipBackward), 
+                      IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 45), onPressed: () { setState(() { _controller.value.isPlaying ? _controller.pause() : _controller.play(); }); }), 
+                      IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 30), onPressed: _skipForward)
                     ]
                   ), 
                   Padding(
@@ -1487,7 +1666,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                     child: Row(
                       children:[
                         ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 12)); }), 
-                        Expanded(child: ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { return SliderTheme(data: SliderTheme.of(context).copyWith(trackHeight: 3.0, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7.0), overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0)), child: Slider(activeColor: primColor, inactiveColor: Colors.white24, min: 0.0, max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), onChangeStart: (val) { _controller.pause(); }, onChanged: (val) { _controller.seekTo(Duration(seconds: val.toInt())); }, onChangeEnd: (val) { _controller.play(); })); })), 
+                        Expanded(child: ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { return SliderTheme(data: SliderTheme.of(context).copyWith(trackHeight: 3.0, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0)), child: Slider(activeColor: primColor, inactiveColor: Colors.white24, min: 0.0, max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), onChangeStart: (val) { _controller.pause(); }, onChanged: (val) { _controller.seekTo(Duration(seconds: val.toInt())); }, onChangeEnd: (val) { _controller.play(); })); })), 
                         ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.duration), style: const TextStyle(color: Colors.white, fontSize: 12)); })
                       ]
                     )
@@ -1511,6 +1690,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
         child: Column(
           children: [
             AspectRatio(aspectRatio: 16 / 9, child: videoContent),
+            
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(bottom: 30),
@@ -1545,7 +1725,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                         children: [
                           const Text("Episode Lists", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                           
-                          // SEASON SELECTOR (DROPDOWN)
                           if (widget.anime.seasonsList.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1578,12 +1757,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                         alignment: Alignment.centerLeft,
                         child: Wrap(
                           spacing: 12, runSpacing: 12,
-                          children: List.generate(currentSeason.episodes.length, (index) {
+                          children: List.generate(displayedEpisodes.length, (index) {
                             bool isActive = index == _currentEpisodeIndex;
                             return GestureDetector(
                               onTap: () => _changeEpisode(index),
                               child: Container(
-                                width: 60, height: 60,
+                                width: 55, height: 55,
                                 decoration: BoxDecoration(
                                   color: isActive ? Colors.redAccent : getCard(context),
                                   borderRadius: BorderRadius.circular(8),
@@ -1592,7 +1771,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                                 child: Center(
                                   child: Text(
                                     "${index + 1}", 
-                                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
+                                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
                                   )
                                 ),
                               ),
@@ -1602,6 +1781,68 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with SingleTickerProv
                       ),
                     ),
                     const SizedBox(height: 40),
+
+                    // 🔥 RECOMMENDED ANIME ADDED HERE 🔥
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text("Recommended For You", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 220, 
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: animeListNotifier.value.length, 
+                        itemBuilder: (context, index) { 
+                          Anime anime = animeListNotifier.value[index];
+                          if(anime.title == widget.anime.title) return const SizedBox.shrink(); // Skip current
+                          bool isCompleted = anime.status.toLowerCase() == "completed";
+                          String epCount = "E${getTotalEpisodes(anime)}";
+                          String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
+                          String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
+                          String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
+
+                          return GestureDetector(
+                            onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))), 
+                            child: Container(
+                              width: 130, margin: const EdgeInsets.only(right: 12), 
+                              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start, 
+                                  children:[
+                                    Expanded(
+                                      child: Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
+                                          if (isCompleted)
+                                            Positioned(top: 15, left: -35, child: Transform.rotate(angle: -0.785398, child: Container(color: Colors.redAccent.withOpacity(0.9), padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4), child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))),
+                                          Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
+                                          Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
+                                          Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
+                                        ],
+                                      )
+                                    ), 
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
+                                          const SizedBox(height: 4),
+                                          Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        ],
+                                      ),
+                                    )
+                                  ]
+                                ),
+                              )
+                            )
+                          ); 
+                        }
+                      ),
+                    ),
                   ],
                 ),
               ),
