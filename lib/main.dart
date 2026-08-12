@@ -1,457 +1,218 @@
-import 'dart:io'; 
-import 'dart:async';
-import 'dart:math';
-import 'dart:convert'; 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:carousel_slider/carousel_slider.dart';
-import 'package:video_player/video_player.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:crypto/crypto.dart';
-import 'package:image_picker/image_picker.dart'; 
-
-const String CURRENT_APP_VERSION = "1.0.1"; 
-
-String currentDeviceId = "";
-String currentUserName = "User"; 
-bool hasAcceptedCookies = false; 
-
-String globalWebsiteUrl = "https://google.com"; 
-String globalTelegramLink = "";
-String globalUpiId = "wicvlox.i@oksbi";
-String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
-
-String globalPrivacyPolicy = "At AniXplayer, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience for both Anime and Movies without compromising your personal data.\n\nData Security & Storage\nWe utilize encryption to protect your hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized to your device.\n\nContent Information\nAniXplayer provides a vast library of Anime and Movies. To ensure fast and consistent releases, a large portion of our dubbed content is powered by high-quality AI Dubbing technology, alongside our Original dubs.\n\nHardware Tracking\nAniXplayer securely scans and hashes your device's hardware ID to keep your account safe without needing passwords.";
-
-List<String> globalRecentSearches = [];
-List<String> recommendedSearches = ["Naruto", "One Piece", "Solo Leveling", "Action", "Romance", "Demon Slayer", "Jujutsu Kaisen", "Movie"];
-
-final ValueNotifier<List<Anime>> animeListNotifier = ValueNotifier([]);
-final ValueNotifier<List<Map<String, dynamic>>> heroSliderNotifier = ValueNotifier([]);
-final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
-final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
-final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
-final ValueNotifier<int> connectedServerNotifier = ValueNotifier(1);
-
-const Color animeMxPurple = Color(0xFF8A2BE2); 
-final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
-
-Color getBg(BuildContext context) => Colors.black;
-Color getCard(BuildContext context) => const Color(0xFF1A1A1A);
-Color getText(BuildContext context) => Colors.white;
-Color getSubText(BuildContext context) => Colors.white54;
-
-final List<Color> avatarColors = [Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
-
-Color getAvatarColor(String input) => input.isEmpty ? Colors.grey : avatarColors[input.codeUnitAt(0) % avatarColors.length];
-String getAvatarLetter(String input) => input.isEmpty ? "?" : input[0].toUpperCase();
-String formatViewsCount(int views) {
-  if (views >= 1000000) return "${(views / 1000000).toStringAsFixed(1)}M";
-  if (views >= 1000) return "${(views / 1000).toStringAsFixed(1)}K";
-  return views.toString();
-}
-
-String getSeasonText(Anime anime) {
-  if (anime.category.toLowerCase().contains("movie")) return "MOVIE";
-  if (anime.seasonsList.isEmpty) return "SEASON 1";
-  List<String> sNums = [];
-  for (var s in anime.seasonsList) {
-    String num = s.name.replaceAll(RegExp(r'[^0-9]'), '');
-    if (num.isNotEmpty) sNums.add(num);
-  }
-  if (sNums.isEmpty) return "SEASON 1";
-  return "SEASON ${sNums.join(',')}";
-}
-
-int getTotalEpisodes(Anime anime) {
-  if (anime.seasonsList.isEmpty) return 0;
-  return anime.seasonsList.fold(0, (sum, season) => sum + season.episodes.length);
-}
 
 // ==========================================
-// SECURITY & DATABASE CONFIG
+// GLOBAL CONFIG & THEME
 // ==========================================
-Future<bool> checkVpnConnection() async {
-  bool isVpn = false;
-  try {
-    List<NetworkInterface> interfaces = await NetworkInterface.list(includeLoopback: false, type: InternetAddressType.any);
-    for (var interface in interfaces) {
-      String name = interface.name.toLowerCase();
-      if (name.contains("tun") || name.contains("ppp") || name.contains("pptp") || name.contains("tap") || name.contains("ipsec")) {
-        isVpn = true; break;
-      }
-    }
-  } catch (e) {}
-  return isVpn;
-}
+const Color adminPurple = Color(0xFF8A2BE2);
+const Color bgDark = Color(0xFF0B0B0F);
+const Color cardDark = Color(0xFF16161E);
 
-Future<String> getHardwareDeviceId() async {
-  String rawId = "UNKNOWN";
-  try {
-    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
-    if (Platform.isAndroid) {
-      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-      rawId = "${androidInfo.brand}_${androidInfo.model}_${androidInfo.id}";
-    } else if (Platform.isIOS) {
-      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-      rawId = "${iosInfo.name}_${iosInfo.identifierForVendor}";
-    }
-  } catch (e) {}
-  if (rawId == "UNKNOWN") rawId = const Uuid().v4(); 
-  var bytes = utf8.encode(rawId);
-  var digest = sha256.convert(bytes);
-  return digest.toString().substring(0, 9).toUpperCase(); 
-}
-
-Future<void> fetchGlobalAnimeViews() async {
-  try {
-    final response = await Supabase.instance.client.from('episode_views').select('episode_id, view_count');
-    Map<String, int> viewsMap = {};
-    if (response != null) {
-      for (var row in response) {
-        String epId = row['episode_id'];
-        int vCount = row['view_count'] ?? 0;
-        List<String> parts = epId.split('_');
-        if (parts.length >= 3) {
-          String title = parts.sublist(0, parts.length - 2).join('_');
-          viewsMap[title] = (viewsMap[title] ?? 0) + vCount; 
-        }
-      }
-    }
-    globalAnimeViewsNotifier.value = viewsMap;
-  } catch (e) { }
-}
-
-class CWService {
-  Future<void> saveCWList(String devId, List<CWItem> cwList) async {
-    final savedData = cwList.map((item) => item.toJson()).toList();
-    try { await Supabase.instance.client.from('user_preferences').upsert({'device_id': devId, 'continue_watching': savedData}, onConflict: 'device_id'); } catch (e) {}
-  }
-}
-class RecentSearchesService {
-  Future<void> saveRecentSearches(String devId, List<String> searches) async {
-    final newSearches = [...searches]; if (newSearches.length > 5) newSearches.removeLast(); 
-    try { await Supabase.instance.client.from('user_preferences').upsert({'device_id': devId, 'recent_searches': jsonEncode(newSearches)}, onConflict: 'device_id'); } catch (e) {}
-  }
-}
-class MyListService {
-  Future<void> saveMyList(String devId, List<SavedEpisode> savedList) async {
-    final savedData = savedList.map((item) => item.toJson()).toList();
-    try { await Supabase.instance.client.from('user_preferences').upsert({'device_id': devId, 'saved_anime': savedData}, onConflict: 'device_id'); } catch (e) {}
-  }
-}
-
-// ==========================================
-// DATA MODELS
-// ==========================================
-class CWItem {
-  final Anime anime; int seasonIndex; int episodeIndex; Duration position; Duration totalDuration;
-  CWItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.position, required this.totalDuration});
-  Map<String, dynamic> toJson() => {'animeTitle': anime.title, 'seasonIndex': seasonIndex, 'episodeIndex': episodeIndex, 'positionInSeconds': position.inSeconds, 'totalDurationInSeconds': totalDuration.inSeconds};
-  static CWItem fromJson(Map<String, dynamic> json, List<Anime> allAnime) {
-    try {
-      final animeMatch = allAnime.firstWhere((anime) => anime.title == json['animeTitle']);
-      return CWItem(anime: animeMatch, seasonIndex: json['seasonIndex'], episodeIndex: json['episodeIndex'], position: Duration(seconds: json['positionInSeconds']), totalDuration: Duration(seconds: json['totalDurationInSeconds']));
-    } catch (e) { return CWItem(anime: allAnime.isNotEmpty ? allAnime[0] : _getDummyAnime(), seasonIndex: 0, episodeIndex: 0, position: const Duration(), totalDuration: const Duration()); }
-  }
-}
-
-class SavedEpisode {
-  final Anime anime; final int seasonIndex; final int episodeIndex;
-  SavedEpisode({required this.anime, required this.seasonIndex, required this.episodeIndex});
-  Map<String, dynamic> toJson() => {'animeTitle': anime.title, 'seasonIndex': seasonIndex, 'episodeIndex': episodeIndex};
-}
-
-class Episode {
-  final String id, title, image, duration, views, videoUrl; final DateTime createdAt;
-  Episode({required this.id, required this.title, required this.image, required this.duration, this.views = "0", required this.videoUrl, required this.createdAt});
-}
-
-class Season {
-  final String id, name; final List<Episode> episodes;
-  Season({required this.id, required this.name, required this.episodes});
-}
-
-class Anime {
-  final String id, title, image, genre, rating, dubStatus, season, status, views, category, subCategory, description; 
-  final Color dubColor; final List<Season> seasonsList; final bool isNew; final DateTime createdAt; 
-  Anime({required this.id, required this.title, required this.image, this.genre = "Action", this.rating = "PG-13", this.dubStatus = "DUB", this.season = "Season 1", this.status = "Ongoing", this.views = "0", this.dubColor = const Color(0xFFFF4D4D), required this.seasonsList, this.category = "", this.subCategory = "", this.isNew = false, this.description = "", required this.createdAt});
-}
-
-Anime _getDummyAnime() => Anime(id: '0', title: 'Loading...', image: '', seasonsList: [], createdAt: DateTime.now());
-
-class LatestEpisodeItem {
-  final Anime anime; final int seasonIndex, episodeIndex; final Episode episode;
-  LatestEpisodeItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.episode});
-}
-
-// ==========================================
-// MAIN ENTRY POINT
-// ==========================================
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  String secureUrl = utf8.decode(base64Decode('aHR0cHM6Ly95bmd6ZmdmcHl1ZnVzcmJpdGFnbC5zdXBhYmFzZS5jbw=='));
-  String secureKey = utf8.decode(base64Decode('c2JfcHVibGlzaGFibGVfNkJEMG1vRXBPblVUZmloYlJVcGRPUV9VMmdKQ0g1VQ=='));
-  await Supabase.initialize(url: secureUrl, anonKey: secureKey);
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-  runApp(const AniXApp());
+  
+  await Supabase.initialize(
+    url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
+    anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
+  );
+
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    statusBarColor: Colors.transparent,
+  ));
+
+  runApp(const AdminApp());
 }
 
-Future<void> launchInBrowser(String url) async {
-  if (url.isEmpty) return;
-  final Uri uri = Uri.parse(url);
-  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {}
-}
+class AdminApp extends StatelessWidget {
+  const AdminApp({super.key});
 
-class AniXApp extends StatelessWidget {
-  const AniXApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Color>(
-      valueListenable: primaryColorNotifier,
-      builder: (context, currentColor, _) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false, themeMode: ThemeMode.dark, title: "AniXplayer",
-          darkTheme: ThemeData(brightness: Brightness.dark, primaryColor: currentColor, scaffoldBackgroundColor: Colors.black, useMaterial3: true, splashColor: Colors.transparent, highlightColor: Colors.transparent, appBarTheme: const AppBarTheme(backgroundColor: Colors.black, foregroundColor: Colors.white)),
-          home: const DeviceTrackingGate(), 
-        );
-      }
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'SYNEX Admin',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: adminPurple,
+        scaffoldBackgroundColor: bgDark,
+        appBarTheme: const AppBarTheme(backgroundColor: bgDark, elevation: 0, centerTitle: true),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: adminPurple, 
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+          ),
+        ),
+      ),
+      home: const AdminAuthGate(),
     );
   }
 }
 
 // ==========================================
-// SKELETON LOADER WIDGET
+// AUTH GATE
 // ==========================================
-class SkeletonLoader extends StatefulWidget {
-  final double width; final double height; final double borderRadius;
-  const SkeletonLoader({super.key, required this.width, required this.height, this.borderRadius = 10});
-  @override _SkeletonLoaderState createState() => _SkeletonLoaderState();
-}
-class _SkeletonLoaderState extends State<SkeletonLoader> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  @override void initState() { super.initState(); _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true); }
-  @override void dispose() { _controller.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Container(
-          width: widget.width, height: widget.height,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(widget.borderRadius), gradient: LinearGradient(colors: [Colors.white10, Colors.white24, Colors.white10], stops: const [0.0, 0.5, 1.0], begin: Alignment(-1.0 + (_controller.value * 2), 0), end: Alignment(0.0 + (_controller.value * 2), 0))),
-        );
+class AdminAuthGate extends StatelessWidget {
+  const AdminAuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator(color: adminPurple))
+          );
+        }
+        final session = snapshot.data?.session;
+        if (session != null) {
+          return const AdminDashboard();
+        }
+        return const AdminLoginScreen();
       },
     );
   }
 }
 
 // ==========================================
-// VPN BLOCKER SCREEN
+// UPGRADED ADMIN LOGIN SCREEN
 // ==========================================
-class SecurityBlockScreen extends StatelessWidget {
-  const SecurityBlockScreen({super.key});
+class AdminLoginScreen extends StatefulWidget {
+  const AdminLoginScreen({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF120000),
-      body: Center(child: Padding(padding: const EdgeInsets.all(30.0), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: const [Icon(Icons.shield, color: Colors.redAccent, size: 100), SizedBox(height: 30), Text("Security Violation", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), SizedBox(height: 16), Text("VPN, Proxy, or unsecured connection detected.\n\nPlease disable any VPN to continue using AniXplayer.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 16, height: 1.5))]))),
-    );
-  }
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
 
-// ==========================================
-// DEVICE TRACKING GATE (AUTO LOGIN)
-// ==========================================
-class DeviceTrackingGate extends StatefulWidget {
-  const DeviceTrackingGate({super.key});
-  @override State<DeviceTrackingGate> createState() => _DeviceTrackingGateState();
-}
-class _DeviceTrackingGateState extends State<DeviceTrackingGate> {
-  @override void initState() { super.initState(); _checkDevice(); }
-  Future<void> _checkDevice() async {
-    bool vpnActive = await checkVpnConnection();
-    if (vpnActive) { if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen())); return; }
-    currentDeviceId = await getHardwareDeviceId();
-    try {
-      final response = await Supabase.instance.client.from('device_users').select().eq('device_id', currentDeviceId).maybeSingle();
-      if (response != null && mounted) { currentUserName = "${response['first_name']} ${response['last_name']}".trim(); Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen())); } 
-      else { if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); }
-    } catch (e) { if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); }
-  }
-  @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 40, fontWeight: FontWeight.w900))])), const SizedBox(height: 20), const CircularProgressIndicator(color: Color(0xFF8A2BE2))])));
-  }
-}
+class _AdminLoginScreenState extends State<AdminLoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscureText = true;
 
-class NameEntryScreen extends StatefulWidget {
-  const NameEntryScreen({super.key});
-  @override State<NameEntryScreen> createState() => _NameEntryScreenState();
-}
-class _NameEntryScreenState extends State<NameEntryScreen> {
-  final TextEditingController _firstNameController = TextEditingController(); final TextEditingController _lastNameController = TextEditingController(); bool _isLoading = false;
-  Future<void> _saveName() async {
-    if (_firstNameController.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("First Name is required!"))); return; }
+  Future<void> _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.from('device_users').insert({'device_id': currentDeviceId, 'first_name': _firstNameController.text.trim(), 'last_name': _lastNameController.text.trim()});
-      currentUserName = "${_firstNameController.text.trim()} ${_lastNameController.text.trim()}".trim();
-      if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
-    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error saving profile. Try again."))); } 
-    finally { if (mounted) setState(() => _isLoading = false); }
-  }
-  @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF0F0F13), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF0F0F13), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
-  }
-}
-
-// ==========================================
-// MAIN SCREEN
-// ==========================================
-class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
-  @override State<MainScreen> createState() => _MainScreenState();
-}
-class _MainScreenState extends State<MainScreen> {
-  int _index = 0; bool _isDataLoading = true; RealtimeChannel? _presenceChannel;
-  @override void initState() { super.initState(); _loadEverything(); _initPresence(); }
-  void _initPresence() { _presenceChannel = Supabase.instance.client.channel('online-users'); _presenceChannel?.subscribe((status, [error]) async { if (status == RealtimeSubscribeStatus.subscribed) { await _presenceChannel?.track({'user': currentDeviceId, 'online_at': DateTime.now().toIso8601String()}); } }); }
-  @override void dispose() { _presenceChannel?.unsubscribe(); super.dispose(); }
-  
-  Future<void> _loadEverything() async {
-    await _fetchSettings(); await _checkForUpdates(context); await fetchGlobalAnimeViews(); await _fetchDatabaseCatalog(); await _fetchUserPreferences(); 
-    if(mounted) setState(() => _isDataLoading = false);
-  }
-
-  Future<void> _fetchSettings() async {
-    try {
-      final res = await Supabase.instance.client.from('app_settings').select('website_url, telegram_url, privacy_policy, payment_qr_url, upi_id').limit(1).maybeSingle();
-      if (res != null) {
-        if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
-        if(res['telegram_url'] != null) globalTelegramLink = res['telegram_url'];
-        if(res['privacy_policy'] != null) globalPrivacyPolicy = res['privacy_policy'];
-        if(res['payment_qr_url'] != null) globalPaymentQrUrl = res['payment_qr_url'];
-        if(res['upi_id'] != null) globalUpiId = res['upi_id'];
-      }
-    } catch(e) { }
-  }
-
-  bool _isVersionGreater(String latest, String current) {
-    List<String> lParts = latest.split('.'); List<String> cParts = current.split('.');
-    for(int i = 0; i < min(lParts.length, cParts.length); i++) {
-      int l = int.tryParse(lParts[i]) ?? 0; int c = int.tryParse(cParts[i]) ?? 0;
-      if(l > c) return true; if(l < c) return false;
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent)
+      );
+    } finally {
+      if(mounted) setState(() => _isLoading = false);
     }
-    return lParts.length > cParts.length;
   }
-
-  Future<void> _checkForUpdates(BuildContext context) async {
-    try {
-      final response = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
-      if (response != null) {
-        String latestVersion = response['version'] ?? CURRENT_APP_VERSION;
-        String updateUrl = response['apk_url'] ?? globalWebsiteUrl; if (updateUrl.isEmpty) updateUrl = globalWebsiteUrl;
-        if (_isVersionGreater(latestVersion, CURRENT_APP_VERSION)) { _showUpdateDialog(updateUrl); }
-      }
-    } catch (e) {}
-  }
-
-  void _showUpdateDialog(String updateUrl) {
-    showDialog(
-      context: context, barrierDismissible: false, 
-      builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF1E1E24), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 60, height: 60, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [Color(0xFF9D4EDD), Color(0xFF6B21A8)])), child: const Icon(Icons.download_rounded, color: Colors.white, size: 30)),
-              const SizedBox(height: 16),
-              const Text("Install New Version", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-              Text("A new version of AniXplayer is available.\nInstall now to enjoy the latest features.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.4)),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: GestureDetector(onTap: () => Navigator.pop(ctx), child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: const Text("Later", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))))),
-                  const SizedBox(width: 12),
-                  Expanded(child: GestureDetector(onTap: () { launchInBrowser(updateUrl); Navigator.pop(ctx); }, child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: const Text("Install Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))))),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _fetchDatabaseCatalog() async {
-    try {
-      var animeResponse; bool hasEpDate = true;
-      try { animeResponse = await Supabase.instance.client.from('anime_list').select('''id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at, anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url, created_at))''').order('created_at', ascending: false); } 
-      catch (e) { hasEpDate = false; animeResponse = await Supabase.instance.client.from('anime_list').select('''id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at, anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url))''').order('created_at', ascending: false); }
-
-      List<Anime> fetchedAnimeList = [];
-      for (var item in animeResponse) {
-        DateTime animeDate = DateTime.now().subtract(const Duration(days: 30));
-        if (item['created_at'] != null) animeDate = DateTime.tryParse(item['created_at'].toString()) ?? animeDate;
-        List<Season> parsedSeasons = []; var seasonsData = item['anime_seasons'] as List<dynamic>? ?? [];
-        for (var s in seasonsData) {
-          List<Episode> parsedEps = []; var epData = s['anime_episodes'] as List<dynamic>? ?? [];
-          for (var e in epData) {
-            DateTime epDate = animeDate; if (hasEpDate && e['created_at'] != null) epDate = DateTime.tryParse(e['created_at'].toString()) ?? animeDate;
-            parsedEps.add(Episode(id: e['id'].toString(), title: e['episode_title']?.toString() ?? "Episode", image: e['image_url']?.toString() ?? item['image_url'], duration: e['duration']?.toString() ?? "24m", videoUrl: e['video_url']?.toString() ?? "", createdAt: epDate));
-          }
-          parsedSeasons.add(Season(id: s['id'].toString(), name: s['season_name'].toString(), episodes: parsedEps));
-        }
-        fetchedAnimeList.add(Anime(id: item['id'].toString(), title: item['title']?.toString() ?? "Unknown", description: item['description']?.toString() ?? "", image: item['image_url']?.toString() ?? "", genre: item['genres']?.toString() ?? "Action", rating: item['rating']?.toString() ?? "PG-13", dubStatus: item['dub_status']?.toString() ?? "DUB", status: item['status']?.toString() ?? "Completed", category: item['category']?.toString() ?? "", subCategory: item['sub_category']?.toString() ?? "", seasonsList: parsedSeasons, createdAt: animeDate));
-      }
-      animeListNotifier.value = fetchedAnimeList;
-      final heroResponse = await Supabase.instance.client.from('hero_slider').select().order('created_at', ascending: false);
-      heroSliderNotifier.value = List<Map<String, dynamic>>.from(heroResponse);
-    } catch (e) {}
-  }
-
-  Future<void> _fetchUserPreferences() async {
-    try {
-      final response = await Supabase.instance.client.from('user_preferences').select('continue_watching, saved_anime').eq('device_id', currentDeviceId).maybeSingle();
-      if (response != null) {
-        if (response['continue_watching'] != null) {
-          final List<dynamic> cwData = response['continue_watching'];
-          continueWatchingNotifier.value = cwData.map((data) => CWItem.fromJson(data, animeListNotifier.value)).toList();
-        }
-        if (response['saved_anime'] != null) {
-          final List<dynamic> savedData = response['saved_anime'];
-          final List<SavedEpisode> fetchedList = [];
-          for (var data in savedData) {
-            try { final animeMatch = animeListNotifier.value.firstWhere((anime) => anime.title == data['animeTitle']); fetchedList.add(SavedEpisode(anime: animeMatch, seasonIndex: data['seasonIndex'] ?? 0, episodeIndex: data['episodeIndex'] ?? 0)); } catch (e) { }
-          }
-          myListNotifier.value = fetchedList;
-        }
-      }
-    } catch (e) {}
-  }
-
-  void _goToSearch() => setState(() => _index = 1);
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [HomeScreen(onSearchTap: _goToSearch, isDataLoading: _isDataLoading), const BrowseScreen(), const ServersScreen(), const MyListScreen(), const ProfileScreen()];
     return Scaffold(
-      extendBody: true, body: pages[_index],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: getCard(context), type: BottomNavigationBarType.fixed, selectedItemColor: Theme.of(context).primaryColor, unselectedItemColor: Colors.grey[500], selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
-        currentIndex: _index, onTap: (i) => setState(() => _index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.dns_rounded), label: "Server"),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // GLOW BACKGROUND EFFECT
+          Positioned(
+            top: -50, left: 0, right: 0,
+            child: Container(
+              height: 400, 
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [adminPurple.withOpacity(0.15), Colors.transparent], 
+                  radius: 0.8
+                )
+              )
+            ),
+          ),
+          Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: cardDark, 
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [BoxShadow(color: adminPurple.withOpacity(0.1), blurRadius: 30, spreadRadius: 5)],
+                  border: Border.all(color: adminPurple.withOpacity(0.2), width: 1),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // LOGO & STYLISH TEXT
+                    const Icon(Icons.admin_panel_settings, size: 70, color: adminPurple),
+                    const SizedBox(height: 16),
+                    RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(text: "SYNEX ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2)), 
+                          TextSpan(text: "ADMIN", style: TextStyle(color: adminPurple, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2, shadows: [Shadow(color: adminPurple, blurRadius: 10)]))
+                        ]
+                      )
+                    ),
+                    const SizedBox(height: 8),
+                    const Text("Master Control Center", style: TextStyle(color: Colors.white54, fontSize: 13, letterSpacing: 1)),
+                    const SizedBox(height: 32),
+                    
+                    // INPUT FIELDS
+                    TextField(
+                      controller: _emailController, 
+                      style: const TextStyle(color: Colors.white), 
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.email_outlined, color: adminPurple), 
+                        hintText: "Admin Email", 
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true, 
+                        fillColor: bgDark, 
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: adminPurple.withOpacity(0.3))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 2)),
+                      )
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController, 
+                      obscureText: _obscureText, 
+                      style: const TextStyle(color: Colors.white), 
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.lock_outline, color: adminPurple), 
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.white54), 
+                          onPressed: ()=>setState(()=>_obscureText = !_obscureText)
+                        ), 
+                        hintText: "Password", 
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true, 
+                        fillColor: bgDark, 
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: adminPurple.withOpacity(0.3))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 2)),
+                      )
+                    ),
+                    const SizedBox(height: 30),
+                    
+                    // LOGIN BUTTON
+                    Container(
+                      width: double.infinity, height: 50,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12), 
+                        boxShadow: [BoxShadow(color: adminPurple.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 5))]
+                      ),
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading 
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                          : const Text("ENTER DASHBOARD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16, letterSpacing: 1)),
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -459,1396 +220,1483 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
-// HOME SCREEN
+// ADMIN DASHBOARD & MENU
 // ==========================================
-class HomeScreen extends StatelessWidget {
-  final VoidCallback onSearchTap;
-  final bool isDataLoading;
-  const HomeScreen({super.key, required this.onSearchTap, required this.isDataLoading});
+class AdminDashboard extends StatefulWidget {
+  const AdminDashboard({super.key});
 
-  Widget _buildSkeletonHome() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SkeletonLoader(width: double.infinity, height: 220, borderRadius: 0),
-        const SizedBox(height: 20),
-        const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
-        const SizedBox(height: 10),
-        SizedBox(height: 260, child: ListView.builder(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: 3, itemBuilder: (c, i) => const Padding(padding: EdgeInsets.only(right: 12), child: SkeletonLoader(width: 140, height: 260)))),
-      ],
-    );
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  Widget _currentScreen = const AdminHomeScreen();
+  String _currentTitle = "Dashboard Analytics";
+
+  void _selectScreen(Widget screen, String title) {
+    setState(() { 
+      _currentScreen = screen; 
+      _currentTitle = title; 
+    });
+    Navigator.pop(context); 
   }
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    
     return Scaffold(
-      backgroundColor: getBg(context),
       appBar: AppBar(
-        backgroundColor: getBg(context), elevation: 0,
-        title: RichText(text: const TextSpan(children: [
-          TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
-          TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
-        ])),
-        actions:[IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: onSearchTap)],
+        title: Text(_currentTitle, style: const TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 18, letterSpacing: 0.5)),
+        iconTheme: const IconThemeData(color: adminPurple),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.power_settings_new, color: Colors.redAccent), 
+            onPressed: () => Supabase.instance.client.auth.signOut()
+          )
+        ],
       ),
-      body: isDataLoading 
-      ? _buildSkeletonHome() 
-      : SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 100),
+      drawer: Drawer(
+        backgroundColor: cardDark,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            ValueListenableBuilder<List<Map<String,dynamic>>>(
-              valueListenable: heroSliderNotifier,
-              builder: (context, heroList, child) {
-                if (heroList.isEmpty) return const SizedBox.shrink();
-
-                return CarouselSlider.builder(
-                  itemCount: heroList.length, 
-                  options: CarouselOptions(height: 220, autoPlay: true, enlargeCenterPage: false, viewportFraction: 1.0),
-                  itemBuilder: (ctx, i, real) {
-                    final hero = heroList[i];
-                    final bool isCustom = hero['is_custom'] ?? false;
-                    final String heroTitle = hero['title'] ?? "";
-                    final String heroTag = hero['tag'] ?? "NEW";
-                    String hexColor = hero['tag_color']?.toString().replaceAll('#', '') ?? "FF8A2BE2";
-                    if(hexColor.length == 6) hexColor = 'FF$hexColor';
-                    Color tagColor = Color(int.tryParse(hexColor, radix: 16) ?? 0xFF8A2BE2);
-                    
-                    return GestureDetector(
-                      onTap: () { 
-                        if (isCustom || hero['anime_id'] == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!"))); } 
-                        else { try { final linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString()); Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: linkedAnime, seasonIndex: 0, episodeIndex: 0))); } catch(e) { } }
-                      }, 
-                      child: Stack(
-                        fit: StackFit.expand, 
-                        children:[
-                          Image.network(hero['image_url'], fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), 
-                          Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.95), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter, stops: const [0.0, 0.6]))), 
-                          Positioned(top: 15, right: 15, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(12)), child: Text("${i + 1}/${heroList.length}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)))), 
-                          if (heroTitle.isNotEmpty)
-                            Positioned(
-                              bottom: 20, left: 15, 
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start, 
-                                children:[
-                                  SizedBox(width: MediaQuery.of(context).size.width * 0.85, child: Text(heroTitle, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1), maxLines: 1, overflow: TextOverflow.ellipsis)), 
-                                  const SizedBox(height: 8), 
-                                  Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: tagColor, borderRadius: BorderRadius.circular(4)), child: Text(heroTag, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))
-                                ]
-                              )
-                            )
-                        ]
-                      )
-                    );
-                  },
-                );
-              }
-            ),
-            const SizedBox(height: 20),
-            
-            ValueListenableBuilder<List<Anime>>(
-              valueListenable: animeListNotifier,
-              builder: (context, allAnime, child) {
-                if (allAnime.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No Content found in Database", style: TextStyle(color: Colors.white54))));
-                
-                final trendingList = allAnime.where((a) => a.category.trim().toLowerCase().contains("trending")).toList();
-                final actionList = allAnime.where((a) => a.category.trim().toLowerCase().contains("action") || a.subCategory.trim().toLowerCase().contains("action")).toList();
-                final romanceList = allAnime.where((a) => a.category.trim().toLowerCase().contains("romance") || a.subCategory.trim().toLowerCase().contains("romance")).toList();
-                final comedyList = allAnime.where((a) => a.category.trim().toLowerCase().contains("comedy") || a.subCategory.trim().toLowerCase().contains("comedy")).toList();
-                final mysteryList = allAnime.where((a) => a.category.trim().toLowerCase().contains("mystery") || a.subCategory.trim().toLowerCase().contains("mystery")).toList();
-                final horrorList = allAnime.where((a) => a.category.trim().toLowerCase().contains("horror") || a.subCategory.trim().toLowerCase().contains("horror")).toList();
-                
-                List<Anime> popularList = List.from(allAnime);
-                popularList.sort((a, b) {
-                  int viewsA = globalAnimeViewsNotifier.value[a.title] ?? 0; int viewsB = globalAnimeViewsNotifier.value[b.title] ?? 0;
-                  return viewsB.compareTo(viewsA); 
-                });
-
-                List<LatestEpisodeItem> latestEpisodesFlatList = [];
-                for (var anime in allAnime) {
-                  for (int s = 0; s < anime.seasonsList.length; s++) {
-                    for (int e = 0; e < anime.seasonsList[s].episodes.length; e++) {
-                      latestEpisodesFlatList.add(LatestEpisodeItem(anime: anime, seasonIndex: s, episodeIndex: e, episode: anime.seasonsList[s].episodes[e]));
-                    }
-                  }
-                }
-                latestEpisodesFlatList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
-                if (latestEpisodesFlatList.length > 20) latestEpisodesFlatList = latestEpisodesFlatList.sublist(0, 20); 
-
-                return Column(
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: bgDark),
+              accountName: RichText(
+                text: const TextSpan(
                   children: [
-                    _buildPortraitSection(context, "Recently Added", null, null, allAnime), 
-                    if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", null, null, trendingList),
-                    if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", null, null, popularList),
-                    if (latestEpisodesFlatList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestEpisodesFlatList),
-                    if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
-                    if (romanceList.isNotEmpty) _buildPortraitSection(context, "Romance", null, null, romanceList),
-                    if (comedyList.isNotEmpty) _buildPortraitSection(context, "Comedy", null, null, comedyList),
-                    if (mysteryList.isNotEmpty) _buildPortraitSection(context, "Mystery", null, null, mysteryList),
-                    if (horrorList.isNotEmpty) _buildPortraitSection(context, "Horror", null, null, horrorList),
-                  ],
-                );
-              }
+                    TextSpan(text: "SYNEX ", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)), 
+                    TextSpan(text: "ADMIN", style: TextStyle(color: adminPurple, fontSize: 20, fontWeight: FontWeight.w900))
+                  ]
+                )
+              ),
+              accountEmail: const Text("Master Access Enabled", style: TextStyle(color: adminPurple, fontSize: 12)),
+              currentAccountPicture: const CircleAvatar(backgroundColor: adminPurple, child: Icon(Icons.security, color: Colors.white, size: 30)),
+            ),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  _buildDrawerItem(Icons.dashboard, "Dashboard Analytics", const AdminHomeScreen()),
+                  const Divider(color: Colors.white12),
+                  _buildDrawerItem(Icons.payments_outlined, "Manage Payments", const ManagePaymentsScreen()),
+                  _buildDrawerItem(Icons.people_outline, "Manage Users", const UsersListScreen()),
+                  const Divider(color: Colors.white12),
+                  _buildDrawerItem(Icons.movie_creation_outlined, "Manage Anime", const ManageAnimeScreen()),
+                  _buildDrawerItem(Icons.video_library_outlined, "Manage Episodes", const ManageEpisodesScreen()),
+                  _buildDrawerItem(Icons.view_carousel_outlined, "Hero Section", const ManageHeroScreen()),
+                  const Divider(color: Colors.white12),
+                  _buildDrawerItem(Icons.settings_outlined, "App Settings & Links", const AppSettingsScreen()),
+                  _buildDrawerItem(Icons.policy_outlined, "Manage App Pages", const ManagePagesScreen()), // 🔥 NAYA TAB ADDED
+                  _buildDrawerItem(Icons.system_update_outlined, "Push App Update", const AppUpdateScreen()),
+                ],
+              ),
             ),
           ],
         ),
       ),
+      body: _currentScreen,
     );
   }
 
-  Widget _buildLatestEpisodesSection(BuildContext context, String title, Color primColor, List<LatestEpisodeItem> latestList) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-            children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context)))]), 
-              GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LatestEpisodesSeeAllPage(latestList: latestList))), 
-                child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13))
-              )
-            ]
-          ),
-        ),
-        SizedBox(
-          height: 150, 
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: latestList.length, 
-            itemBuilder: (context, index) { 
-              return ThumbnailLatestCard(item: latestList[index]); 
-            }
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _buildPortraitSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
-    if(list.isEmpty) return const SizedBox.shrink();
-    Color primColor = Theme.of(context).primaryColor;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-            children:[
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) ...[const SizedBox(width: 6), Icon(icon, color: iconColor, size: 20)]]), 
-              GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
-            ]
-          ),
-        ),
-        SizedBox(
-          height: 260, 
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
-            itemBuilder: (context, index) { 
-              Anime anime = list[index];
-              String epCount = "E${getTotalEpisodes(anime)}";
-              String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-              String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
-              String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
-
-              return GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))), 
-                child: Container(
-                  width: 140, margin: const EdgeInsets.only(right: 14), 
-                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, 
-                      children:[
-                        Expanded(
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                              Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
-                              Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
-                              Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
-                            ],
-                          )
-                        ), 
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
-                              const SizedBox(height: 4),
-                              Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            ],
-                          ),
-                        )
-                      ]
-                    ),
-                  )
-                )
-              ); 
-            }
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  Widget _buildPopularSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-            children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) const SizedBox(width: 6), if (icon != null) Icon(icon, color: iconColor, size: 20)]), 
-              GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
-            ]
-          ),
-        ),
-        SizedBox(
-          height: 250, 
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
-            itemBuilder: (context, index) { return OverlayPopularCard(anime: list[index]); }
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-}
-
-// ==========================================
-// THUMBNAIL LATEST CARD
-// ==========================================
-class ThumbnailLatestCard extends StatelessWidget {
-  final LatestEpisodeItem item; 
-  const ThumbnailLatestCard({super.key, required this.item});
-  
-  @override
-  Widget build(BuildContext context) {
-    int latestEpNum = item.episodeIndex + 1;
-    String displayImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
-    String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
-
-    int daysOld = DateTime.now().difference(item.episode.createdAt).inDays;
-    bool isBrandNew = daysOld <= 14;
-
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex))),
-      child: Container(
-        width: 140, margin: const EdgeInsets.only(right: 14), 
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, 
-          children:[
-            Container(
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white, width: 1.5)),
-              child: AspectRatio(
-                aspectRatio: 16 / 9, 
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10), 
-                  child: Stack(
-                    fit: StackFit.expand, 
-                    children:[
-                      Image.network(displayImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), 
-                      Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.8), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))),
-                      const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 30)), 
-                      if (isBrandNew) Positioned(top: 6, right: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(4)), child: const Text("NEW", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
-                      Positioned(bottom: 6, right: 6, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(4)), child: Text("Ep $latestEpNum", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
-                    ]
-                  )
-                )
-              ),
-            ), 
-            const SizedBox(height: 8), 
-            Text(displayTitle, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
-            const SizedBox(height: 2), 
-            Text(item.anime.title, style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 11, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)
-          ]
-        )
+  Widget _buildDrawerItem(IconData icon, String title, Widget screen) {
+    bool isSelected = _currentTitle == title;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: isSelected ? adminPurple.withOpacity(0.15) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10)
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: isSelected ? adminPurple : Colors.white70),
+        title: Text(title, style: TextStyle(color: isSelected ? adminPurple : Colors.white70, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+        onTap: () => _selectScreen(screen, title),
       ),
     );
   }
 }
 
 // ==========================================
-// LATEST EPISODES "SEE ALL" PAGE
+// 1. DASHBOARD HOME
 // ==========================================
-class LatestEpisodesSeeAllPage extends StatelessWidget {
-  final List<LatestEpisodeItem> latestList;
-  const LatestEpisodesSeeAllPage({super.key, required this.latestList});
+class AdminHomeScreen extends StatefulWidget {
+  const AdminHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(title: Text("Latest Episodes", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context)), elevation: 0),
-      body: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20), itemCount: latestList.length,
-        itemBuilder: (context, index) {
-          final item = latestList[index];
-          String epImage = item.episode.image.isNotEmpty ? item.episode.image : item.anime.image;
-          String displayTitle = (item.episode.title.isNotEmpty && item.episode.title != "Episode") ? item.episode.title : item.anime.title;
-
-          return GestureDetector(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex))),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16), height: 110,
-              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 160, height: double.infinity,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(epImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image)),
-                          Container(color: Colors.black38), const Center(child: Icon(Icons.play_circle_fill, color: Colors.white, size: 40)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(displayTitle, style: TextStyle(color: getText(context), fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 6),
-                          Text(item.anime.title, style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 8),
-                          Row(children: [Icon(Icons.access_time, color: getSubText(context), size: 14), const SizedBox(width: 4), Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: getSubText(context), fontSize: 12))])
-                        ],
-                      ),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
 }
 
-// ==========================================
-// BROWSE (SEARCH) SCREEN 
-// ==========================================
-class BrowseScreen extends StatefulWidget {
-  const BrowseScreen({super.key}); 
-  @override 
-  State<BrowseScreen> createState() => _BrowseScreenState();
-}
-
-class _BrowseScreenState extends State<BrowseScreen> {
-  final TextEditingController _searchController = TextEditingController(); 
-  List<Anime> _searchResults = [];
-  bool _isLoadingSearches = true;
+class _AdminHomeScreenState extends State<AdminHomeScreen> {
+  int totalUsers = 0;
+  int premiumUsers = 0;
+  int freeUsers = 0;
+  int liveUsers = 0;
+  int offlineUsers = 0;
+  int dailyActiveUsers = 0; 
+  bool _isLoading = true;
+  RealtimeChannel? _presenceChannel;
 
   @override
   void initState() {
     super.initState();
-    _fetchRecentSearches(); 
+    _fetchStats();
+    _initLiveTracking();
   }
 
-  Future<void> _fetchRecentSearches() async {
+  Future<void> _fetchStats() async {
     try {
-      final response = await Supabase.instance.client.from('user_preferences').select('recent_searches').eq('device_id', currentDeviceId).maybeSingle();
-      if (response != null && response['recent_searches'] != null) {
-        setState(() {
-          var data = response['recent_searches'];
-          if (data is String) { globalRecentSearches = List<String>.from(jsonDecode(data)); } else if (data is List) { globalRecentSearches = List<String>.from(data); } else { globalRecentSearches = []; }
-          _isLoadingSearches = false;
-        });
-      } else { setState(() => _isLoadingSearches = false); }
-    } catch (e) { setState(() => _isLoadingSearches = false); }
+      final userRes = await Supabase.instance.client.from('user_preferences').select('email');
+      Set<String> uniqueEmails = {};
+      for(var r in userRes) { 
+        if(r['email'] != null) uniqueEmails.add(r['email']); 
+      }
+      totalUsers = uniqueEmails.length;
+
+      final premiumRes = await Supabase.instance.client.from('payment_requests').select('email').eq('status', 'Approved');
+      Set<String> premiumEmails = {};
+      for(var r in premiumRes) { 
+        if(r['email'] != null) premiumEmails.add(r['email']); 
+      }
+      premiumUsers = premiumEmails.length;
+
+      freeUsers = totalUsers - premiumUsers;
+      if(freeUsers < 0) freeUsers = 0;
+      offlineUsers = totalUsers; 
+
+      final today = DateTime.now();
+      final startOfToday = DateTime(today.year, today.month, today.day).toUtc().toIso8601String();
+      try {
+        final dailyRes = await Supabase.instance.client.from('user_views').select('user_id').gte('created_at', startOfToday);
+        Set<String> uniqueDaily = {};
+        for(var r in dailyRes) { 
+          if(r['user_id'] != null) uniqueDaily.add(r['user_id'].toString()); 
+        }
+        dailyActiveUsers = uniqueDaily.length;
+      } catch(e) { }
+      
+      setState(() => _isLoading = false);
+    } catch(e) { 
+      setState(() => _isLoading = false); 
+    }
   }
 
-  Future<void> _updateRecentSearchesInDb(String query) async {
-    final newSearches = [...globalRecentSearches];
-    if (newSearches.length > 5) newSearches.removeLast(); 
-    if (!newSearches.contains(query)) newSearches.insert(0, query);
-    String searchesJson = jsonEncode(newSearches);
-    try { await Supabase.instance.client.from('user_preferences').upsert({'device_id': currentDeviceId, 'recent_searches': searchesJson}, onConflict: 'device_id'); } catch (e) {}
-  }
-
-  void _performSearch(String query) { 
-    if (query.isEmpty) { setState(() { _searchResults = []; }); } else { 
-      setState(() { 
-        _searchResults = animeListNotifier.value.where((anime) {
-          return anime.title.toLowerCase().contains(query.toLowerCase()) || anime.genre.toLowerCase().contains(query.toLowerCase()) || anime.category.toLowerCase().contains(query.toLowerCase());
-        }).toList(); 
-      }); 
-    } 
-  }
-
-  void _setSearchQuery(String query) { _searchController.text = query; _performSearch(query); if (query.isNotEmpty) { _updateRecentSearchesInDb(query); } }
-
-  void _submitSearch(String query) { 
-    if (query.trim().isNotEmpty && !globalRecentSearches.contains(query.trim())) { setState(() { globalRecentSearches.insert(0, query.trim()); }); _updateRecentSearchesInDb(query.trim()); } 
-    _performSearch(query); 
-  }
-
-  void _removeRecentSearch(int index) { setState(() { globalRecentSearches.removeAt(index); }); _updateRecentSearchesInDb(globalRecentSearches.join(',')); }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: getBg(context),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children:[
-              Container(
-                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
-                child: TextField(
-                  controller: _searchController, onChanged: _performSearch, onSubmitted: _submitSearch, style: TextStyle(color: getText(context), fontSize: 15), 
-                  decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _performSearch(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
-                )
-              ),
-              const SizedBox(height: 24),
-              
-              if (_searchController.text.isNotEmpty) ...[
-                if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 15)))) 
-                else GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16), itemCount: _searchResults.length, itemBuilder: (context, index) => GridCategoryCard(anime: _searchResults[index], pageTitle: ""))
-              ] else ...[
-                Text("Recommended", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10, runSpacing: 10,
-                  children: recommendedSearches.map((e) => GestureDetector(
-                    onTap: () => _setSearchQuery(e),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                      child: Text(e, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                    )
-                  )).toList(),
-                ),
-                const SizedBox(height: 30),
-
-                Text("Recent Searches", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
-                const SizedBox(height: 12), 
-                _isLoadingSearches
-                    ? Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor))
-                    : (globalRecentSearches.isEmpty) 
-                        ? const Text("No recent searches.", style: TextStyle(color: Colors.grey, fontSize: 14)) 
-                        : ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: globalRecentSearches.length, itemBuilder: (context, index) { return _buildRecentItem(globalRecentSearches[index], index); })
-              ]
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecentItem(String title, int index) { 
-    return GestureDetector(
-      onTap: () => _setSearchQuery(title), 
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-          children:[
-            Expanded(child: Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: getText(context)), maxLines: 1, overflow: TextOverflow.ellipsis)), 
-            Row(children:[GestureDetector(onTap: () => _removeRecentSearch(index), child: Icon(Icons.close, size: 18, color: Colors.grey[500])), const SizedBox(width: 12), Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[600])])
-          ]
-        )
-      )
-    ); 
-  }
-}
-
-// ==========================================
-// SERVERS SCREEN 
-// ==========================================
-class ServersScreen extends StatefulWidget {
-  const ServersScreen({super.key}); 
-  @override
-  State<ServersScreen> createState() => _ServersScreenState();
-}
-
-class _ServersScreenState extends State<ServersScreen> {
-  Timer? _pingTimer;
-  int _currentPing = 45;
-
-  @override
-  void initState() {
-    super.initState();
-    _pingTimer = Timer.periodic(const Duration(seconds: 2), (t) {
-      if (mounted) setState(() => _currentPing = Random().nextInt(60) + 20);
-    });
+  void _initLiveTracking() {
+    _presenceChannel = Supabase.instance.client.channel('online-users');
+    _presenceChannel?.onPresenceSync((payload) {
+      final activeStates = _presenceChannel?.presenceState();
+      int count = 0;
+      
+      if (activeStates != null) {
+        final rawMap = activeStates as Map<dynamic, dynamic>;
+        for (var value in rawMap.values) {
+          if (value is List) {
+            count += value.length;
+          }
+        }
+      }
+      
+      setState(() {
+        liveUsers = count;
+        offlineUsers = totalUsers - liveUsers;
+        if(offlineUsers < 0) offlineUsers = 0;
+      });
+    }).subscribe();
   }
 
   @override
   void dispose() {
-    _pingTimer?.cancel();
+    _presenceChannel?.unsubscribe();
     super.dispose();
   }
 
-  @override 
-  Widget build(BuildContext context) { 
-    Color primColor = Theme.of(context).primaryColor;
+  @override
+  Widget build(BuildContext context) {
+    if(_isLoading) return const Center(child: CircularProgressIndicator(color: adminPurple));
     
-    return Scaffold(
-      backgroundColor: getBg(context), 
-      appBar: AppBar(
-        title: Text("Servers", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), 
-        backgroundColor: getBg(context), 
-        elevation: 0
-      ), 
-      body: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: primColor)),
-            child: Row(
-              children: [
-                Icon(Icons.wifi_tethering, color: primColor, size: 30),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Currently Connected", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      ValueListenableBuilder(
-                        valueListenable: connectedServerNotifier,
-                        builder: (ctx, val, _) => Text("Server $val", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))
-                      )
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text("$_currentPing ms", style: TextStyle(color: _currentPing < 50 ? Colors.green : Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16)),
-                    const Text("Ping", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  ],
-                )
-              ],
-            ),
-          ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), 
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 2.5, crossAxisSpacing: 14, mainAxisSpacing: 14), 
-              itemCount: 10, 
-              itemBuilder: (context, index) { 
-                return _buildServerCard(context, index + 1, primColor);
-              }
-            ),
-          ),
-        ],
-      )
-    ); 
-  }
-
-  Widget _buildServerCard(BuildContext context, int number, Color primColor) {
-    return ValueListenableBuilder(
-      valueListenable: connectedServerNotifier,
-      builder: (ctx, connectedVal, _) {
-        bool isConnected = connectedVal == number;
-        return GestureDetector(
-          onTap: () {
-            connectedServerNotifier.value = number;
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connected to Server $number")));
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: isConnected ? primColor.withOpacity(0.2) : getCard(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isConnected ? primColor : Colors.white12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.dns_rounded, color: isConnected ? primColor : Colors.white70, size: 20),
-                const SizedBox(width: 10),
-                Text("Server $number", style: TextStyle(color: isConnected ? Colors.white : Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
-                if (isConnected) ...[
-                  const SizedBox(width: 10),
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle))
-                ]
-              ],
-            ),
-          ),
-        );
-      }
-    );
-  }
-}
-
-// ==========================================
-// MY LIST SCREEN
-// ==========================================
-class MyListScreen extends StatefulWidget {
-  const MyListScreen({super.key});
-  @override State<MyListScreen> createState() => _MyListScreenState();
-}
-class _MyListScreenState extends State<MyListScreen> {
-  bool _isLoadingSavedAnime = true;
-  @override void initState() { super.initState(); _fetchSavedAnime(); }
-  Future<void> _fetchSavedAnime() async {
-    try {
-      final response = await Supabase.instance.client.from('user_preferences').select('saved_anime').eq('device_id', currentDeviceId).maybeSingle();
-      if (response != null && response['saved_anime'] != null) {
-        final List<dynamic> savedData = response['saved_anime']; final List<SavedEpisode> fetchedList = [];
-        for (var data in savedData) { try { final animeMatch = animeListNotifier.value.firstWhere((anime) => anime.title == data['animeTitle']); fetchedList.add(SavedEpisode(anime: animeMatch, seasonIndex: data['seasonIndex'] ?? 0, episodeIndex: data['episodeIndex'] ?? 0)); } catch (e) {} }
-        setState(() { myListNotifier.value = fetchedList; _isLoadingSavedAnime = false; });
-      } else { setState(() => _isLoadingSavedAnime = false); }
-    } catch (e) { setState(() => _isLoadingSavedAnime = false); }
-  }
-  void _removeSavedAnime(SavedEpisode episode) {
-    final list = List<SavedEpisode>.from(myListNotifier.value); list.removeWhere((item) => item.anime.title == episode.anime.title); myListNotifier.value = list; MyListService().saveMyList(currentDeviceId, list);
-  }
-  @override Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(title: Text("My List", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), backgroundColor: getBg(context), elevation: 0),
-      body: _isLoadingSavedAnime ? Center(child: CircularProgressIndicator(color: primColor)) : ValueListenableBuilder<List<SavedEpisode>>(
-        valueListenable: myListNotifier,
-        builder: (context, savedList, child) {
-          if (savedList.isEmpty) return Center(child: Text("Your watch list is empty.", style: TextStyle(color: getSubText(context), fontSize: 16)));
-          return ListView.builder(
-            padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), itemCount: savedList.length, 
-            itemBuilder: (context, index) { 
-              final anime = savedList[index].anime;
-              return GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))),
-                child: Container(margin: const EdgeInsets.only(bottom: 12), height: 110, decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 5))]),
-                  child: Row(children: [ClipRRect(borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)), child: Image.network(anime.image, width: 85, height: 110, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image))), Expanded(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 6), Text("${anime.season} • ${anime.dubStatus}", style: TextStyle(color: primColor, fontSize: 12, fontWeight: FontWeight.w600))]))), Column(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [IconButton(icon: Icon(Icons.play_circle_fill, color: primColor, size: 36), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0)))), GestureDetector(onTap: () => _removeSavedAnime(savedList[index]), child: const Padding(padding: EdgeInsets.only(bottom: 8), child: Icon(Icons.delete_outline, color: Colors.white54, size: 20)))]), const SizedBox(width: 8)])
-                ),
-              );
-            }
-          );
-        },
-      ),
-    );
-  }
-}
-
-// ==========================================
-// PARTICLES BACKGROUND CustomPainter
-// ==========================================
-class ParticlesBackground extends StatefulWidget {
-  const ParticlesBackground({super.key});
-  @override _ParticlesBackgroundState createState() => _ParticlesBackgroundState();
-}
-class _ParticlesBackgroundState extends State<ParticlesBackground> with SingleTickerProviderStateMixin {
-  late AnimationController _controller; List<Particle> particles = [];
-  @override void initState() { super.initState(); for (int i = 0; i < 40; i++) { particles.add(Particle()); } _controller = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat(); }
-  @override void dispose() { _controller.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) { return AnimatedBuilder(animation: _controller, builder: (context, child) { for (var p in particles) { p.update(); } return CustomPaint(painter: ParticlePainter(particles, Theme.of(context).primaryColor), size: Size.infinite); }); }
-}
-class Particle {
-  double x = Random().nextDouble() * 400; double y = Random().nextDouble() * 800; double speed = Random().nextDouble() * 1 + 0.5; double radius = Random().nextDouble() * 2 + 1;
-  void update() { y -= speed; if (y < 0) { y = 800; x = Random().nextDouble() * 400; } }
-}
-class ParticlePainter extends CustomPainter {
-  final List<Particle> particles; final Color pColor;
-  ParticlePainter(this.particles, this.pColor);
-  @override void paint(Canvas canvas, Size size) { final paint = Paint()..color = pColor.withOpacity(0.3); for (var p in particles) { double dx = (p.x / 400) * size.width; double dy = (p.y / 800) * size.height; canvas.drawCircle(Offset(dx, dy), p.radius, paint); } }
-  @override bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-// ==========================================
-// PROFILE SCREEN
-// ==========================================
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key}); 
-
-  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
-    return Material(
-      color: Colors.transparent, 
-      child: InkWell(
-        onTap: onTap, borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(children: [Icon(icon, color: Theme.of(context).primaryColor, size: 22), const SizedBox(width: 14), Text(title, style: TextStyle(color: getText(context), fontSize: 15, fontWeight: FontWeight.w600))]),
-              Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context),
-      body: Stack(
-        children: [
-          const ParticlesBackground(), 
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center, 
-                children: [
-                  Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2)), child: CircleAvatar(radius: 45, backgroundColor: getAvatarColor(currentUserName), child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)))),
-                  const SizedBox(height: 16),
-                  Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
-                  const SizedBox(height: 6),
-                  Text("ID: $currentDeviceId", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12, letterSpacing: 1.2)),
-                  const SizedBox(height: 40),
-                  
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
-                    child: Column(children: [
-                      _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
-                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
-                      _buildGroupedItem(context, title: "Payment Proof", icon: Icons.receipt_long_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentProofPage()))),
-                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
-                      _buildGroupedItem(context, title: "Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
-                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
-                      _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
-                    ]),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text("AniXplayer v1.0.1", style: TextStyle(color: Colors.white38, fontSize: 12))
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class SubscriptionPage extends StatelessWidget {
-  const SubscriptionPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Premium Plans", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _buildPlanCard(context, "Basic Plan", "₹99", "1 Month", "Ad free monthly support 24/7", Colors.blueAccent),
-          const SizedBox(height: 20),
-          _buildPlanCard(context, "Standard Plan", "₹299", "3 Months", "Full access unlimited support 24/7", primColor),
-        ],
-      ),
-    );
-  }
-  Widget _buildPlanCard(BuildContext context, String title, String price, String duration, String desc, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.5), width: 2)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [Text(price, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), Text(" / $duration", style: const TextStyle(color: Colors.white54, fontSize: 14))]),
-          const SizedBox(height: 10),
-          Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          const SizedBox(height: 20),
-          SizedBox(width: double.infinity, height: 45, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QRCodePaymentPage(planName: title, price: price))), child: const Text("Choose Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))
-        ],
-      ),
-    );
-  }
-}
-
-class QRCodePaymentPage extends StatelessWidget {
-  final String planName; final String price;
-  const QRCodePaymentPage({super.key, required this.planName, required this.price});
-  void _launchUPIApp(BuildContext context) async {
-    String cleanPrice = price.replaceAll("₹", "");
-    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=AniXplayer&am=$cleanPrice&cu=INR&tn=Buy%20$planName");
-    if (await canLaunchUrl(uri)) { await launchUrl(uri, mode: LaunchMode.externalApplication); } else { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No UPI App found!"))); }
-  }
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Scan to Pay", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text("Payment for $planName", style: TextStyle(color: getText(context), fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center), const SizedBox(height: 8),
-              Text("Amount to Pay: $price", style: TextStyle(color: primColor, fontSize: 20, fontWeight: FontWeight.w600)), const SizedBox(height: 30),
-              Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)), child: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(globalPaymentQrUrl, width: 220, height: 220, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, size: 80, color: Colors.grey)))), const SizedBox(height: 20),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)), child: Column(children: [Text("UPI ID", style: TextStyle(color: getSubText(context), fontSize: 12)), const SizedBox(height: 4), Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))])), const SizedBox(height: 20),
-              SizedBox(width: double.infinity, height: 50, child: ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () => _launchUPIApp(context), icon: const Icon(Icons.payment, color: Colors.white), label: const Text("Pay via UPI App", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)))), const SizedBox(height: 30),
-              Text("After successful payment, click below to submit your screenshot.", style: TextStyle(color: getSubText(context), fontSize: 13, height: 1.5), textAlign: TextAlign.center), const SizedBox(height: 20),
-              SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: () { Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => PaymentProofPage(initialPlan: planName))); }, child: const Text("Go to Verification", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class PaymentProofPage extends StatefulWidget {
-  final String? initialPlan;
-  const PaymentProofPage({super.key, this.initialPlan});
-  @override State<PaymentProofPage> createState() => _PaymentProofPageState();
-}
-class _PaymentProofPageState extends State<PaymentProofPage> {
-  String? _selectedPlan; File? _imageFile; final TextEditingController _trxController = TextEditingController(); bool _isSubmitting = false;
-  final List<String> _plans = ["Basic Plan", "Standard Plan"];
-  @override void initState() { super.initState(); if (widget.initialPlan != null && _plans.contains(widget.initialPlan)) { _selectedPlan = widget.initialPlan; } }
-  Future<void> _pickImage() async { final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); if (pickedFile != null) { setState(() { _imageFile = File(pickedFile.path); }); } }
-  Future<void> _submitRequest() async {
-    if (_selectedPlan == null || _imageFile == null || _trxController.text.length != 12) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all details correctly."))); return; }
-    setState(() => _isSubmitting = true);
-    try {
-      final ext = _imageFile!.path.split('.').last; final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-      await Supabase.instance.client.storage.from('payment_proofs').upload(fileName, _imageFile!);
-      String imageUrl = Supabase.instance.client.storage.from('payment_proofs').getPublicUrl(fileName);
-      await Supabase.instance.client.from('payment_requests').insert({'email': currentDeviceId, 'plan': _selectedPlan, 'transaction_id': _trxController.text.trim(), 'image_path': imageUrl, 'status': 'Pending', 'created_at': DateTime.now().toIso8601String()});
-      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted!"), backgroundColor: Colors.green)); Navigator.pop(context); }
-    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"))); } finally { if (mounted) setState(() => _isSubmitting = false); }
-  }
-  @override Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Verify Payment", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+    return RefreshIndicator(
+      onRefresh: _fetchStats,
+      color: adminPurple,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            Text("Select Plan", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(isExpanded: true, dropdownColor: getCard(context), hint: Text("Choose your plan", style: TextStyle(color: getSubText(context))), value: _selectedPlan, items: _plans.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(color: Colors.white)))).toList(), onChanged: (v) => setState(() => _selectedPlan = v)))), const SizedBox(height: 20),
-            Text("Screenshot", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-            GestureDetector(onTap: _pickImage, child: Container(width: double.infinity, height: 160, decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), child: _imageFile != null ? ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_imageFile!, fit: BoxFit.cover)) : Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.cloud_upload, color: primColor, size: 40), const SizedBox(height: 10), Text("Tap to upload", style: TextStyle(color: getSubText(context)))]))), const SizedBox(height: 20),
-            Text("12-Digit UTR", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-            TextField(controller: _trxController, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)], style: TextStyle(color: getText(context)), decoration: InputDecoration(hintText: "Enter UTR number", filled: true, fillColor: getCard(context), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))), const SizedBox(height: 40),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _isSubmitting ? null : _submitRequest, child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white) : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class SupportPage extends StatelessWidget {
-  const SupportPage({super.key});
-  @override Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Support", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
           children: [
-            ListTile(tileColor: getCard(context), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), leading: const Icon(Icons.telegram, color: Colors.blueAccent, size: 30), title: const Text("Telegram Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), subtitle: const Text("Instant Replies", style: TextStyle(color: Colors.white54)), onTap: () => launchInBrowser(globalTelegramLink)),
+            const Text("Overview Analytics", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            ListTile(tileColor: getCard(context), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), leading: const Icon(Icons.email, color: Colors.redAccent, size: 30), title: const Text("Email Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), subtitle: const Text("Response in 24 hrs", style: TextStyle(color: Colors.white54)), onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PrivacyPolicyPage extends StatelessWidget { 
-  const PrivacyPolicyPage({super.key});
-  @override Widget build(BuildContext context) { 
-    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Privacy Policy", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
-  } 
-}
-
-// ==========================================
-// CATEGORY PAGES & CARDS 
-// ==========================================
-class SeeAllCategoryPage extends StatelessWidget {
-  final String title; final List<Anime> animeList; final bool isLatestOnly;
-  const SeeAllCategoryPage({super.key, required this.title, required this.animeList, this.isLatestOnly = false});
-  @override Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: IconThemeData(color: getText(context))),
-      body: GridView.builder(padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.70, crossAxisSpacing: 14, mainAxisSpacing: 16), itemCount: animeList.length, itemBuilder: (context, index) => GridCategoryCard(anime: animeList[index], pageTitle: title, isLatestOnly: isLatestOnly))
-    );
-  }
-}
-
-class OverlayPopularCard extends StatelessWidget {
-  final Anime anime; 
-  const OverlayPopularCard({super.key, required this.anime});
-  @override Widget build(BuildContext context) {
-    String epCount = "E${getTotalEpisodes(anime)}";
-    String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-    String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
-    String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))), 
-      child: Container(
-        width: 140, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8), 
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Expanded(child: Stack(fit: StackFit.expand, children: [Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))), Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))), Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))])), Padding(padding: const EdgeInsets.all(8.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)]))]
-          )
-        )
-      )
-    );
-  }
-}
-
-class GridCategoryCard extends StatefulWidget {
-  final Anime anime; final String pageTitle; final bool isLatestOnly;
-  const GridCategoryCard({super.key, required this.anime, required this.pageTitle, this.isLatestOnly = false});
-  @override State<GridCategoryCard> createState() => _GridCategoryCardState();
-}
-class _GridCategoryCardState extends State<GridCategoryCard> {
-  void _toggleSaveAnime() {
-    final list = List<SavedEpisode>.from(myListNotifier.value); final isSaved = list.any((item) => item.anime.title == widget.anime.title);
-    if (isSaved) { list.removeWhere((item) => item.anime.title == widget.anime.title); } else { list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); }
-    myListNotifier.value = list; MyListService().saveMyList(currentDeviceId, list);
-  }
-  @override Widget build(BuildContext context) {
-    String epCount = "E${getTotalEpisodes(widget.anime)}";
-    String views = formatViewsCount(globalAnimeViewsNotifier.value[widget.anime.title] ?? 0);
-    String bottomLine = widget.anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(widget.anime)}  ■  $views";
-    String tagLang = widget.anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
-    
-    return GestureDetector(
-      onTap: () { Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: widget.anime, seasonIndex: 0, episodeIndex: 0))); }, 
-      child: Container(
-        decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)), 
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8), 
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Expanded(child: Stack(fit: StackFit.expand, children: [Image.network(widget.anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))), Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))), Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))])), Padding(padding: const EdgeInsets.all(8.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)]))]
-          )
-        )
-      )
-    );
-  }
-}
-
-// ==========================================
-// SEPARATE DESCRIPTION PAGE 
-// ==========================================
-class DescriptionPage extends StatelessWidget {
-  final Anime anime;
-  const DescriptionPage({super.key, required this.anime});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 16))),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Text(anime.description, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// FAST LOAD VIDEO PLAYER PAGE (RE-DESIGNED)
-// ==========================================
-class VideoPlayerPage extends StatefulWidget {
-  final Anime anime; 
-  final int seasonIndex; 
-  final int episodeIndex; 
-  final Duration? startPosition;
-
-  const VideoPlayerPage({super.key, required this.anime, required this.seasonIndex, required this.episodeIndex, this.startPosition});
-
-  @override 
-  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
-}
-
-class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late VideoPlayerController _controller; 
-  bool _showControls = true; 
-  bool _isFullScreen = false; 
-  double _playbackSpeed = 1.0;
-  
-  late int _currentSeasonIndex;
-  late int _currentEpisodeIndex; 
-
-  @override 
-  void initState() { 
-    super.initState(); 
-    _currentSeasonIndex = widget.seasonIndex;
-    _currentEpisodeIndex = widget.episodeIndex;
-    
-    // 🔥 SAFE CHECK IF EPISODES ARE EMPTY 🔥
-    if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
-      return; 
-    }
-    
-    _incrementAndFetchViews(); 
-    _initPlayer();
-  }
-
-  void _initPlayer() {
-    if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) return;
-    
-    final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
-    _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl), videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))..initialize().then((_) { 
-      if (widget.startPosition != null && _currentEpisodeIndex == widget.episodeIndex) { 
-        _controller.seekTo(widget.startPosition!); 
-      } 
-      setState(() {}); 
-      _controller.play(); 
-      _controller.setPlaybackSpeed(_playbackSpeed);
-    }); 
-  }
-
-  void _changeEpisode(int newIndex) {
-    if (newIndex == _currentEpisodeIndex) return;
-    _updateContinueWatching(); 
-    _controller.pause();
-    _controller.dispose();
-    setState(() { _currentEpisodeIndex = newIndex; _showControls = true; });
-    _initPlayer();
-  }
-
-  void _changeSeason(int newSeasonIndex) {
-    if (newSeasonIndex == _currentSeasonIndex) return;
-    _updateContinueWatching();
-    _controller.pause();
-    _controller.dispose();
-    setState(() { _currentSeasonIndex = newSeasonIndex; _currentEpisodeIndex = 0; _showControls = true; });
-    _initPlayer();
-  }
-
-  @override 
-  void dispose() { 
-    if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
-      _updateContinueWatching(); 
-      _controller.dispose(); 
-    }
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]); 
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky); 
-    super.dispose(); 
-  }
-
-  Future<void> _incrementAndFetchViews() async {
-    final episodeId = "${widget.anime.title}_${_currentSeasonIndex}_${_currentEpisodeIndex}";
-    try {
-      final userView = await Supabase.instance.client.from('user_views').select().eq('device_id', currentDeviceId).eq('episode_id', episodeId).maybeSingle();
-      if (userView == null) {
-        await Supabase.instance.client.from('user_views').insert({'device_id': currentDeviceId, 'episode_id': episodeId});
-        final response = await Supabase.instance.client.from('episode_views').select('view_count').eq('episode_id', episodeId).maybeSingle();
-        int currentViews = response?['view_count'] ?? 0;
-        await Supabase.instance.client.from('episode_views').upsert({'episode_id': episodeId, 'view_count': currentViews + 1});
-      }
-    } catch (e) { }
-  }
-
-  void _updateContinueWatching() { 
-    if (!_controller.value.isInitialized) return; 
-    final pos = _controller.value.position; final dur = _controller.value.duration; 
-    if (pos > const Duration(seconds: 2)) { 
-      final list = List<CWItem>.from(continueWatchingNotifier.value); 
-      final existingIdx = list.indexWhere((item) => item.anime.title == widget.anime.title && item.seasonIndex == _currentSeasonIndex && item.episodeIndex == _currentEpisodeIndex); 
-      if (existingIdx != -1) { 
-        list[existingIdx].position = pos; list[existingIdx].totalDuration = dur; 
-        final item = list.removeAt(existingIdx); list.insert(0, item); 
-      } else { list.insert(0, CWItem(anime: widget.anime, seasonIndex: _currentSeasonIndex, episodeIndex: _currentEpisodeIndex, position: pos, totalDuration: dur)); } 
-      continueWatchingNotifier.value = list; 
-      CWService().saveCWList(currentDeviceId, list);
-    } 
-  }
-
-  void _toggleControls() { setState(() => _showControls = !_showControls); }
-
-  void _toggleFullScreen() { 
-    setState(() => _isFullScreen = !_isFullScreen); 
-    if (_isFullScreen) { 
-      SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeRight, DeviceOrientation.landscapeLeft]); 
-    } else { 
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]); 
-    } 
-  }
-
-  void _skipForward() { 
-    _controller.seekTo(_controller.value.position + const Duration(seconds: 10)); 
-  }
-
-  void _skipBackward() { 
-    _controller.seekTo(_controller.value.position - const Duration(seconds: 10)); 
-  }
-
-  String _formatDuration(Duration duration) { 
-    String twoDigits(int n) => n.toString().padLeft(2, '0'); 
-    return "${twoDigits(duration.inMinutes.remainder(60))}:${twoDigits(duration.inSeconds.remainder(60))}"; 
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor; 
-
-    // 🔥 SAFE CHECK FOR EMPTY EPISODES 🔥
-    if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
-      return Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-        body: const Center(child: Text("Episodes Coming Soon!", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
-      );
-    }
-
-    final currentSeason = widget.anime.seasonsList[_currentSeasonIndex]; 
-    List<Episode> displayedEpisodes = currentSeason.episodes;
-
-    Widget videoContent = Stack(
-      children:[
-        _controller.value.isInitialized 
-            ? Center(child: AspectRatio(aspectRatio: _controller.value.aspectRatio, child: VideoPlayer(_controller))) 
-            : Center(child: CircularProgressIndicator(color: primColor)),
-
-        if (_showControls) 
-          GestureDetector(
-            onTap: _toggleControls,
-            child: Container(
-              color: Colors.black54, 
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                children:[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-                    children:[
-                      IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }), 
-                      Row(children:[
-                        // 🔥 VIDEO SPEED CONTROLLER 🔥
-                        PopupMenuButton<double>(
-                          initialValue: _playbackSpeed,
-                          onSelected: (speed) {
-                            setState(() => _playbackSpeed = speed);
-                            _controller.setPlaybackSpeed(speed);
-                          },
-                          itemBuilder: (context) => [0.5, 1.0, 1.25, 1.5, 2.0].map((s) => PopupMenuItem(value: s, child: Text("${s}x", style: const TextStyle(color: Colors.white)))).toList(),
-                          color: getCard(context),
-                          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Text("${_playbackSpeed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))),
-                        ),
-                        IconButton(icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white), onPressed: _toggleFullScreen)
-                      ])
-                    ]
-                  ), 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
-                    children:[
-                      IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 30), onPressed: _skipBackward), 
-                      IconButton(icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 45), onPressed: () { setState(() { _controller.value.isPlaying ? _controller.pause() : _controller.play(); }); }), 
-                      IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 30), onPressed: _skipForward)
-                    ]
-                  ), 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), 
-                    child: Row(
-                      children:[
-                        ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 12)); }), 
-                        Expanded(child: ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { return SliderTheme(data: SliderTheme.of(context).copyWith(trackHeight: 3.0, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0)), child: Slider(activeColor: primColor, inactiveColor: Colors.white24, min: 0.0, max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), onChangeStart: (val) { _controller.pause(); }, onChanged: (val) { _controller.seekTo(Duration(seconds: val.toInt())); }, onChangeEnd: (val) { _controller.play(); })); })), 
-                        ValueListenableBuilder(valueListenable: _controller, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.duration), style: const TextStyle(color: Colors.white, fontSize: 12)); })
-                      ]
-                    )
-                  )
-                ]
-              )
-            ),
-          ) 
-        else 
-          GestureDetector(onTap: _toggleControls, child: Container(color: Colors.transparent)),
-      ],
-    );
-
-    if (_isFullScreen) {
-      return Scaffold(backgroundColor: Colors.black, body: Center(child: AspectRatio(aspectRatio: 16 / 9, child: videoContent)));
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            AspectRatio(aspectRatio: 16 / 9, child: videoContent),
             
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 30),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(widget.anime.title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(widget.anime.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4)),
-                    ),
-                    if (widget.anime.description.length > 100)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DescriptionPage(anime: widget.anime))),
-                          child: Text("Read More", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)),
-                        ),
-                      ),
-                    
-                    const SizedBox(height: 24),
-                    
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text("Episode Lists", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          
-                          if (widget.anime.seasonsList.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<int>(
-                                  dropdownColor: getCard(context),
-                                  value: _currentSeasonIndex,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 20),
-                                  items: List.generate(widget.anime.seasonsList.length, (index) {
-                                    return DropdownMenuItem(
-                                      value: index,
-                                      child: Text(widget.anime.seasonsList[index].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                    );
-                                  }),
-                                  onChanged: (val) {
-                                    if (val != null && val != _currentSeasonIndex) { _changeSeason(val); }
-                                  },
-                                )
-                              ),
-                            )
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Wrap(
-                          spacing: 12, runSpacing: 12,
-                          children: List.generate(displayedEpisodes.length, (index) {
-                            bool isActive = index == _currentEpisodeIndex;
-                            return GestureDetector(
-                              onTap: () => _changeEpisode(index),
-                              child: Container(
-                                width: 55, height: 55,
-                                decoration: BoxDecoration(
-                                  color: isActive ? Colors.redAccent : getCard(context),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: isActive ? Colors.redAccent : Colors.white12)
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    "${index + 1}", 
-                                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
-                                  )
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-
-                    // 🔥 RECOMMENDED ANIME ADDED HERE 🔥
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text("Recommended For You", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 220, 
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: animeListNotifier.value.length, 
-                        itemBuilder: (context, index) { 
-                          Anime anime = animeListNotifier.value[index];
-                          if(anime.title == widget.anime.title) return const SizedBox.shrink(); // Skip current
-                          bool isCompleted = anime.status.toLowerCase() == "completed";
-                          String epCount = "E${getTotalEpisodes(anime)}";
-                          String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-                          String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
-                          String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
-
-                          return GestureDetector(
-                            onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: 0, episodeIndex: 0))), 
-                            child: Container(
-                              width: 130, margin: const EdgeInsets.only(right: 12), 
-                              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start, 
-                                  children:[
-                                    Expanded(
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                                          if (isCompleted)
-                                            Positioned(top: 15, left: -35, child: Transform.rotate(angle: -0.785398, child: Container(color: Colors.redAccent.withOpacity(0.9), padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4), child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))),
-                                          Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
-                                          Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
-                                          Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
-                                        ],
-                                      )
-                                    ), 
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
-                                          const SizedBox(height: 4),
-                                          Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                        ],
-                                      ),
-                                    )
-                                  ]
-                                ),
-                              )
-                            )
-                          ); 
-                        }
-                      ),
-                    ),
-                  ],
-                ),
+            GridView(
+              shrinkWrap: true, 
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, 
+                childAspectRatio: 1.1, 
+                crossAxisSpacing: 16, 
+                mainAxisSpacing: 16
               ),
+              children: [
+                _buildStatCard("Total Members", totalUsers.toString(), Icons.people, Colors.blue),
+                _buildStatCard("Premium Members", premiumUsers.toString(), Icons.workspace_premium, Colors.amber),
+                _buildStatCard("Daily Active Users", dailyActiveUsers.toString(), Icons.local_fire_department, Colors.orange),
+                _buildStatCard("Live Now", liveUsers.toString(), Icons.sensors, Colors.green, isLive: true),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _buildStatCard("Free Users", freeUsers.toString(), Icons.person_outline, Colors.grey, fullWidth: true)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildStatCard("Offline Now", offlineUsers.toString(), Icons.cloud_off, Colors.redAccent, fullWidth: true)),
+              ],
             )
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String count, IconData icon, Color color, {bool fullWidth = false, bool isLive = false}) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardDark, 
+        borderRadius: BorderRadius.circular(16), 
+        border: Border.all(color: Colors.white12)
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8), 
+                decoration: BoxDecoration(color: color.withOpacity(0.2), shape: BoxShape.circle), 
+                child: Icon(icon, color: color, size: 24)
+              ),
+              if(isLive) const Icon(Icons.circle, color: Colors.green, size: 12)
+            ],
+          ),
+          const Spacer(),
+          Text(count, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(title, style: TextStyle(color: Colors.white70, fontSize: fullWidth ? 13 : 12, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 2. MANAGE PAYMENTS
+// ==========================================
+class ManagePaymentsScreen extends StatefulWidget {
+  const ManagePaymentsScreen({super.key});
+
+  @override
+  State<ManagePaymentsScreen> createState() => _ManagePaymentsScreenState();
+}
+
+class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
+  List<dynamic> _requests = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchRequests(); 
+  }
+
+  Future<void> _fetchRequests() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await Supabase.instance.client.from('payment_requests').select().order('created_at', ascending: false);
+      setState(() => _requests = data);
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
+  }
+
+  Future<void> _updateStatus(dynamic id, String newStatus) async {
+    try {
+      await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id.toString());
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment $newStatus"), backgroundColor: Colors.green));
+      _fetchRequests();
+    } catch(e) { }
+  }
+
+  Future<void> _deleteRequest(dynamic id) async {
+    try {
+      await Supabase.instance.client.from('payment_requests').delete().eq('id', id.toString());
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record Deleted"), backgroundColor: Colors.red));
+      _fetchRequests();
+    } catch(e) { }
+  }
+
+  Future<void> _editPlanDialog(dynamic id, String currentPlan) async {
+    TextEditingController planController = TextEditingController(text: currentPlan);
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        title: const Text("Edit User's Plan", style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: planController, 
+          style: const TextStyle(color: Colors.white), 
+          decoration: const InputDecoration(filled: true, fillColor: bgDark)
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await Supabase.instance.client.from('payment_requests').update({'plan': planController.text}).eq('id', id.toString());
+                if(mounted) Navigator.pop(context);
+                _fetchRequests();
+              } catch(e) {}
+            },
+            child: const Text("Save")
+          )
+        ]
+      )
+    );
+  }
+
+  void _showProofDialog(String imageUrl, String utr) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("UTR: $utr", style: const TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 10),
+            imageUrl.startsWith('http') 
+              ? Image.network(imageUrl, height: 300, fit: BoxFit.contain) 
+              : const Text("No Image", style: TextStyle(color: Colors.white54))
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: adminPurple)))
+        ]
+      )
+    );
+  }
+
+  // 🔥 BUG FIX: Time shifting issue solved
+  String _formatDateGroup(String? isoString) {
+    if (isoString == null) return "Unknown Time";
+    
+    // String ko parse karenge bina uski timezone shift kiye
+    DateTime parsedDate = DateTime.parse(isoString);
+    
+    // Forcefully usko wahi time manenge jo string me bheja gaya tha
+    DateTime date = DateTime(
+      parsedDate.year, parsedDate.month, parsedDate.day, 
+      parsedDate.hour, parsedDate.minute
+    );
+
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime yesterday = today.subtract(const Duration(days: 1));
+    DateTime checkDate = DateTime(date.year, date.month, date.day);
+
+    String ampm = date.hour >= 12 ? 'PM' : 'AM';
+    int hr = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    String timeStr = "$hr:${date.minute.toString().padLeft(2, '0')} $ampm";
+
+    if (checkDate == today) return "Today at $timeStr";
+    if (checkDate == yesterday) return "Yesterday at $timeStr";
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} at $timeStr";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading 
+      ? const Center(child: CircularProgressIndicator(color: adminPurple)) 
+      : _requests.isEmpty 
+        ? const Center(child: Text("No payments found.", style: TextStyle(color: Colors.white54))) 
+        : ListView.builder(
+            padding: const EdgeInsets.all(12), 
+            itemCount: _requests.length, 
+            itemBuilder: (context, index) { 
+              final req = _requests[index]; 
+              String displayTime = _formatDateGroup(req['created_at']); 
+              
+              return Card(
+                color: cardDark, 
+                margin: const EdgeInsets.only(bottom: 12), 
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), 
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0), 
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                        children: [
+                          Expanded(
+                            child: Text("${req['email']}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16), overflow: TextOverflow.ellipsis)
+                          ), 
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), 
+                            decoration: BoxDecoration(
+                              color: req['status'] == 'Approved' ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2), 
+                              borderRadius: BorderRadius.circular(8)
+                            ), 
+                            child: Text(req['status'], style: TextStyle(color: req['status'] == 'Approved' ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.bold))
+                          )
+                        ]
+                      ), 
+                      const SizedBox(height: 6), 
+                      Text(displayTime, style: TextStyle(color: displayTime.contains("Today") ? Colors.greenAccent : Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)), 
+                      const SizedBox(height: 8), 
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                        children: [
+                          Expanded(child: Text("Plan: ${req['plan']}", style: const TextStyle(color: Colors.white70, fontSize: 13), overflow: TextOverflow.ellipsis)), 
+                          GestureDetector(onTap: () => _editPlanDialog(req['id'], req['plan']), child: const Icon(Icons.edit, color: Colors.blueAccent, size: 18))
+                        ]
+                      ), 
+                      const SizedBox(height: 4), 
+                      Text("UTR: ${req['transaction_id']}", style: const TextStyle(color: Colors.white70, fontSize: 13)), 
+                      const SizedBox(height: 12), 
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent), 
+                            icon: const Icon(Icons.image, size: 16, color: Colors.white), 
+                            label: const Text("Proof", style: TextStyle(color: Colors.white)), 
+                            onPressed: () => _showProofDialog(req['image_path'], req['transaction_id'])
+                          ), 
+                          IconButton(icon: const Icon(Icons.check_circle, color: Colors.green), onPressed: () => _updateStatus(req['id'], 'Approved')), 
+                          IconButton(icon: const Icon(Icons.cancel, color: Colors.orange), onPressed: () => _updateStatus(req['id'], 'Rejected')), 
+                          IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteRequest(req['id']))
+                        ]
+                      )
+                    ]
+                  )
+                )
+              ); 
+            }
+          ); 
+  }
+}
+
+// ==========================================
+// 3. MANAGE ANIME 
+// ==========================================
+class ManageAnimeScreen extends StatefulWidget {
+  const ManageAnimeScreen({super.key});
+
+  @override
+  State<ManageAnimeScreen> createState() => _ManageAnimeScreenState();
+}
+
+class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
+  final _titleController = TextEditingController(); 
+  final _descController = TextEditingController(); 
+  final _imageController = TextEditingController(); 
+  final _mainCategoryController = TextEditingController(); 
+  final _subCategoryController = TextEditingController(); 
+  String _selectedDub = 'DUB'; 
+  String _selectedRating = 'PG-13'; 
+  List<dynamic> _animeList = []; 
+  bool _isLoading = false;
+
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchAnime(); 
+  }
+
+  Future<void> _fetchAnime() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await Supabase.instance.client.from('anime_list').select().order('created_at', ascending: false);
+      setState(() => _animeList = data);
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
+  }
+
+  Future<void> _addAnime() async {
+    if(_titleController.text.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.from('anime_list').insert({
+        'title': _titleController.text, 
+        'description': _descController.text, 
+        'image_url': _imageController.text, 
+        'category': _mainCategoryController.text, 
+        'sub_category': _subCategoryController.text, 
+        'dub_status': _selectedDub, 
+        'rating': _selectedRating,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Anime Added"), backgroundColor: Colors.green));
+      _titleController.clear(); 
+      _descController.clear(); 
+      _imageController.clear(); 
+      _mainCategoryController.clear(); 
+      _subCategoryController.clear();
+      _fetchAnime();
+    } catch (e) {}
+  }
+
+  Future<void> _deleteAnime(dynamic id) async {
+    await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString());
+    _fetchAnime();
+  }
+
+  Future<void> _editAnime(Map<String, dynamic> anime) async {
+    _titleController.text = anime['title'] ?? '';
+    _descController.text = anime['description'] ?? '';
+    _imageController.text = anime['image_url'] ?? '';
+    _mainCategoryController.text = anime['category'] ?? '';
+    _subCategoryController.text = anime['sub_category'] ?? '';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        title: const Text("Edit Anime", style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Title")),
+              const SizedBox(height: 8),
+              TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Image URL")),
+              const SizedBox(height: 8),
+              TextField(controller: _mainCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Main Category")),
+              const SizedBox(height: 8),
+              TextField(controller: _subCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Sub Category")),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              await Supabase.instance.client.from('anime_list').update({
+                'title': _titleController.text,
+                'image_url': _imageController.text,
+                'category': _mainCategoryController.text,
+                'sub_category': _subCategoryController.text,
+              }).eq('id', anime['id'].toString());
+              if(mounted) Navigator.pop(context);
+              _titleController.clear(); 
+              _imageController.clear(); 
+              _mainCategoryController.clear(); 
+              _subCategoryController.clear();
+              _fetchAnime();
+            },
+            child: const Text("Update")
+          )
+        ]
+      )
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Upload Anime Profile", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 16),
+          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Anime Name")), 
+          const SizedBox(height: 12),
+          TextField(controller: _descController, maxLines: 3, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Description")), 
+          const SizedBox(height: 12),
+          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Poster Image URL")), 
+          const SizedBox(height: 12),
+          TextField(controller: _mainCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Main Category (e.g. Action)")), 
+          const SizedBox(height: 12),
+          TextField(controller: _subCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Sub Category (e.g. Romance, Thriller)")), 
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _selectedDub, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: _inputDeco("Dub Status"), 
+                  items: ['DUB', 'ORIGINAL', 'MIX O/D'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), 
+                  onChanged: (v) => setState(() => _selectedDub = v!)
+                )
+              ), 
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _selectedRating, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: _inputDeco("Rating"), 
+                  items: ['PG-13', 'R-17+', 'All Ages'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), 
+                  onChanged: (v) => setState(() => _selectedRating = v!)
+                )
+              )
+            ]
+          ), 
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity, 
+            height: 50, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.upload, color: Colors.white), 
+              label: const Text("Upload Anime Profile", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              onPressed: _isLoading ? null : _addAnime
+            )
+          ), 
+          const SizedBox(height: 30), 
+          const Text("Uploaded Animes", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 18)), 
+          const SizedBox(height: 10),
+          if (_isLoading) 
+            const Center(child: CircularProgressIndicator(color: adminPurple)) 
+          else 
+            ListView.builder(
+              shrinkWrap: true, 
+              physics: const NeverScrollableScrollPhysics(), 
+              itemCount: _animeList.length, 
+              itemBuilder: (context, index) { 
+                final a = _animeList[index]; 
+                return Card(
+                  color: cardDark, 
+                  child: ListTile(
+                    leading: Image.network(a['image_url'], width: 40, fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.error)), 
+                    title: Text(a['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+                    subtitle: Text("${a['category']} | ${a['dub_status']}", style: const TextStyle(color: Colors.white54)), 
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min, 
+                      children: [
+                        IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _editAnime(a)), 
+                        IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteAnime(a['id']))
+                      ]
+                    )
+                  )
+                ); 
+              }
+            )
+        ]
+      )
+    ); 
+  }
+  
+  InputDecoration _inputDeco(String hint) {
+    return InputDecoration(
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+      filled: true, 
+      fillColor: cardDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+    );
+  }
+}
+
+// ==========================================
+// 4. MANAGE EPISODES
+// ==========================================
+class ManageEpisodesScreen extends StatefulWidget {
+  const ManageEpisodesScreen({super.key});
+
+  @override
+  State<ManageEpisodesScreen> createState() => _ManageEpisodesScreenState();
+}
+
+class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
+  List<dynamic> _animeList = []; 
+  List<dynamic> _episodeList = []; 
+  String? _selectedAnimeId; 
+  final _seasonController = TextEditingController(); 
+  final _episodeTitleController = TextEditingController(); 
+  final _imageUrlController = TextEditingController(); 
+  final _durationController = TextEditingController(); 
+  final _videoUrlController = TextEditingController(); 
+  bool _isLoading = true;
+
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchAnimeList(); 
+  }
+
+  Future<void> _fetchAnimeList() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await Supabase.instance.client.from('anime_list').select('id, title').order('created_at', ascending: false);
+      setState(() { 
+        _animeList = data; 
+        if(data.isNotEmpty) { 
+          _selectedAnimeId = data[0]['id'].toString(); 
+          _fetchEpisodesForAnime(_selectedAnimeId!); 
+        } 
+      });
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
+  }
+
+  Future<void> _fetchEpisodesForAnime(String animeId) async {
+    try {
+      final data = await Supabase.instance.client.from('anime_seasons').select('id, season_name, anime_episodes(id, episode_title, video_url)').eq('anime_id', animeId);
+      List<dynamic> allEps = [];
+      for (var season in data) { 
+        for (var ep in season['anime_episodes']) { 
+          ep['season_name'] = season['season_name']; 
+          allEps.add(ep); 
+        } 
+      }
+      setState(() => _episodeList = allEps);
+    } catch (e) {}
+  }
+
+  Future<void> _uploadEpisode() async {
+    if (_selectedAnimeId == null || _seasonController.text.isEmpty || _videoUrlController.text.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      final seasonRes = await Supabase.instance.client.from('anime_seasons').select('id').eq('anime_id', _selectedAnimeId!).eq('season_name', _seasonController.text.trim()).maybeSingle();
+      String seasonId;
+      if (seasonRes == null) {
+        final newSeason = await Supabase.instance.client.from('anime_seasons').insert({
+          'anime_id': _selectedAnimeId, 
+          'season_name': _seasonController.text.trim()
+        }).select('id').single();
+        seasonId = newSeason['id'].toString();
+      } else {
+        seasonId = seasonRes['id'].toString();
+      }
+      
+      await Supabase.instance.client.from('anime_episodes').insert({
+        'season_id': seasonId, 
+        'episode_title': _episodeTitleController.text.isEmpty ? "Episode" : _episodeTitleController.text, 
+        'image_url': _imageUrlController.text, 
+        'duration': _durationController.text.isEmpty ? "24m" : _durationController.text, 
+        'video_url': _videoUrlController.text
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episode Uploaded"), backgroundColor: Colors.green));
+      _episodeTitleController.clear(); 
+      _imageUrlController.clear(); 
+      _durationController.clear(); 
+      _videoUrlController.clear();
+      _fetchEpisodesForAnime(_selectedAnimeId!);
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
+  }
+
+  Future<void> _deleteEpisode(dynamic id) async {
+    await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString());
+    if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading && _animeList.isEmpty) return const Center(child: CircularProgressIndicator(color: adminPurple));
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Upload New Episode", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            dropdownColor: cardDark, 
+            value: _selectedAnimeId, 
+            style: const TextStyle(color: Colors.white), 
+            decoration: _inputDeco("Select Anime"), 
+            items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), 
+            onChanged: (v) { 
+              setState(() => _selectedAnimeId = v); 
+              if(v != null) _fetchEpisodesForAnime(v); 
+            }
+          ), 
+          const SizedBox(height: 12),
+          TextField(controller: _seasonController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Season Name (e.g. S1)")), 
+          const SizedBox(height: 12),
+          TextField(controller: _episodeTitleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Episode Title")), 
+          const SizedBox(height: 12),
+          TextField(controller: _imageUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Thumbnail URL (Optional)")), 
+          const SizedBox(height: 12),
+          TextField(controller: _durationController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Duration (e.g. 24m)")), 
+          const SizedBox(height: 12),
+          TextField(controller: _videoUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Direct Video URL")), 
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity, 
+            height: 50, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.cloud_upload, color: Colors.white), 
+              label: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Upload Episode", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              onPressed: _isLoading ? null : _uploadEpisode
+            )
+          ), 
+          const SizedBox(height: 30), 
+          const Text("Episodes for Selected Anime", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 18)), 
+          const SizedBox(height: 10),
+          ListView.builder(
+            shrinkWrap: true, 
+            physics: const NeverScrollableScrollPhysics(), 
+            itemCount: _episodeList.length, 
+            itemBuilder: (context, index) {
+              final ep = _episodeList[index];
+              return Card(
+                color: cardDark, 
+                child: ListTile(
+                  title: Text(ep['episode_title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+                  subtitle: Text("${ep['season_name']} | Link: ${ep['video_url']}", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54)), 
+                  trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteEpisode(ep['id']))
+                )
+              );
+            }
+          )
+        ]
+      )
+    );
+  }
+
+  InputDecoration _inputDeco(String hint) {
+    return InputDecoration(
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+      filled: true, 
+      fillColor: cardDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+    );
+  }
+}
+
+// ==========================================
+// 5. MANAGE HERO SECTION 
+// ==========================================
+class ManageHeroScreen extends StatefulWidget {
+  const ManageHeroScreen({super.key});
+
+  @override
+  State<ManageHeroScreen> createState() => _ManageHeroScreenState();
+}
+
+class _ManageHeroScreenState extends State<ManageHeroScreen> {
+  final _titleController = TextEditingController(); 
+  final _imageController = TextEditingController(); 
+  final _tagController = TextEditingController(); 
+  List<dynamic> _animeList = []; 
+  String? _selectedAnimeId; 
+  bool _isCustom = false; 
+  String _selectedColor = "FF8A2BE2"; 
+  List<dynamic> _heroItems = []; 
+  
+  final Map<String, String> _colorOptions = {
+    "Purple": "FF8A2BE2", 
+    "Red": "FFFF4D4D", 
+    "Blue": "FF4DA6FF", 
+    "Green": "FF00C853", 
+    "Orange": "FFFF9F43", 
+    "Pink": "FFFF4081"
+  };
+
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchData(); 
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final animes = await Supabase.instance.client.from('anime_list').select('id, title');
+      final heroes = await Supabase.instance.client.from('hero_slider').select().order('created_at', ascending: false);
+      setState(() { 
+        _animeList = animes; 
+        _heroItems = heroes; 
+      });
+    } catch (e) {}
+  }
+
+  Future<void> _addHero() async {
+    try {
+      await Supabase.instance.client.from('hero_slider').insert({
+        'title': _titleController.text, 
+        'image_url': _imageController.text, 
+        'anime_id': _isCustom ? null : _selectedAnimeId, 
+        'is_custom': _isCustom, 
+        'tag': _tagController.text.isEmpty ? "NEW" : _tagController.text, 
+        'tag_color': _selectedColor
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Hero Added!"), backgroundColor: Colors.green));
+      _titleController.clear(); 
+      _imageController.clear(); 
+      _tagController.clear(); 
+      _fetchData();
+    } catch (e) {}
+  }
+
+  Future<void> _deleteHero(dynamic id) async {
+    await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString());
+    _fetchData();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Add Hero Banner", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 16),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero, 
+            title: const Text("Custom Banner (Not linked to Anime)", style: TextStyle(color: Colors.white)), 
+            activeColor: adminPurple, 
+            value: _isCustom, 
+            onChanged: (val) => setState(() => _isCustom = val)
+          ),
+          if (!_isCustom) ...[
+            DropdownButtonFormField<String>(
+              dropdownColor: cardDark, 
+              value: _selectedAnimeId, 
+              hint: const Text("Link to Existing Anime", style: TextStyle(color: Colors.white54)), 
+              style: const TextStyle(color: Colors.white), 
+              decoration: _inputDeco("Select Anime"), 
+              items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), 
+              onChanged: (v) => setState(() => _selectedAnimeId = v)
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")), 
+          const SizedBox(height: 12),
+          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL (Landscape)")), 
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(controller: _tagController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag (Trending, etc)"))
+              ), 
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _selectedColor, 
+                  decoration: _inputDeco("Tag Color"), 
+                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)))))).toList(), 
+                  onChanged: (v) => setState(() => _selectedColor = v!)
+                )
+              )
+            ]
+          ), 
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity, 
+            height: 50, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.add_photo_alternate, color: Colors.white), 
+              label: const Text("Add to Hero Slider", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              onPressed: _addHero
+            )
+          ),
+          const SizedBox(height: 30), 
+          const Text("Current Hero Banners", style: TextStyle(color: adminPurple, fontSize: 18, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 10),
+          ListView.builder(
+            shrinkWrap: true, 
+            physics: const NeverScrollableScrollPhysics(), 
+            itemCount: _heroItems.length, 
+            itemBuilder: (context, index) {
+              final item = _heroItems[index];
+              return Card(
+                color: cardDark, 
+                child: ListTile(
+                  leading: Image.network(item['image_url'], width: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>const Icon(Icons.error)), 
+                  title: Text(item['title'] ?? "No Title", style: const TextStyle(color: Colors.white)), 
+                  subtitle: Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: Colors.white54)), 
+                  trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteHero(item['id']))
+                )
+              );
+            }
+          )
+        ]
+      )
+    );
+  }
+
+  InputDecoration _inputDeco(String hint) {
+    return InputDecoration(
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+      filled: true, 
+      fillColor: cardDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+    );
+  }
+}
+
+// ==========================================
+// 6. REGISTERED USERS (PASSWORD RESET)
+// ==========================================
+class UsersListScreen extends StatefulWidget {
+  const UsersListScreen({super.key});
+
+  @override
+  State<UsersListScreen> createState() => _UsersListScreenState();
+}
+
+class _UsersListScreenState extends State<UsersListScreen> {
+  List<dynamic> _users = []; 
+  bool _isLoading = true;
+
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchUsers(); 
+  }
+
+  Future<void> _fetchUsers() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await Supabase.instance.client.from('user_preferences').select('email').neq('email', '');
+      Set<String> uniqueEmails = {};
+      for (var row in data) { 
+        if (row['email'] != null) uniqueEmails.add(row['email']); 
+      }
+      setState(() => _users = uniqueEmails.toList());
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
+  }
+
+  Future<void> _sendResetLink(String email) async {
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(email);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Reset Link sent to $email"), backgroundColor: Colors.green));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading 
+      ? const Center(child: CircularProgressIndicator(color: adminPurple))
+      : _users.isEmpty 
+        ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54)))
+        : Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12), 
+                color: Colors.blueAccent.withOpacity(0.1), 
+                child: Row(
+                  children: const [
+                    Icon(Icons.info, color: Colors.blueAccent), 
+                    SizedBox(width: 10), 
+                    Expanded(
+                      child: Text("Passwords are encrypted. Click 'Send Link' to send a password reset email.", style: TextStyle(color: Colors.blueAccent, fontSize: 13))
+                    )
+                  ]
+                )
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(12), 
+                  itemCount: _users.length,
+                  itemBuilder: (context, index) {
+                    String email = _users[index];
+                    return Card(
+                      color: cardDark, 
+                      margin: const EdgeInsets.only(bottom: 12), 
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const CircleAvatar(backgroundColor: adminPurple, child: Icon(Icons.person, color: Colors.white)), 
+                                const SizedBox(width: 12), 
+                                Expanded(child: Text(email, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)))
+                              ]
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text("Pass: [ Encrypted Hash ]", style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic, fontSize: 12)),
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), 
+                                  icon: const Icon(Icons.link, color: Colors.white, size: 16), 
+                                  label: const Text("Send Link", style: TextStyle(color: Colors.white, fontSize: 12)), 
+                                  onPressed: () => _sendResetLink(email)
+                                )
+                              ]
+                            )
+                          ]
+                        )
+                      )
+                    );
+                  }
+                )
+              )
+            ]
+          );
+  }
+}
+
+// ==========================================
+// 7. APP SETTINGS (WEBSITE LINK & LOGO & SOCIALS & QR CODE)
+// ==========================================
+class AppSettingsScreen extends StatefulWidget {
+  const AppSettingsScreen({super.key});
+
+  @override
+  State<AppSettingsScreen> createState() => _AppSettingsScreenState();
+}
+
+class _AppSettingsScreenState extends State<AppSettingsScreen> {
+  final _urlController = TextEditingController();
+  final _logoController = TextEditingController();
+  final _telegramController = TextEditingController();
+  final _youtubeController = TextEditingController();
+  final _whatsappController = TextEditingController();
+  final _qrUrlController = TextEditingController();
+  final _upiIdController = TextEditingController();
+  
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchSettings(); 
+  }
+
+  Future<void> _fetchSettings() async {
+    try {
+      final res = await Supabase.instance.client.from('app_settings').select().eq('id', 1).maybeSingle();
+      if(res != null) {
+        setState(() {
+          _urlController.text = res['website_url'] ?? "";
+          _logoController.text = res['app_logo_url'] ?? "";
+          _telegramController.text = res['telegram_url'] ?? "";
+          _youtubeController.text = res['youtube_url'] ?? "";
+          _whatsappController.text = res['whatsapp_url'] ?? "";
+          _qrUrlController.text = res['payment_qr_url'] ?? "";
+          _upiIdController.text = res['upi_id'] ?? "";
+        });
+      }
+    } catch(e) {}
+  }
+
+  Future<void> _saveSettings() async {
+    try {
+      await Supabase.instance.client.from('app_settings').upsert({
+        'id': 1, 
+        'website_url': _urlController.text.trim(), 
+        'app_logo_url': _logoController.text.trim(),
+        'telegram_url': _telegramController.text.trim(),
+        'youtube_url': _youtubeController.text.trim(),
+        'whatsapp_url': _whatsappController.text.trim(),
+        'payment_qr_url': _qrUrlController.text.trim(),
+        'upi_id': _upiIdController.text.trim()
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Settings Updated Successfully!"), backgroundColor: Colors.green));
+    } catch(e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error saving settings. Did you run the SQL query? Error: $e"), backgroundColor: Colors.red));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("App Visuals & Links", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          const Text("Change user panel logo and website URL from here.", style: TextStyle(color: Colors.white54, fontSize: 13)), 
+          const SizedBox(height: 20),
+          
+          const Text("Website URL", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(controller: _urlController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "https://yourwebsite.com", filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 20),
+
+          const Text("App Logo URL (PNG/WEBP)", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(controller: _logoController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "https://image-link.png", filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 30),
+
+          const Divider(color: Colors.white12),
+          const SizedBox(height: 20),
+
+          const Text("Payment Settings (User Panel)", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 16),
+          
+          const Text("Payment QR Code Image URL", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(controller: _qrUrlController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "Enter QR Code Image Link", prefixIcon: const Icon(Icons.qr_code, color: Colors.amber), filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 16),
+
+          const Text("UPI ID", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(controller: _upiIdController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "e.g. yourname@oksbi", prefixIcon: const Icon(Icons.account_balance_wallet, color: Colors.amber), filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 30),
+
+          const Divider(color: Colors.white12),
+          const SizedBox(height: 20),
+
+          const Text("Social Media Integration", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 16),
+          
+          const Text("Telegram Group Link", style: TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(controller: _telegramController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "https://t.me/yourgroup", prefixIcon: const Icon(Icons.telegram, color: Colors.blueAccent), filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 16),
+
+          const Text("YouTube Channel Link", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(controller: _youtubeController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "https://youtube.com/@yourchannel", prefixIcon: const Icon(Icons.play_circle_filled, color: Colors.redAccent), filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 16),
+
+          const Text("WhatsApp Group/Contact Link", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(controller: _whatsappController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "https://wa.me/number OR group link", prefixIcon: const Icon(Icons.chat, color: Colors.greenAccent), filled: true, fillColor: cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          const SizedBox(height: 30),
+
+          SizedBox(
+            width: double.infinity, 
+            height: 50, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.save, color: Colors.white), 
+              label: const Text("Save All Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              onPressed: _saveSettings
+            )
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 🔥 NEW: MANAGE APP PAGES (PRIVACY & GUIDE)
+// ==========================================
+class ManagePagesScreen extends StatefulWidget {
+  const ManagePagesScreen({super.key});
+
+  @override
+  State<ManagePagesScreen> createState() => _ManagePagesScreenState();
+}
+
+class _ManagePagesScreenState extends State<ManagePagesScreen> {
+  final _privacyPolicyController = TextEditingController();
+  final _appGuideController = TextEditingController();
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPages();
+  }
+
+  Future<void> _fetchPages() async {
+    try {
+      final res = await Supabase.instance.client.from('app_settings').select('privacy_policy, app_guide').eq('id', 1).maybeSingle();
+      if(res != null) {
+        setState(() {
+          _privacyPolicyController.text = res['privacy_policy'] ?? "";
+          _appGuideController.text = res['app_guide'] ?? "";
+        });
+      }
+    } catch(e) { 
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _savePages() async {
+    setState(() => _isLoading = true);
+    try {
+      await Supabase.instance.client.from('app_settings').update({
+        'privacy_policy': _privacyPolicyController.text.trim(),
+        'app_guide': _appGuideController.text.trim()
+      }).eq('id', 1);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Pages Updated & Synced with User App!"), backgroundColor: Colors.green));
+    } catch(e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error saving pages: $e"), backgroundColor: Colors.red));
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const Center(child: CircularProgressIndicator(color: adminPurple));
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Manage User App Content", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          const Text("Changes made here will instantly reflect in the User App.", style: TextStyle(color: Colors.greenAccent, fontSize: 13)), 
+          const SizedBox(height: 20),
+
+          const Text("Privacy Policy Content", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(
+            controller: _privacyPolicyController, 
+            maxLines: 10, 
+            style: const TextStyle(color: Colors.white, height: 1.4),
+            decoration: InputDecoration(
+              hintText: "Enter complete Privacy Policy here...", 
+              filled: true, 
+              fillColor: cardDark, 
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+            )
+          ),
+          const SizedBox(height: 24),
+
+          const Text("App Guide / How to Use", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          TextField(
+            controller: _appGuideController, 
+            maxLines: 10, 
+            style: const TextStyle(color: Colors.white, height: 1.4),
+            decoration: InputDecoration(
+              hintText: "Enter full App Guide instructions here...", 
+              filled: true, 
+              fillColor: cardDark, 
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+            )
+          ),
+          const SizedBox(height: 30),
+
+          SizedBox(
+            width: double.infinity, 
+            height: 50, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.sync, color: Colors.white), 
+              label: const Text("Save & Sync to Users", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              onPressed: _savePages
+            )
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 8. APP SOURCE CODE (OTA) UPDATE MANAGER
+// ==========================================
+class AppUpdateScreen extends StatefulWidget {
+  const AppUpdateScreen({super.key});
+
+  @override
+  State<AppUpdateScreen> createState() => _AppUpdateScreenState();
+}
+
+class _AppUpdateScreenState extends State<AppUpdateScreen> {
+  final _versionController = TextEditingController();
+  final _apkUrlController = TextEditingController();
+  final _whatsNewController = TextEditingController();
+
+  Future<void> _pushUpdate() async {
+    if (_versionController.text.trim() == "1.0.0") {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Alert: Users pehle se 1.0.0 use kar rahe hain. 1.0.1 ya bada version daalein warna unhe popup nahi dikhega!"), backgroundColor: Colors.orange));
+      return;
+    }
+
+    try {
+      await Supabase.instance.client.from('app_updates').insert({
+        'version': _versionController.text.trim(), 
+        'apk_url': _apkUrlController.text.trim(), 
+        'whats_new': _whatsNewController.text.trim()
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("App Update Alert Pushed Successfully!"), backgroundColor: Colors.green));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Push App Update (For Users)", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 8),
+          const Text("Enter Version & Website Link. (Warning: Naya version purane se bada hona chahiye)", style: TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)), 
+          const SizedBox(height: 20),
+          
+          TextField(
+            controller: _versionController, 
+            style: const TextStyle(color: Colors.white), 
+            decoration: InputDecoration(
+              hintText: "New Version Number (e.g. 1.0.1)", 
+              hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+              filled: true, 
+              fillColor: cardDark, 
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+            )
+          ), 
+          const SizedBox(height: 16),
+          
+          TextField(
+            controller: _apkUrlController, 
+            style: const TextStyle(color: Colors.white), 
+            decoration: InputDecoration(
+              hintText: "Website/Download Link", 
+              hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+              filled: true, 
+              fillColor: cardDark, 
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+            )
+          ), 
+          const SizedBox(height: 16),
+          
+          TextField(
+            controller: _whatsNewController, 
+            maxLines: 4, 
+            style: const TextStyle(color: Colors.white), 
+            decoration: InputDecoration(
+              hintText: "What's New / Release Notes...", 
+              hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+              filled: true, 
+              fillColor: cardDark, 
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), 
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+            )
+          ), 
+          const SizedBox(height: 24),
+          
+          SizedBox(
+            height: 50, 
+            width: double.infinity, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.send, color: Colors.white), 
+              label: const Text("Send Update Alert to Users", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), 
+              onPressed: _pushUpdate
+            )
+          ),
+        ],
       ),
     );
   }
