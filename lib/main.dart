@@ -355,7 +355,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             _buildBottomNavItem(Icons.home_rounded, "Dashboard", 0, () => _selectScreen(const AdminHomeScreen(), "Dashboard", 0)),
             _buildBottomNavItem(Icons.group_rounded, "Users", 1, () => _selectScreen(const UsersListScreen(), "Manage Users", 1)),
             
-            // Center Floating Action Button replacement for navigation
             GestureDetector(
               onTap: () => _selectScreen(const ManageAnimeScreen(), "Manage Anime", 2),
               child: Container(
@@ -453,7 +452,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       freeUsers = totalUsers - premiumUsers;
       if(freeUsers < 0) freeUsers = 0;
       
-      offlineUsers = totalUsers; // Simplified
+      offlineUsers = totalUsers; 
 
       final today = DateTime.now();
       final startOfToday = DateTime(today.year, today.month, today.day).toUtc().toIso8601String();
@@ -486,7 +485,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Overview Banner
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -535,7 +533,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 _buildStatCard("Free Users", freeUsers.toString(), Icons.person, adminPurple, "+100%"),
                 _buildStatCard("Offline Now", offlineUsers.toString(), Icons.cloud_off, const Color(0xFFDC2626), "-100%"),
                 
-                // Logout Card
                 GestureDetector(
                   onTap: () => Supabase.instance.client.auth.signOut(),
                   child: Container(
@@ -566,7 +563,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Custom User Growth Chart UI
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -666,7 +662,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 }
 
-// User Growth Line Chart Painter
 class ChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -678,7 +673,6 @@ class ChartPainter extends CustomPainter {
 
     final path = Path();
     
-    // Mock data points
     final points = [
       Offset(0, size.height * 0.8),
       Offset(size.width * 0.2, size.height * 0.5),
@@ -693,7 +687,6 @@ class ChartPainter extends CustomPainter {
       path.lineTo(points[i].dx, points[i].dy);
     }
 
-    // Gradient Fill
     final fillPath = Path.from(path)
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
@@ -710,7 +703,6 @@ class ChartPainter extends CustomPainter {
     canvas.drawPath(fillPath, gradientPaint);
     canvas.drawPath(path, paint);
 
-    // Draw Dots
     final dotPaint = Paint()
       ..color = adminPurple
       ..style = PaintingStyle.fill;
@@ -868,7 +860,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 
     return Column(
       children: [
-        // STATS ROW
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -895,8 +886,8 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                   itemBuilder: (context, index) { 
                     final req = _requests[index]; 
                     String displayTime = _formatDateGroup(req['created_at']); 
-                    String userName = req['name'] ?? "Unknown User"; // Fetch actual name
-                    String uid = req['uid'] ?? req['transaction_id']?.substring(0, 8) ?? "N/A"; // Display UID
+                    String userName = req['name'] ?? "Unknown User"; 
+                    String uid = req['uid'] ?? req['transaction_id']?.substring(0, 8) ?? "N/A"; 
                     String amount = req['amount']?.toString() ?? "₹0.00";
                     
                     Color statusColor = req['status'] == 'Approved' ? const Color(0xFF10B981) : (req['status'] == 'Rejected' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
@@ -913,7 +904,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Header Row
                             Row(
                               children: [
                                 Container(
@@ -941,7 +931,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                             ),
                             const SizedBox(height: 16),
                             
-                            // Info Grid
                             Row(
                               children: [
                                 Expanded(child: _buildInfoItem(Icons.auto_graph, "Plan", req['plan'] ?? 'Unknown')),
@@ -951,7 +940,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                             ),
                             const SizedBox(height: 16),
                             
-                            // UTR
                             Row(
                               children: [
                                 const Text("UTR  ", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 13)),
@@ -962,7 +950,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                             ),
                             const SizedBox(height: 16),
                             
-                            // Action Buttons
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -1157,7 +1144,6 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
@@ -1182,7 +1168,6 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Form
           TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Anime Name", Icons.text_fields)), 
           const SizedBox(height: 12),
           TextField(controller: _descController, maxLines: 4, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Description", Icons.description)), 
@@ -1247,7 +1232,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
                     ),
                     title: Text(a['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
                     subtitle: Padding(
-                      padding: const EdgeInsets.topOnly(top: 8.0),
+                      padding: const EdgeInsets.only(top: 8.0), // Corrected EdgeInsets.only
                       child: Row(
                         children: [
                           Container(
