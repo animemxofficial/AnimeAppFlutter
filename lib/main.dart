@@ -344,7 +344,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
       ),
       body: _currentScreen,
-      // COMPACT BOTTOM NAVIGATION BAR
       bottomNavigationBar: SafeArea(
         child: Container(
           height: 60, 
@@ -433,7 +432,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int offlineUsers = 0;
   int dailyActiveUsers = 0; 
   
-  // Real-time Chart Data
   List<int> _weeklyGrowth = [0, 0, 0, 0, 0, 0, 0];
   List<String> _weekLabels = ["", "", "", "", "", "", ""];
   
@@ -448,7 +446,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 
   void _initRealtime() {
-    // Listen for any new users or payments in real-time
     _dbChannel = Supabase.instance.client.channel('public:admin_dashboard')
       ..onPostgresChanges(
           event: PostgresChangeEvent.all,
@@ -469,30 +466,27 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     super.dispose();
   }
 
-  // Monthly months mapping for chart
   final List<String> _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   Future<void> _fetchStats() async {
     try {
       final now = DateTime.now();
       
-      // Setup labels for the last 7 days
       List<String> tempLabels = [];
       for(int i = 6; i >= 0; i--) {
         DateTime d = now.subtract(Duration(days: i));
         tempLabels.add("${_months[d.month - 1]} ${d.day}");
       }
       
-      // Fetch User Data for Counts & Chart
-      final userRes = await Supabase.instance.client.from('user_preferences').select('email, created_at');
+      // Removed email dependency for users count, relying on UUID 'id'
+      final userRes = await Supabase.instance.client.from('user_preferences').select('id, created_at');
       
-      Set<String> uniqueEmails = {};
+      Set<String> uniqueIds = {};
       List<int> counts = List.filled(7, 0);
       
       for(var r in userRes) { 
-        if(r['email'] != null) uniqueEmails.add(r['email']); 
+        if(r['id'] != null) uniqueIds.add(r['id'].toString()); 
         
-        // Build Chart Data
         if(r['created_at'] != null) {
           DateTime ca = DateTime.parse(r['created_at']).toLocal();
           DateTime today = DateTime(now.year, now.month, now.day);
@@ -500,22 +494,17 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           int diffDays = today.difference(createdDate).inDays;
           
           if(diffDays >= 0 && diffDays <= 6) {
-            counts[6 - diffDays]++; // index 6 is today, 0 is 6 days ago
+            counts[6 - diffDays]++; 
           }
         }
       }
-      totalUsers = uniqueEmails.length;
+      totalUsers = uniqueIds.length;
 
-      final premiumRes = await Supabase.instance.client.from('payment_requests').select('email').eq('status', 'Approved');
-      Set<String> premiumEmails = {};
-      for(var r in premiumRes) { 
-        if(r['email'] != null) premiumEmails.add(r['email']); 
-      }
-      premiumUsers = premiumEmails.length;
+      final premiumRes = await Supabase.instance.client.from('payment_requests').select('id').eq('status', 'Approved');
+      premiumUsers = premiumRes.length;
 
       freeUsers = totalUsers - premiumUsers;
       if(freeUsers < 0) freeUsers = 0;
-      
       offlineUsers = totalUsers; 
 
       final startOfToday = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
@@ -554,7 +543,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // COMPACT TOP CARD
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
@@ -587,13 +575,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             const Text("Overview", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             
-            // COMPACT ANALYTICS GRID (Ratio optimized to prevent overflow)
             GridView(
               shrinkWrap: true, 
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3, // 3 Columns
-                childAspectRatio: 0.85, // Adjust for mobile fit without overflow
+                crossAxisCount: 3,
+                childAspectRatio: 0.85, 
                 crossAxisSpacing: 10, 
                 mainAxisSpacing: 10
               ),
@@ -604,7 +591,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 _buildStatCard("Premium", premiumUsers.toString(), Icons.workspace_premium, const Color(0xFFD97706), "+10.2%"),
                 _buildStatCard("Offline Users", offlineUsers.toString(), Icons.cloud_off, const Color(0xFFDC2626), "-2.1%"),
                 
-                // COMPACT LOGOUT CARD
                 GestureDetector(
                   onTap: () => Supabase.instance.client.auth.signOut(),
                   child: Container(
@@ -635,7 +621,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // REAL-TIME CUSTOM USER GROWTH CHART
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -741,7 +726,7 @@ class ChartPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     int maxVal = data.reduce(math.max);
-    if (maxVal == 0) maxVal = 1; // Prevent division by zero
+    if (maxVal == 0) maxVal = 1; 
 
     final path = Path();
     List<Offset> points = [];
@@ -750,7 +735,6 @@ class ChartPainter extends CustomPainter {
     
     for(int i = 0; i < data.length; i++) {
        double x = i * xStep;
-       // y is inverted (0 is top). Keep 25% padding at top.
        double y = size.height - (data[i] / maxVal * size.height * 0.75); 
        points.add(Offset(x, y));
     }
@@ -1644,7 +1628,7 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
 }
 
 // ==========================================
-// 5. MANAGE HERO SECTION 
+// 5. MANAGE HERO SECTION (UPGRADED)
 // ==========================================
 class ManageHeroScreen extends StatefulWidget {
   const ManageHeroScreen({super.key});
@@ -1707,9 +1691,92 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
     } catch (e) {}
   }
 
-  Future<void> _deleteHero(dynamic id) async {
-    await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString());
-    _fetchData();
+  Future<void> _deleteHeroDialog(dynamic id) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete Hero Banner?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to delete this banner?", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
+    if (confirm == true) {
+      await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString());
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Banner Deleted"), backgroundColor: Colors.redAccent));
+      _fetchData();
+    }
+  }
+
+  Future<void> _editHeroDialog(Map<String, dynamic> item) async {
+    TextEditingController editTitle = TextEditingController(text: item['title'] ?? '');
+    TextEditingController editImage = TextEditingController(text: item['image_url'] ?? '');
+    TextEditingController editTag = TextEditingController(text: item['tag'] ?? '');
+    String editColor = item['tag_color'] ?? "FF8A2BE2";
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateModal) => AlertDialog(
+          backgroundColor: cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+          title: const Text("Edit Hero Banner", style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: editTitle, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")),
+                const SizedBox(height: 12),
+                TextField(controller: editImage, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL")),
+                const SizedBox(height: 12),
+                TextField(controller: editTag, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag")),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _colorOptions.values.contains(editColor) ? editColor : "FF8A2BE2", 
+                  decoration: _inputDeco("Tag Color"), 
+                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)))))).toList(), 
+                  onChanged: (v) => setStateModal(() => editColor = v!)
+                )
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+            ElevatedButton(
+              onPressed: () async {
+                await Supabase.instance.client.from('hero_slider').update({
+                  'title': editTitle.text,
+                  'image_url': editImage.text,
+                  'tag': editTag.text,
+                  'tag_color': editColor
+                }).eq('id', item['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchData();
+              },
+              child: const Text("Save", style: TextStyle(color: Colors.white))
+            )
+          ]
+        )
+      )
+    );
+  }
+
+  String _formatDate(String? isoString) {
+    if (isoString == null) return "Unknown";
+    DateTime d = DateTime.parse(isoString).toLocal();
+    String ampm = d.hour >= 12 ? 'PM' : 'AM';
+    int hr = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
+    return "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} $hr:${d.minute.toString().padLeft(2, '0')} $ampm";
   }
 
   @override
@@ -1719,12 +1786,34 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Add Hero Banner", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.add_photo_alternate, color: adminPurple),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text("Add New Hero Banner", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text("Add new banner to show on home slider", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                )
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
           Container(
             decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12)),
             child: SwitchListTile(
-              title: const Text("Custom Banner (Not linked to Anime)", style: TextStyle(color: Colors.white)), 
+              title: const Text("Custom Banner (Not linked to Anime)", style: TextStyle(color: Colors.white, fontSize: 14)), 
               activeColor: adminPurple, 
               value: _isCustom, 
               onChanged: (val) => setState(() => _isCustom = val)
@@ -1749,16 +1838,14 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(
-                child: TextField(controller: _tagController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag (Trending, etc)"))
-              ), 
+              Expanded(flex: 2, child: TextField(controller: _tagController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag (Trending, Action, Romance...)"))), 
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   dropdownColor: cardDark, 
                   value: _selectedColor, 
-                  decoration: _inputDeco("Tag Color"), 
-                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)))))).toList(), 
+                  decoration: _inputDeco("Color"), 
+                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)), fontSize: 13)))).toList(), 
                   onChanged: (v) => setState(() => _selectedColor = v!)
                 )
               )
@@ -1767,16 +1854,28 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity, 
-            height: 50, 
+            height: 52, 
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.add_photo_alternate, color: Colors.white), 
-              label: const Text("Add to Hero Slider", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+              icon: const Icon(Icons.add, color: Colors.white), 
+              label: const Text("Add to Hero Slider", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
               onPressed: _addHero
             )
           ),
           const SizedBox(height: 36), 
-          const Text("Current Hero Banners", style: TextStyle(color: adminPurple, fontSize: 16, fontWeight: FontWeight.bold)), 
-          const SizedBox(height: 12),
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Current Hero Banners", style: TextStyle(color: adminPurple, fontSize: 16, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                child: Text("Total ${_heroItems.length} Banners", style: const TextStyle(color: adminPurple, fontSize: 11, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          
           ListView.builder(
             shrinkWrap: true, 
             physics: const NeverScrollableScrollPhysics(), 
@@ -1785,16 +1884,47 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
               final item = _heroItems[index];
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(12),
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(item['image_url'], width: 80, height: 50, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 80, color: bgDark, child: const Icon(Icons.error, color: Colors.white54))),
+                    child: Image.network(item['image_url'], width: 80, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 80, color: bgDark, child: const Icon(Icons.broken_image, color: Colors.white54))),
                   ),
-                  title: Text(item['title'] ?? "No Title", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
-                  subtitle: Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: Colors.white54, fontSize: 12)), 
-                  trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.redAccent), onPressed: () => _deleteHero(item['id']))
+                  title: Text(item['title'] ?? "No Title", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: adminPurple, fontSize: 12)),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_month, size: 10, color: Colors.white54),
+                            const SizedBox(width: 4),
+                            Text("Added on: ${_formatDate(item['created_at'])}", style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                          ],
+                        )
+                      ],
+                    ),
+                  ), 
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                        child: IconButton(icon: const Icon(Icons.edit, color: adminPurple, size: 20), onPressed: () => _editHeroDialog(item), constraints: const BoxConstraints(minWidth: 40, minHeight: 40)),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                        child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 20), onPressed: () => _deleteHeroDialog(item['id']), constraints: const BoxConstraints(minWidth: 40, minHeight: 40)),
+                      ),
+                      const Icon(Icons.drag_indicator, color: Colors.white38)
+                    ],
+                  )
                 )
               );
             }
@@ -1807,7 +1937,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   InputDecoration _inputDeco(String hint) {
     return InputDecoration(
       hintText: hint, 
-      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13), 
       filled: true, 
       fillColor: cardDark, 
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), 
@@ -1818,7 +1948,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
 }
 
 // ==========================================
-// 6. REGISTERED USERS (PASSWORD RESET)
+// 6. MANAGE USERS (COMPLETELY UPGRADED)
 // ==========================================
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
@@ -1828,8 +1958,10 @@ class UsersListScreen extends StatefulWidget {
 }
 
 class _UsersListScreenState extends State<UsersListScreen> {
-  List<dynamic> _users = []; 
+  List<dynamic> _allUsers = []; 
+  List<dynamic> _filteredUsers = [];
   bool _isLoading = true;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() { 
@@ -1840,86 +1972,333 @@ class _UsersListScreenState extends State<UsersListScreen> {
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
-      final data = await Supabase.instance.client.from('user_preferences').select('email').neq('email', '');
-      Set<String> uniqueEmails = {};
-      for (var row in data) { 
-        if (row['email'] != null) uniqueEmails.add(row['email']); 
-      }
-      setState(() => _users = uniqueEmails.toList());
+      // Fetching all necessary fields. SQL Migration will add missing fields to Supabase.
+      final data = await Supabase.instance.client.from('user_preferences').select('id, name, uid, device_name, status, created_at').order('created_at', ascending: false);
+      setState(() {
+        _allUsers = data;
+        _filteredUsers = data;
+      });
     } catch (e) {
     } finally { 
-      setState(() => _isLoading = false); 
+      if(mounted) setState(() => _isLoading = false); 
     }
   }
 
-  Future<void> _sendResetLink(String email) async {
-    try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Reset Link sent to $email"), backgroundColor: Colors.green));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+  void _filterUsers(String query) {
+    if (query.isEmpty) {
+      setState(() => _filteredUsers = _allUsers);
+      return;
     }
+    String lowerQuery = query.toLowerCase();
+    setState(() {
+      _filteredUsers = _allUsers.where((u) {
+        String name = (u['name'] ?? "").toLowerCase();
+        String uid = (u['uid'] ?? u['id']?.toString() ?? "").toLowerCase();
+        return name.contains(lowerQuery) || uid.contains(lowerQuery);
+      }).toList();
+    });
+  }
+
+  Future<void> _deleteUserDialog(dynamic id) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete User?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to permanently delete this user?", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
+    if (confirm == true) {
+      try {
+        await Supabase.instance.client.from('user_preferences').delete().eq('id', id.toString());
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User Deleted Permanently"), backgroundColor: Colors.redAccent));
+        _fetchUsers();
+      } catch (e) {}
+    }
+  }
+
+  Future<void> _editUserDialog(Map<String, dynamic> user) async {
+    TextEditingController editName = TextEditingController(text: user['name'] ?? '');
+    TextEditingController editDevice = TextEditingController(text: user['device_name'] ?? '');
+    String currentStatus = (user['status'] != null && user['status'].toString().isNotEmpty) ? user['status'] : "Active";
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateModal) => AlertDialog(
+          backgroundColor: cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+          title: const Text("Edit User", style: TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("UID (Read-only)", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: TextEditingController(text: user['uid'] ?? user['id']?.toString()), readOnly: true, style: const TextStyle(color: Colors.white54), decoration: _inputDeco("UID")),
+                const SizedBox(height: 16),
+                const Text("User Name", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: editName, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Name")),
+                const SizedBox(height: 16),
+                const Text("Device Name", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: editDevice, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Device Name")),
+                const SizedBox(height: 16),
+                const Text("Account Status", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: currentStatus, 
+                  decoration: _inputDeco("Status"), 
+                  items: ['Active', 'Inactive'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: TextStyle(color: s == 'Active' ? Colors.green : Colors.orange)))).toList(), 
+                  onChanged: (v) => setStateModal(() => currentStatus = v!)
+                )
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+            ElevatedButton(
+              onPressed: () async {
+                await Supabase.instance.client.from('user_preferences').update({
+                  'name': editName.text,
+                  'device_name': editDevice.text,
+                  'status': currentStatus
+                }).eq('id', user['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchUsers();
+              },
+              child: const Text("Save", style: TextStyle(color: Colors.white))
+            )
+          ]
+        )
+      )
+    );
+  }
+
+  String _formatDate(String? isoString) {
+    if (isoString == null) return "Unknown Date";
+    DateTime d = DateTime.parse(isoString).toLocal();
+    String ampm = d.hour >= 12 ? 'PM' : 'AM';
+    int hr = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
+    return "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${hr.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2, '0')} $ampm";
+  }
+
+  InputDecoration _inputDeco(String hint) {
+    return InputDecoration(
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13), 
+      filled: true, 
+      fillColor: bgDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: adminPurple, width: 1))
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return _isLoading 
-      ? const Center(child: CircularProgressIndicator(color: adminPurple))
-      : _users.isEmpty 
-        ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54)))
-        : Column(
+    int total = _allUsers.length;
+    int active = _allUsers.where((u) => u['status'] == null || u['status'] == 'Active').length;
+    int inactive = _allUsers.where((u) => u['status'] == 'Inactive').length;
+
+    return Column(
+      children: [
+        // Security Info Banner
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
+          decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: adminPurple.withOpacity(0.3))),
+          child: Row(
+            children: const [
+              Icon(Icons.info_outline, color: adminPurple, size: 20), 
+              SizedBox(width: 12), 
+              Expanded(
+                child: Text("User data is stored securely. You can manage users from here.", style: TextStyle(color: Colors.white70, fontSize: 12))
+              )
+            ]
+          )
+        ),
+        
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
             children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _filterUsers,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: "Search by Name or UID...",
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                    filled: true,
+                    fillColor: cardDark,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
               Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16), 
-                decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: const [
-                    Icon(Icons.info_outline, color: Color(0xFF3B82F6)), 
-                    SizedBox(width: 12), 
-                    Expanded(
-                      child: Text("Passwords are encrypted. Click 'Send Link' to send a password reset email.", style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13))
-                    )
-                  ]
-                )
-              ),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16), 
-                  itemCount: _users.length,
+                    Icon(Icons.filter_alt_outlined, color: adminPurple, size: 18),
+                    SizedBox(width: 6),
+                    Text("Filter", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 13))
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // User Stats Grid
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(child: _buildTopStatCard("Total Users", total.toString(), adminPurple, Icons.group)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Active Users", active.toString(), const Color(0xFF10B981), Icons.person_add_alt_1)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Inactive Users", inactive.toString(), const Color(0xFFF59E0B), Icons.person_off)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Deleted Users", "0", const Color(0xFFEF4444), Icons.delete_outline)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // User List
+        Expanded(
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator(color: adminPurple))
+            : _filteredUsers.isEmpty 
+              ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
+                  itemCount: _filteredUsers.length,
                   itemBuilder: (context, index) {
-                    String email = _users[index];
+                    final user = _filteredUsers[index];
+                    String name = user['name'] != null && user['name'].toString().isNotEmpty ? user['name'] : "Unknown User";
+                    String uid = user['uid'] ?? user['id']?.toString().substring(0, 8).toUpperCase() ?? "N/A";
+                    String device = user['device_name'] != null && user['device_name'].toString().isNotEmpty ? user['device_name'] : "Unknown Device";
+                    String joined = _formatDate(user['created_at']);
+                    String status = (user['status'] != null && user['status'].toString().isNotEmpty) ? user['status'] : "Active";
+                    Color statusColor = status == 'Active' ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12), 
-                      decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
+                      decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
-                                  child: const Icon(Icons.person, color: adminPurple)
+                                  child: const Icon(Icons.person, color: adminPurple, size: 28)
                                 ), 
-                                const SizedBox(width: 12), 
-                                Expanded(child: Text(email, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)))
+                                const SizedBox(width: 16), 
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Text("UID: ", style: TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+                                          Text(uid, style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 0.5)),
+                                        ],
+                                      )
+                                    ],
+                                  )
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.more_vert, color: adminPurple),
+                                  onPressed: () => _editUserDialog(user),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                )
                               ]
                             ),
                             const SizedBox(height: 16),
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text("Pass: [ Encrypted Hash ]", style: TextStyle(color: Colors.white54, fontStyle: FontStyle.italic, fontSize: 12)),
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(backgroundColor: adminPurple, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)), 
-                                  icon: const Icon(Icons.link, color: Colors.white, size: 16), 
-                                  label: const Text("Send Link", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), 
-                                  onPressed: () => _sendResetLink(email)
-                                )
-                              ]
+                                Expanded(
+                                  flex: 1,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text("Status", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+                                        child: Text(status, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      )
+                                    ],
+                                  )
+                                ),
+                                Container(height: 30, width: 1, color: Colors.white10),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text("Joined On", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                      const SizedBox(height: 4),
+                                      Text(joined, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                    ],
+                                  )
+                                ),
+                                Container(height: 30, width: 1, color: Colors.white10),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text("Device", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                          const SizedBox(height: 4),
+                                          Text(device, style: const TextStyle(color: Colors.white, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        ],
+                                      ),
+                                      Container(
+                                        decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
+                                        child: IconButton(icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteUserDialog(user['id']), constraints: const BoxConstraints(minWidth: 36, minHeight: 36)),
+                                      )
+                                    ],
+                                  )
+                                ),
+                              ],
                             )
                           ]
                         )
@@ -1927,9 +2306,36 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     );
                   }
                 )
-              )
+              ),
+              
+              if(!_isLoading && _filteredUsers.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text("Showing 1 to ${_filteredUsers.length} of $total users", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                )
             ]
           );
+  }
+
+  Widget _buildTopStatCard(String title, String count, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(6)), child: Icon(icon, color: color, size: 14)),
+              const SizedBox(width: 6),
+              Text(count, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(title, style: const TextStyle(color: Colors.white54, fontSize: 9), textAlign: TextAlign.center, maxLines: 1),
+        ],
+      ),
+    );
   }
 }
 
