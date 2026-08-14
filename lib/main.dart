@@ -48,6 +48,11 @@ Color getCard(BuildContext context) => const Color(0xFF1A1A1A);
 Color getText(BuildContext context) => Colors.white;
 Color getSubText(BuildContext context) => Colors.white54;
 
+// PROFILE AVATAR HELPERS (Restored to fix build error)
+final List<Color> avatarColors = [Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
+Color getAvatarColor(String input) => input.isEmpty ? Colors.grey : avatarColors[input.codeUnitAt(0) % avatarColors.length];
+String getAvatarLetter(String input) => input.isEmpty ? "?" : input[0].toUpperCase();
+
 String formatViewsCount(int views) {
   if (views >= 1000000) return "${(views / 1000000).toStringAsFixed(1)}M";
   if (views >= 1000) return "${(views / 1000).toStringAsFixed(1)}K";
@@ -71,7 +76,7 @@ int getTotalEpisodes(Anime anime) {
   return anime.seasonsList.fold(0, (sum, season) => sum + season.episodes.length);
 }
 
-// Helper to find the correct starting season (Fix for COTE episode bug)
+// Helper to find the correct starting season
 int getFirstValidSeason(Anime anime) {
   if (anime.seasonsList.isEmpty) return 0;
   int idx = anime.seasonsList.indexWhere((s) => s.episodes.isNotEmpty);
@@ -536,7 +541,7 @@ class _MainScreenState extends State<MainScreen> {
     showDialog(
       context: context, barrierDismissible: false, 
       builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF1A1A1A), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFF1E1E24), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -1307,7 +1312,7 @@ class _ServersScreenState extends State<ServersScreen> {
 }
 
 // ==========================================
-// MY LIST SCREEN
+// MY LIST SCREEN (Watchlist)
 // ==========================================
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
@@ -1386,7 +1391,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN (CLEAN, NO THEME, ORDER HISTORY ADDED)
+// PROFILE SCREEN (CLEAN, ORDER HISTORY ADDED)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
