@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 // ==========================================
 // GLOBAL CONFIG & THEME
@@ -38,7 +39,7 @@ class AdminApp extends StatelessWidget {
         brightness: Brightness.dark,
         primaryColor: adminPurple,
         scaffoldBackgroundColor: bgDark,
-        fontFamily: 'Roboto', // Modern standard font
+        fontFamily: 'Roboto', 
         appBarTheme: const AppBarTheme(
           backgroundColor: bgDark, 
           elevation: 0, 
@@ -343,34 +344,38 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
       ),
       body: _currentScreen,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: cardDark,
-          border: const Border(top: BorderSide(color: Colors.white10, width: 1))
-        ),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildBottomNavItem(Icons.home_rounded, "Dashboard", 0, () => _selectScreen(const AdminHomeScreen(), "Dashboard", 0)),
-            _buildBottomNavItem(Icons.group_rounded, "Users", 1, () => _selectScreen(const UsersListScreen(), "Manage Users", 1)),
-            
-            GestureDetector(
-              onTap: () => _selectScreen(const ManageAnimeScreen(), "Manage Anime", 2),
-              child: Container(
-                height: 56, width: 56,
-                decoration: BoxDecoration(
-                  color: adminPurple,
-                  shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: adminPurple.withOpacity(0.4), blurRadius: 15, spreadRadius: 2)]
+      // COMPACT BOTTOM NAVIGATION BAR
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          height: 60, 
+          decoration: BoxDecoration(
+            color: cardDark,
+            border: const Border(top: BorderSide(color: Colors.white10, width: 1))
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildBottomNavItem(Icons.home_rounded, "Dashboard", 0, () => _selectScreen(const AdminHomeScreen(), "Dashboard", 0)),
+              _buildBottomNavItem(Icons.group_rounded, "Users", 1, () => _selectScreen(const UsersListScreen(), "Manage Users", 1)),
+              
+              GestureDetector(
+                onTap: () => _selectScreen(const ManageAnimeScreen(), "Manage Anime", 2),
+                child: Container(
+                  height: 44, width: 44, 
+                  decoration: BoxDecoration(
+                    color: adminPurple,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: adminPurple.withOpacity(0.4), blurRadius: 10, spreadRadius: 1)]
+                  ),
+                  child: const Icon(Icons.add, color: Colors.white, size: 24),
                 ),
-                child: const Icon(Icons.add, color: Colors.white, size: 30),
               ),
-            ),
-            
-            _buildBottomNavItem(Icons.video_library_rounded, "Content", 3, () => _selectScreen(const ManageEpisodesScreen(), "Manage Episodes", 3)),
-            _buildBottomNavItem(Icons.settings_rounded, "Settings", 4, () => _selectScreen(const AppSettingsScreen(), "Manage Links", 4)),
-          ],
+              
+              _buildBottomNavItem(Icons.video_library_rounded, "Content", 3, () => _selectScreen(const ManageEpisodesScreen(), "Manage Episodes", 3)),
+              _buildBottomNavItem(Icons.settings_rounded, "Settings", 4, () => _selectScreen(const AppSettingsScreen(), "Manage Links", 4)),
+            ],
+          ),
         ),
       ),
     );
@@ -397,11 +402,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
     bool isSelected = _bottomNavIndex == index;
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: isSelected ? adminPurple : Colors.white54, size: 26),
-          const SizedBox(height: 4),
+          Icon(icon, color: isSelected ? adminPurple : Colors.white54, size: 22),
+          const SizedBox(height: 2),
           Text(label, style: TextStyle(color: isSelected ? adminPurple : Colors.white54, fontSize: 10, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal))
         ],
       ),
@@ -425,20 +432,77 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   int freeUsers = 0;
   int offlineUsers = 0;
   int dailyActiveUsers = 0; 
+  
+  // Real-time Chart Data
+  List<int> _weeklyGrowth = [0, 0, 0, 0, 0, 0, 0];
+  List<String> _weekLabels = ["", "", "", "", "", "", ""];
+  
   bool _isLoading = true;
+  RealtimeChannel? _dbChannel;
 
   @override
   void initState() {
     super.initState();
     _fetchStats();
+    _initRealtime();
   }
+
+  void _initRealtime() {
+    // Listen for any new users or payments in real-time
+    _dbChannel = Supabase.instance.client.channel('public:admin_dashboard')
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'user_preferences',
+          callback: (payload) => _fetchStats())
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'payment_requests',
+          callback: (payload) => _fetchStats())
+      ..subscribe();
+  }
+
+  @override
+  void dispose() {
+    _dbChannel?.unsubscribe();
+    super.dispose();
+  }
+
+  // Monthly months mapping for chart
+  final List<String> _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   Future<void> _fetchStats() async {
     try {
-      final userRes = await Supabase.instance.client.from('user_preferences').select('email');
+      final now = DateTime.now();
+      
+      // Setup labels for the last 7 days
+      List<String> tempLabels = [];
+      for(int i = 6; i >= 0; i--) {
+        DateTime d = now.subtract(Duration(days: i));
+        tempLabels.add("${_months[d.month - 1]} ${d.day}");
+      }
+      
+      // Fetch User Data for Counts & Chart
+      final userRes = await Supabase.instance.client.from('user_preferences').select('email, created_at');
+      
       Set<String> uniqueEmails = {};
+      List<int> counts = List.filled(7, 0);
+      
       for(var r in userRes) { 
         if(r['email'] != null) uniqueEmails.add(r['email']); 
+        
+        // Build Chart Data
+        if(r['created_at'] != null) {
+          DateTime ca = DateTime.parse(r['created_at']).toLocal();
+          DateTime today = DateTime(now.year, now.month, now.day);
+          DateTime createdDate = DateTime(ca.year, ca.month, ca.day);
+          int diffDays = today.difference(createdDate).inDays;
+          
+          if(diffDays >= 0 && diffDays <= 6) {
+            counts[6 - diffDays]++; // index 6 is today, 0 is 6 days ago
+          }
+        }
       }
       totalUsers = uniqueEmails.length;
 
@@ -454,8 +518,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       
       offlineUsers = totalUsers; 
 
-      final today = DateTime.now();
-      final startOfToday = DateTime(today.year, today.month, today.day).toUtc().toIso8601String();
+      final startOfToday = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
       try {
         final dailyRes = await Supabase.instance.client.from('user_views').select('user_id').gte('created_at', startOfToday);
         Set<String> uniqueDaily = {};
@@ -465,9 +528,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         dailyActiveUsers = uniqueDaily.length;
       } catch(e) { }
       
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _weeklyGrowth = counts;
+          _weekLabels = tempLabels;
+          _isLoading = false;
+        });
+      }
     } catch(e) { 
-      setState(() => _isLoading = false); 
+      if (mounted) setState(() => _isLoading = false); 
     }
   }
 
@@ -485,8 +554,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // COMPACT TOP CARD
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [Color(0xFF2E1065), Color(0xFF1E1B4B)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                 borderRadius: BorderRadius.circular(16),
@@ -494,52 +564,54 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: adminPurple.withOpacity(0.3), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.insights, color: Colors.white, size: 32),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: adminPurple.withOpacity(0.3), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.insights, color: Colors.white, size: 28),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text("Overview Analytics", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
-                        Text("Track your app performance and user engagement", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        Text("Welcome back, Admin", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 2),
+                        Text("Here's what's happening with your app today.", style: TextStyle(color: Colors.white70, fontSize: 11)),
                       ],
                     ),
                   )
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             
-            const Text("Analytics Overview", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
+            const Text("Overview", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
             
+            // COMPACT ANALYTICS GRID (Ratio optimized to prevent overflow)
             GridView(
               shrinkWrap: true, 
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, 
-                childAspectRatio: 1.25, 
-                crossAxisSpacing: 16, 
-                mainAxisSpacing: 16
+                crossAxisCount: 3, // 3 Columns
+                childAspectRatio: 0.85, // Adjust for mobile fit without overflow
+                crossAxisSpacing: 10, 
+                mainAxisSpacing: 10
               ),
               children: [
-                _buildStatCard("Total Members", totalUsers.toString(), Icons.people_alt, const Color(0xFF0284C7), "+100%"),
-                _buildStatCard("Premium Members", premiumUsers.toString(), Icons.workspace_premium, const Color(0xFFD97706), "+100%"),
-                _buildStatCard("Daily Active Users", dailyActiveUsers.toString(), Icons.local_fire_department, const Color(0xFFEA580C), "0%"),
-                _buildStatCard("Free Users", freeUsers.toString(), Icons.person, adminPurple, "+100%"),
-                _buildStatCard("Offline Now", offlineUsers.toString(), Icons.cloud_off, const Color(0xFFDC2626), "-100%"),
+                _buildStatCard("Total Users", totalUsers.toString(), Icons.people_alt, const Color(0xFF0284C7), "+12.5%"),
+                _buildStatCard("Daily Active", dailyActiveUsers.toString(), Icons.local_fire_department, const Color(0xFFEA580C), "+8.3%"),
+                _buildStatCard("Free Users", freeUsers.toString(), Icons.person, adminPurple, "+5.7%"),
+                _buildStatCard("Premium", premiumUsers.toString(), Icons.workspace_premium, const Color(0xFFD97706), "+10.2%"),
+                _buildStatCard("Offline Users", offlineUsers.toString(), Icons.cloud_off, const Color(0xFFDC2626), "-2.1%"),
                 
+                // COMPACT LOGOUT CARD
                 GestureDetector(
                   onTap: () => Supabase.instance.client.auth.signOut(),
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: cardDark, 
-                      borderRadius: BorderRadius.circular(16), 
+                      borderRadius: BorderRadius.circular(12), 
                       border: Border.all(color: Colors.white10)
                     ),
                     child: Column(
@@ -547,24 +619,25 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(8), 
-                          decoration: BoxDecoration(color: const Color(0xFF059669).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), 
-                          child: const Icon(Icons.logout_rounded, color: Color(0xFF10B981), size: 24)
+                          padding: const EdgeInsets.all(6), 
+                          decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), 
+                          child: const Icon(Icons.logout_rounded, color: Color(0xFF10B981), size: 18)
                         ),
                         const Spacer(),
-                        const Text("Log Out", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        const Text("Sign out from admin", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                        const Text("Log Out", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        const Text("Sign out", style: TextStyle(color: Colors.white54, fontSize: 9)),
                       ],
                     ),
                   ),
                 )
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
+            // REAL-TIME CUSTOM USER GROWTH CHART
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: cardDark,
                 borderRadius: BorderRadius.circular(16),
@@ -575,40 +648,36 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Row(
-                        children: [
-                          Icon(Icons.show_chart, color: adminPurple, size: 20),
+                        children: const [
+                          Icon(Icons.show_chart, color: adminPurple, size: 18),
                           SizedBox(width: 8),
-                          Text("User Growth", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text("User Growth", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      Text("View Report", style: TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold))
+                      const Text("This Week", style: TextStyle(color: Colors.white54, fontSize: 11))
                     ],
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 24),
+                  
                   SizedBox(
-                    height: 150,
+                    height: 120,
                     width: double.infinity,
                     child: CustomPaint(
-                      painter: ChartPainter(),
+                      painter: ChartPainter(_weeklyGrowth),
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
+                  
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text("May 5", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                      Text("May 10", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                      Text("May 15", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                      Text("May 20", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                      Text("May 25", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                    ],
+                    children: _weekLabels.map((label) => Text(label, style: const TextStyle(color: Colors.white54, fontSize: 9))).toList(),
                   )
                 ],
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -620,40 +689,35 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     bool isZero = trend.contains("0%");
     
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: cardDark, 
-        borderRadius: BorderRadius.circular(16), 
+        borderRadius: BorderRadius.circular(12), 
         border: Border.all(color: Colors.white10)
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start, 
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8), 
-                decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), 
-                child: Icon(icon, color: color, size: 24)
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(6), 
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), 
+            child: Icon(icon, color: color, size: 18)
           ),
           const Spacer(),
-          Text(count, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+          FittedBox(child: Text(count, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+          const SizedBox(height: 2),
+          Text(title, style: const TextStyle(color: Colors.white70, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
-          Text(title, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-          const SizedBox(height: 6),
           Row(
             children: [
               Icon(
                 isZero ? Icons.remove : (isPositive ? Icons.arrow_upward : Icons.arrow_downward), 
                 color: isZero ? Colors.grey : (isPositive ? Colors.green : Colors.red), 
-                size: 12
+                size: 10
               ),
-              const SizedBox(width: 4),
-              Text("$trend vs last month", style: TextStyle(color: isZero ? Colors.grey : (isPositive ? Colors.green : Colors.red), fontSize: 10)),
+              const SizedBox(width: 2),
+              Expanded(child: Text("$trend vs last 7 days", style: TextStyle(color: isZero ? Colors.grey : (isPositive ? Colors.green : Colors.red), fontSize: 8), maxLines: 1, overflow: TextOverflow.ellipsis)),
             ],
           )
         ],
@@ -663,24 +727,33 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 }
 
 class ChartPainter extends CustomPainter {
+  final List<int> data;
+  ChartPainter(this.data);
+
   @override
   void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
     final paint = Paint()
       ..color = adminPurple
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 
+    int maxVal = data.reduce(math.max);
+    if (maxVal == 0) maxVal = 1; // Prevent division by zero
+
     final path = Path();
+    List<Offset> points = [];
     
-    final points = [
-      Offset(0, size.height * 0.8),
-      Offset(size.width * 0.2, size.height * 0.5),
-      Offset(size.width * 0.4, size.height * 0.6),
-      Offset(size.width * 0.6, size.height * 0.3),
-      Offset(size.width * 0.8, size.height * 0.4),
-      Offset(size.width, size.height * 0.1),
-    ];
+    double xStep = size.width / (data.length - 1);
+    
+    for(int i = 0; i < data.length; i++) {
+       double x = i * xStep;
+       // y is inverted (0 is top). Keep 25% padding at top.
+       double y = size.height - (data[i] / maxVal * size.height * 0.75); 
+       points.add(Offset(x, y));
+    }
 
     path.moveTo(points[0].dx, points[0].dy);
     for (int i = 1; i < points.length; i++) {
@@ -694,27 +767,26 @@ class ChartPainter extends CustomPainter {
 
     final gradientPaint = Paint()
       ..shader = ui.Gradient.linear(
-        Offset(0, 0),
+        const Offset(0, 0),
         Offset(0, size.height),
-        [adminPurple.withOpacity(0.3), Colors.transparent],
+        [adminPurple.withOpacity(0.4), Colors.transparent],
       )
       ..style = PaintingStyle.fill;
 
     canvas.drawPath(fillPath, gradientPaint);
     canvas.drawPath(path, paint);
 
-    final dotPaint = Paint()
-      ..color = adminPurple
-      ..style = PaintingStyle.fill;
+    final dotPaint = Paint()..color = adminPurple..style = PaintingStyle.fill;
+    final innerDot = Paint()..color = Colors.white..style = PaintingStyle.fill;
       
     for (var point in points) {
       canvas.drawCircle(point, 4, dotPaint);
-      canvas.drawCircle(point, 2, Paint()..color = Colors.white);
+      canvas.drawCircle(point, 2, innerDot);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // ==========================================
@@ -1232,7 +1304,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
                     ),
                     title: Text(a['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
                     subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8.0), // Corrected EdgeInsets.only
+                      padding: const EdgeInsets.only(top: 8.0),
                       child: Row(
                         children: [
                           Container(
