@@ -282,7 +282,6 @@ class _AuthGateState extends State<AuthGate> {
       
       currentDeviceName = await getActualDeviceName();
 
-      // 1. SUPABASE AUTH: Automatic Anonymous Sign-in
       final session = Supabase.instance.client.auth.currentSession;
       if (session == null) {
         await Supabase.instance.client.auth.signInAnonymously();
@@ -294,7 +293,6 @@ class _AuthGateState extends State<AuthGate> {
       
       currentUserId = user.id;
 
-      // 2. CHECK IF USER PROFILE EXISTS IN SUPABASE
       final response = await Supabase.instance.client.from('user_preferences').select().eq('id', currentUserId).maybeSingle();
       if (response != null && mounted) { 
         currentUserName = response['name'] ?? "User"; 
@@ -494,29 +492,60 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchDatabaseCatalog() async {
     try {
-      var animeResponse; bool hasEpDate = true;
-      try { animeResponse = await Supabase.instance.client.from('anime_list').select('''id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at, anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url, created_at))''').order('created_at', ascending: false); } 
-      catch (e) { hasEpDate = false; animeResponse = await Supabase.instance.client.from('anime_list').select('''id, title, description, image_url, rating, genres, dub_status, dub_color, category, sub_category, created_at, anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url))''').order('created_at', ascending: false); }
+      var animeResponse; 
+      bool hasEpDate = true;
+      
+      // 🔥 FIX: Completely removed ANY reference to 'rating', 'genres', 'dub_color' etc which were deleted.
+      try { 
+        animeResponse = await Supabase.instance.client.from('anime_list').select('''id, title, description, image_url, dub_status, category, sub_category, created_at, anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url, created_at))''').order('created_at', ascending: false); 
+      } 
+      catch (e) { 
+        hasEpDate = false; 
+        animeResponse = await Supabase.instance.client.from('anime_list').select('''id, title, description, image_url, dub_status, category, sub_category, created_at, anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url))''').order('created_at', ascending: false); 
+      }
 
       List<Anime> fetchedAnimeList = [];
       for (var item in animeResponse) {
         DateTime animeDate = DateTime.now().subtract(const Duration(days: 30));
         if (item['created_at'] != null) animeDate = DateTime.tryParse(item['created_at'].toString()) ?? animeDate;
-        List<Season> parsedSeasons = []; var seasonsData = item['anime_seasons'] as List<dynamic>? ?? [];
+        
+        List<Season> parsedSeasons = []; 
+        var seasonsData = item['anime_seasons'] as List<dynamic>? ?? [];
+        
         for (var s in seasonsData) {
-          List<Episode> parsedEps = []; var epData = s['anime_episodes'] as List<dynamic>? ?? [];
+          List<Episode> parsedEps = []; 
+          var epData = s['anime_episodes'] as List<dynamic>? ?? [];
           for (var e in epData) {
-            DateTime epDate = animeDate; if (hasEpDate && e['created_at'] != null) epDate = DateTime.tryParse(e['created_at'].toString()) ?? animeDate;
+            DateTime epDate = animeDate; 
+            if (hasEpDate && e['created_at'] != null) epDate = DateTime.tryParse(e['created_at'].toString()) ?? animeDate;
             parsedEps.add(Episode(id: e['id'].toString(), title: e['episode_title']?.toString() ?? "Episode", image: e['image_url']?.toString() ?? item['image_url'], duration: e['duration']?.toString() ?? "24m", videoUrl: e['video_url']?.toString() ?? "", createdAt: epDate));
           }
           parsedSeasons.add(Season(id: s['id'].toString(), name: s['season_name'].toString(), episodes: parsedEps));
         }
-        fetchedAnimeList.add(Anime(id: item['id'].toString(), title: item['title']?.toString() ?? "Unknown", description: item['description']?.toString() ?? "", image: item['image_url']?.toString() ?? "", genre: item['genres']?.toString() ?? "Action", rating: item['rating']?.toString() ?? "PG-13", dubStatus: item['dub_status']?.toString() ?? "DUB", status: item['status']?.toString() ?? "Completed", category: item['category']?.toString() ?? "", subCategory: item['sub_category']?.toString() ?? "", seasonsList: parsedSeasons, createdAt: animeDate));
+        
+        fetchedAnimeList.add(Anime(
+          id: item['id'].toString(), 
+          title: item['title']?.toString() ?? "Unknown", 
+          description: item['description']?.toString() ?? "", 
+          image: item['image_url']?.toString() ?? "", 
+          genre: item['category']?.toString() ?? "Action", // Used category as genre fallback
+          rating: "All Ages", // Default since rating deleted
+          dubStatus: item['dub_status']?.toString() ?? "DUB", 
+          status: item['status']?.toString() ?? "Completed", 
+          category: item['category']?.toString() ?? "", 
+          subCategory: item['sub_category']?.toString() ?? "", 
+          seasonsList: parsedSeasons, 
+          createdAt: animeDate
+        ));
       }
       animeListNotifier.value = fetchedAnimeList;
+      
       final heroResponse = await Supabase.instance.client.from('hero_slider').select().order('created_at', ascending: false);
       heroSliderNotifier.value = List<Map<String, dynamic>>.from(heroResponse);
-    } catch (e) {}
+      
+    } catch (e) {
+       // Silent catch
+    }
   }
 
   Future<void> _fetchUserPreferences() async {
