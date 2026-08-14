@@ -276,23 +276,25 @@ class _AuthGateState extends State<AuthGate> {
   @override void initState() { super.initState(); _checkDeviceAndAuth(); }
   
   Future<void> _checkDeviceAndAuth() async {
-    bool vpnActive = await checkVpnConnection();
-    if (vpnActive) { if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen())); return; }
-    
-    currentDeviceName = await getActualDeviceName();
-
-    // 1. SUPABASE AUTH: Automatic Anonymous Sign-in for seamless UUID generation
-    final session = Supabase.instance.client.auth.currentSession;
-    if (session == null) {
-      await Supabase.instance.client.auth.signInAnonymously();
-    }
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) { return; } // Handle serious auth failure
-    
-    currentUserId = user.id;
-
-    // 2. CHECK IF USER PROFILE EXISTS IN SUPABASE (user_preferences table matches Admin Panel)
     try {
+      bool vpnActive = await checkVpnConnection();
+      if (vpnActive) { if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen())); return; }
+      
+      currentDeviceName = await getActualDeviceName();
+
+      // 1. SUPABASE AUTH: Automatic Anonymous Sign-in
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session == null) {
+        await Supabase.instance.client.auth.signInAnonymously();
+      }
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user == null) { 
+        throw Exception("Failed to create User ID."); 
+      }
+      
+      currentUserId = user.id;
+
+      // 2. CHECK IF USER PROFILE EXISTS IN SUPABASE
       final response = await Supabase.instance.client.from('user_preferences').select().eq('id', currentUserId).maybeSingle();
       if (response != null && mounted) { 
         currentUserName = response['name'] ?? "User"; 
@@ -303,7 +305,6 @@ class _AuthGateState extends State<AuthGate> {
           return;
         }
         
-        // Update device name to current device just in case user changed phones
         await Supabase.instance.client.from('user_preferences').update({'device_name': currentDeviceName}).eq('id', currentUserId);
         
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen())); 
@@ -312,7 +313,12 @@ class _AuthGateState extends State<AuthGate> {
         if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
       }
     } catch (e) { 
-      if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SecurityBlockScreen(
+          title: "Connection Failed", 
+          message: "Error: $e\n\nDeveloper: Please check Supabase Authentication settings."
+        )));
+      }
     }
   }
 
@@ -326,18 +332,23 @@ class NameEntryScreen extends StatefulWidget {
   @override State<NameEntryScreen> createState() => _NameEntryScreenState();
 }
 class _NameEntryScreenState extends State<NameEntryScreen> {
-  final TextEditingController _firstNameController = TextEditingController(); final TextEditingController _lastNameController = TextEditingController(); bool _isLoading = false;
+  final TextEditingController _firstNameController = TextEditingController(); 
+  final TextEditingController _lastNameController = TextEditingController(); 
+  bool _isLoading = false;
   
   Future<void> _saveName() async {
-    if (_firstNameController.text.trim().isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("First Name is required!"))); return; }
+    if (_firstNameController.text.trim().isEmpty) { 
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("First Name is required!"))); 
+      return; 
+    }
     setState(() => _isLoading = true);
     try {
       String fullName = "${_firstNameController.text.trim()} ${_lastNameController.text.trim()}".trim();
       String shortUid = currentUserId.replaceAll('-', '').substring(0, 8).toUpperCase();
       
-      // INSERT REAL USER DATA INTO SUPABASE
       await Supabase.instance.client.from('user_preferences').insert({
         'id': currentUserId, 
+        'device_id': currentDeviceName, 
         'name': fullName, 
         'uid': shortUid,
         'device_name': currentDeviceName,
@@ -352,7 +363,13 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
     } catch (e) { 
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error saving profile. Try again."))); 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: $e"), 
+          duration: const Duration(seconds: 5),
+          backgroundColor: Colors.redAccent
+        )); 
+      }
     } 
     finally { 
       if (mounted) setState(() => _isLoading = false); 
@@ -694,7 +711,7 @@ class HomeScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context)))]), 
+              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context कराते)))]), 
               GestureDetector(
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => LatestEpisodesSeeAllPage(latestList: latestList))), 
                 child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13))
