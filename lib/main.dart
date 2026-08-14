@@ -478,7 +478,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         tempLabels.add("${_months[d.month - 1]} ${d.day}");
       }
       
-      // Removed email dependency for users count, relying on UUID 'id'
       final userRes = await Supabase.instance.client.from('user_preferences').select('id, created_at');
       
       Set<String> uniqueIds = {};
@@ -812,12 +811,32 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     } catch(e) { }
   }
 
-  Future<void> _deleteRequest(dynamic id) async {
-    try {
-      await Supabase.instance.client.from('payment_requests').delete().eq('id', id.toString());
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record Deleted"), backgroundColor: Colors.red));
-      _fetchRequests();
-    } catch(e) { }
+  Future<void> _deleteRequestDialog(dynamic id) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete Payment?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to delete this payment record?", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
+    if (confirm == true) {
+      try {
+        await Supabase.instance.client.from('payment_requests').delete().eq('id', id.toString());
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record Deleted"), backgroundColor: Colors.redAccent));
+        _fetchRequests();
+      } catch(e) { }
+    }
   }
 
   Future<void> _editPaymentDialog(Map<String, dynamic> req) async {
@@ -942,9 +961,13 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                   itemBuilder: (context, index) { 
                     final req = _requests[index]; 
                     String displayTime = _formatDateGroup(req['created_at']); 
-                    String userName = req['name'] ?? "Unknown User"; 
-                    String uid = req['uid'] ?? req['transaction_id']?.substring(0, 8) ?? "N/A"; 
-                    String amount = req['amount']?.toString() ?? "₹0.00";
+                    
+                    // Fetch real user name & UID properly from DB
+                    String userName = req['user_name'] ?? req['name'] ?? "Unknown User"; 
+                    String uid = req['user_id'] ?? req['uid'] ?? req['transaction_id']?.toString().substring(0, 8) ?? "N/A"; 
+                    
+                    // Fetch real amount instead of default 0.00
+                    String amount = req['amount']?.toString() ?? "0";
                     
                     Color statusColor = req['status'] == 'Approved' ? const Color(0xFF10B981) : (req['status'] == 'Rejected' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
 
@@ -974,7 +997,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                                     children: [
                                       Text(userName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                                       const SizedBox(height: 2),
-                                      Text("UID $uid", style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      Text("UID: $uid", style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ),
@@ -1006,14 +1029,17 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                             ),
                             const SizedBox(height: 16),
                             
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            // Wrap fixes the Overflow issue on mobile
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.start,
                               children: [
                                 _buildActionButton(Icons.image, "Proof", const Color(0xFF3B82F6), () => _showProofDialog(req['image_path'], req['transaction_id'])),
                                 _buildActionButton(Icons.check, "Approve", const Color(0xFF10B981), () => _updateStatus(req['id'], 'Approved')),
                                 _buildActionButton(Icons.close, "Reject", const Color(0xFFF59E0B), () => _updateStatus(req['id'], 'Rejected')),
                                 _buildActionButton(Icons.edit, "Edit", adminPurple, () => _editPaymentDialog(req)),
-                                _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequest(req['id'])),
+                                _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequestDialog(req['id'])),
                               ],
                             )
                           ],
@@ -1067,6 +1093,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: color, size: 14),
             const SizedBox(width: 4),
@@ -1137,9 +1164,29 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     } catch (e) {}
   }
 
-  Future<void> _deleteAnime(dynamic id) async {
-    await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString());
-    _fetchAnime();
+  Future<void> _deleteAnimeDialog(dynamic id) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete Anime?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to delete this anime? Related episodes might remain.", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
+    if (confirm == true) {
+      await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString());
+      _fetchAnime();
+    }
   }
 
   Future<void> _editAnime(Map<String, dynamic> anime) async {
@@ -1309,7 +1356,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
                         ),
                         Container(
                           decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
-                          child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteAnime(a['id']), constraints: const BoxConstraints()),
+                          child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteAnimeDialog(a['id']), constraints: const BoxConstraints()),
                         )
                       ]
                     )
@@ -1430,9 +1477,29 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
     }
   }
 
-  Future<void> _deleteEpisode(dynamic id) async {
-    await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString());
-    if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
+  Future<void> _deleteEpisodeDialog(dynamic id) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete Episode?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to delete this episode video?", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
+    if (confirm == true) {
+      await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString());
+      if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
+    }
   }
 
   Future<void> _editEpisodeDialog(Map<String, dynamic> ep) async {
@@ -1600,7 +1667,7 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
                       ),
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
-                        child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteEpisode(ep['id']), constraints: const BoxConstraints()),
+                        child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteEpisodeDialog(ep['id']), constraints: const BoxConstraints()),
                       )
                     ],
                   )
@@ -1892,23 +1959,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
                     child: Image.network(item['image_url'], width: 80, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 80, color: bgDark, child: const Icon(Icons.broken_image, color: Colors.white54))),
                   ),
                   title: Text(item['title'] ?? "No Title", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: adminPurple, fontSize: 12)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.calendar_month, size: 10, color: Colors.white54),
-                            const SizedBox(width: 4),
-                            Text("Added on: ${_formatDate(item['created_at'])}", style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                          ],
-                        )
-                      ],
-                    ),
-                  ), 
+                  subtitle: Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: Colors.white54, fontSize: 12)), 
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1972,7 +2023,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
-      // Fetching all necessary fields. SQL Migration will add missing fields to Supabase.
       final data = await Supabase.instance.client.from('user_preferences').select('id, name, uid, device_name, status, created_at').order('created_at', ascending: false);
       setState(() {
         _allUsers = data;
@@ -1999,14 +2049,14 @@ class _UsersListScreenState extends State<UsersListScreen> {
     });
   }
 
-  Future<void> _deleteUserDialog(dynamic id) async {
+  Future<void> _deleteUserDialog(Map<String, dynamic> user) async {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
         title: const Text("Delete User?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text("Are you sure you want to permanently delete this user?", style: TextStyle(color: Colors.white70)),
+        content: const Text("Are you sure you want to permanently delete this user? This will also clean up their associated payments.", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
           ElevatedButton(
@@ -2020,8 +2070,18 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
     if (confirm == true) {
       try {
-        await Supabase.instance.client.from('user_preferences').delete().eq('id', id.toString());
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User Deleted Permanently"), backgroundColor: Colors.redAccent));
+        String userUid = user['uid']?.toString() ?? user['id']?.toString() ?? '';
+        
+        // 1. Delete associated payments automatically (Using both possible column names for safety)
+        if (userUid.isNotEmpty) {
+          await Supabase.instance.client.from('payment_requests').delete().eq('uid', userUid);
+          await Supabase.instance.client.from('payment_requests').delete().eq('user_id', userUid);
+        }
+        
+        // 2. Delete the user
+        await Supabase.instance.client.from('user_preferences').delete().eq('id', user['id'].toString());
+        
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User & Associated Payments Deleted"), backgroundColor: Colors.redAccent));
         _fetchUsers();
       } catch (e) {}
     }
@@ -2293,7 +2353,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                                       ),
                                       Container(
                                         decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
-                                        child: IconButton(icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteUserDialog(user['id']), constraints: const BoxConstraints(minWidth: 36, minHeight: 36)),
+                                        child: IconButton(icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteUserDialog(user), constraints: const BoxConstraints(minWidth: 36, minHeight: 36)),
                                       )
                                     ],
                                   )
