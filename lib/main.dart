@@ -19,9 +19,9 @@ const String CURRENT_APP_VERSION = "1.0.1";
 // SUPABASE AUTH UUID & USER INFO
 String currentUserId = ""; 
 String currentUserUid = ""; 
+String currentHardwareId = ""; 
 String currentDeviceName = "Unknown Device";
 String currentUserName = "User"; 
-bool hasAcceptedCookies = false; 
 
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
@@ -40,11 +40,10 @@ final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 final ValueNotifier<int> connectedServerNotifier = ValueNotifier(1);
 
-const Color animeMxPurple = Color(0xFF8A2BE2); 
-final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
+final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(const Color(0xFF8A2BE2)); 
 
 Color getBg(BuildContext context) => Colors.black;
-Color getCard(BuildContext context) => const Color(0xFF1A1A1A);
+Color getCard(BuildContext context) => const Color(0xFF16161E);
 Color getText(BuildContext context) => Colors.white;
 Color getSubText(BuildContext context) => Colors.white54;
 
@@ -76,7 +75,7 @@ int getTotalEpisodes(Anime anime) {
 }
 
 // ==========================================
-// SECURITY & DATABASE CONFIG
+// SECURITY & HARDWARE ID CONFIG
 // ==========================================
 Future<bool> checkVpnConnection() async {
   bool isVpn = false;
@@ -104,6 +103,24 @@ Future<String> getActualDeviceName() async {
     }
   } catch (e) {}
   return "Unknown Device";
+}
+
+Future<String> getHardwareDeviceId() async {
+  String rawId = "UNKNOWN";
+  try {
+    final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      rawId = "${androidInfo.brand}_${androidInfo.model}_${androidInfo.id}";
+    } else if (Platform.isIOS) {
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      rawId = "${iosInfo.name}_${iosInfo.identifierForVendor}";
+    }
+  } catch (e) {}
+  if (rawId == "UNKNOWN") rawId = const Uuid().v4();
+  var bytes = utf8.encode(rawId);
+  var digest = sha256.convert(bytes);
+  return digest.toString().substring(0, 16).toUpperCase(); 
 }
 
 Future<void> fetchGlobalAnimeViews() async {
@@ -196,6 +213,13 @@ void main() async {
   String secureUrl = utf8.decode(base64Decode('aHR0cHM6Ly95bmd6ZmdmcHl1ZnVzcmJpdGFnbC5zdXBhYmFzZS5jbw=='));
   String secureKey = utf8.decode(base64Decode('c2JfcHVibGlzaGFibGVfNkJEMG1vRXBPblVUZmloYlJVcGRPUV9VMmdKQ0g1VQ=='));
   await Supabase.initialize(url: secureUrl, anonKey: secureKey);
+  
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  int? colorValue = prefs.getInt('app_theme_color');
+  if(colorValue != null) {
+    primaryColorNotifier.value = Color(colorValue);
+  }
+
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   runApp(const AniXApp());
@@ -250,78 +274,140 @@ class _SkeletonLoaderState extends State<SkeletonLoader> with SingleTickerProvid
 }
 
 // ==========================================
-// VPN & SECURITY BLOCKER SCREEN
+// VPN & SECURITY BLOCKER SCREEN (UPGRADED)
 // ==========================================
 class SecurityBlockScreen extends StatelessWidget {
   final String title;
   final String message;
-  const SecurityBlockScreen({super.key, this.title = "Security Violation", this.message = "VPN, Proxy, or unsecured connection detected.\n\nPlease disable any VPN to continue using AniXplayer."});
+  final bool isSuspended;
+  const SecurityBlockScreen({super.key, this.title = "Security Violation", this.message = "VPN, Proxy, or unsecured connection detected.\n\nPlease disable any VPN to continue using AniXplayer.", this.isSuspended = false});
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF120000),
-      body: Center(child: Padding(padding: const EdgeInsets.all(30.0), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.shield, color: Colors.redAccent, size: 100), const SizedBox(height: 30), Text(title, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold), textAlign: TextAlign.center), const SizedBox(height: 16), Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.5))]))),
+      backgroundColor: const Color(0xFF0F0B14),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(30.0), 
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center, 
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(isSuspended ? Icons.gavel_rounded : Icons.security_rounded, color: Colors.redAccent, size: 80),
+              ),
+              const SizedBox(height: 32), 
+              Text(title, style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900), textAlign: TextAlign.center), 
+              const SizedBox(height: 16), 
+              Text(message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
+              if(isSuspended) ...[
+                const SizedBox(height: 40),
+                SizedBox(
+                  height: 50, width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    onPressed: () => launchInBrowser(globalTelegramLink), 
+                    icon: const Icon(Icons.support_agent, color: Colors.white),
+                    label: const Text("Contact Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                  )
+                )
+              ]
+            ]
+          )
+        )
+      ),
     );
   }
 }
 
 // ==========================================
-// SUPABASE AUTH GATE
+// SUPABASE AUTH GATE (WITH PROFESSIONAL LOADING)
 // ==========================================
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
   @override State<AuthGate> createState() => _AuthGateState();
 }
-class _AuthGateState extends State<AuthGate> {
-  @override void initState() { super.initState(); _checkDeviceAndAuth(); }
+class _AuthGateState extends State<AuthGate> with SingleTickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+
+  @override void initState() { 
+    super.initState(); 
+    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))..repeat(reverse: true);
+    _fadeAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut));
+    _checkDeviceAndAuth(); 
+  }
   
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
+  }
+
   Future<void> _checkDeviceAndAuth() async {
     try {
       bool vpnActive = await checkVpnConnection();
       if (vpnActive) { if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen())); return; }
       
+      currentHardwareId = await getHardwareDeviceId(); 
       currentDeviceName = await getActualDeviceName();
 
+      // AUTO-LOGIN CHECK: Verify if this device hardware ID already exists in our database
+      final existingUser = await Supabase.instance.client.from('user_preferences').select().eq('device_id', currentHardwareId).maybeSingle();
+      
+      if (existingUser != null) {
+        // OLD ACCOUNT RESTORED SUCCESSFULLY!
+        currentUserId = existingUser['id']; 
+        currentUserName = existingUser['name'] ?? "User";
+        currentUserUid = existingUser['uid'] ?? currentUserId.substring(0,8).toUpperCase();
+        
+        if (existingUser['status'] == 'Inactive') {
+          if(mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(title: "Account Suspended", message: "Your account has been restricted due to violation of policies.", isSuspended: true)));
+          return;
+        }
+        if(mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+        return;
+      }
+
+      // NO OLD ACCOUNT FOUND -> PROCEED WITH NEW ANONYMOUS SIGN IN
       final session = Supabase.instance.client.auth.currentSession;
       if (session == null) {
         await Supabase.instance.client.auth.signInAnonymously();
       }
       final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) { 
-        throw Exception("Failed to create User ID."); 
-      }
+      if (user == null) { throw Exception("Failed to create User Session."); }
       
       currentUserId = user.id;
+      if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
 
-      final response = await Supabase.instance.client.from('user_preferences').select().eq('id', currentUserId).maybeSingle();
-      if (response != null && mounted) { 
-        currentUserName = response['name'] ?? "User"; 
-        currentUserUid = response['uid'] ?? currentUserId.substring(0,8).toUpperCase();
-        
-        if (response['status'] == 'Inactive') {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(title: "Account Suspended", message: "Your account has been deactivated by the administrator.")));
-          return;
-        }
-        
-        await Supabase.instance.client.from('user_preferences').update({'device_name': currentDeviceName}).eq('id', currentUserId);
-        
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen())); 
-      } 
-      else { 
-        if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
-      }
     } catch (e) { 
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SecurityBlockScreen(
           title: "Connection Failed", 
-          message: "Error: $e\n\nDeveloper: Please check Supabase Authentication settings."
+          message: "Error: $e\n\nPlease check your internet connection and restart the app."
         )));
       }
     }
   }
 
   @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 40, fontWeight: FontWeight.w900))])), const SizedBox(height: 20), const CircularProgressIndicator(color: Color(0xFF8A2BE2))])));
+    return Scaffold(
+      backgroundColor: getBg(context), 
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center, 
+          children: [
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 48, fontWeight: FontWeight.w900)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 48, fontWeight: FontWeight.w900))])),
+            ),
+            const SizedBox(height: 30), 
+            const SizedBox(width: 40, height: 40, child: CircularProgressIndicator(color: Color(0xFF8A2BE2), strokeWidth: 3))
+          ]
+        )
+      )
+    );
   }
 }
 
@@ -346,10 +432,10 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       
       await Supabase.instance.client.from('user_preferences').insert({
         'id': currentUserId, 
-        'device_id': currentDeviceName, 
+        'device_id': currentHardwareId, // Save Hardware ID for future Auto-Login
         'name': fullName, 
         'uid': shortUid,
-        'device_name': currentDeviceName,
+        'device_name': currentDeviceName, // Admin can see device model
         'status': 'Active',
         'continue_watching': [],
         'saved_anime': [],
@@ -375,12 +461,12 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
   }
 
   @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF0F0F13), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF0F0F13), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
+    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
   }
 }
 
 // ==========================================
-// MAIN SCREEN
+// MAIN SCREEN & THEME SELECTOR
 // ==========================================
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -417,7 +503,7 @@ class _MainScreenState extends State<MainScreen> {
 
   void _handleUserUpdate(Map<String, dynamic> newRecord) {
     if (newRecord['status'] == 'Inactive') {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(title: "Account Suspended", message: "Your account has been deactivated by the administrator.")));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(title: "Account Suspended", message: "Your account has been restricted due to violation of policies.", isSuspended: true)));
     }
   }
 
@@ -426,6 +512,22 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadEverything() async {
     await _fetchSettings(); await _checkForUpdates(context); await fetchGlobalAnimeViews(); await _fetchDatabaseCatalog(); await _fetchUserPreferences(); 
     if(mounted) setState(() => _isDataLoading = false);
+    _checkThemeSelection();
+  }
+
+  Future<void> _checkThemeSelection() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool hasSelected = prefs.getBool('theme_selected') ?? false;
+    if (!hasSelected && mounted) {
+      _showThemeSelectorDialog();
+    }
+  }
+
+  void _showThemeSelectorDialog() {
+    showModalBottomSheet(
+      context: context, backgroundColor: getCard(context), shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => const ThemeSelectorBottomSheet()
+    );
   }
 
   Future<void> _fetchSettings() async {
@@ -494,8 +596,6 @@ class _MainScreenState extends State<MainScreen> {
     try {
       var animeResponse; 
       bool hasEpDate = true;
-      
-      // 🔥 FIX: Completely removed ANY reference to 'rating', 'genres', 'dub_color' etc which were deleted.
       try { 
         animeResponse = await Supabase.instance.client.from('anime_list').select('''id, title, description, image_url, dub_status, category, sub_category, created_at, anime_seasons (id, season_name, anime_episodes (id, episode_title, image_url, duration, video_url, created_at))''').order('created_at', ascending: false); 
       } 
@@ -528,8 +628,8 @@ class _MainScreenState extends State<MainScreen> {
           title: item['title']?.toString() ?? "Unknown", 
           description: item['description']?.toString() ?? "", 
           image: item['image_url']?.toString() ?? "", 
-          genre: item['category']?.toString() ?? "Action", // Used category as genre fallback
-          rating: "All Ages", // Default since rating deleted
+          genre: item['category']?.toString() ?? "Action", 
+          rating: "All Ages", 
           dubStatus: item['dub_status']?.toString() ?? "DUB", 
           status: item['status']?.toString() ?? "Completed", 
           category: item['category']?.toString() ?? "", 
@@ -544,7 +644,7 @@ class _MainScreenState extends State<MainScreen> {
       heroSliderNotifier.value = List<Map<String, dynamic>>.from(heroResponse);
       
     } catch (e) {
-       // Silent catch
+       debugPrint("CATALOG ERROR: $e");
     }
   }
 
@@ -591,6 +691,60 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ==========================================
+// THEME SELECTOR BOTTOM SHEET
+// ==========================================
+class ThemeSelectorBottomSheet extends StatelessWidget {
+  const ThemeSelectorBottomSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final List<Map<String, dynamic>> themes = [
+      {"name": "Purple (Default)", "color": const Color(0xFF8A2BE2)},
+      {"name": "Crimson Red", "color": const Color(0xFFFF4D4D)},
+      {"name": "Ocean Blue", "color": const Color(0xFF3B82F6)},
+      {"name": "Emerald Green", "color": const Color(0xFF10B981)},
+      {"name": "Sunset Orange", "color": const Color(0xFFF59E0B)},
+      {"name": "Neon Pink", "color": const Color(0xFFFF2A85)},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10))),
+          const SizedBox(height: 20),
+          const Text("Choose Your Theme", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text("Personalize your AniXplayer experience.", style: TextStyle(color: Colors.white54, fontSize: 13)),
+          const SizedBox(height: 24),
+          Wrap(
+            spacing: 16, runSpacing: 16, alignment: WrapAlignment.center,
+            children: themes.map((t) => GestureDetector(
+              onTap: () async {
+                primaryColorNotifier.value = t['color'];
+                SharedPreferences prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('theme_selected', true);
+                await prefs.setInt('app_theme_color', (t['color'] as Color).value);
+                if(context.mounted) Navigator.pop(context);
+              },
+              child: Column(
+                children: [
+                  Container(width: 60, height: 60, decoration: BoxDecoration(color: t['color'], shape: BoxShape.circle, boxShadow: [BoxShadow(color: (t['color'] as Color).withOpacity(0.4), blurRadius: 10, spreadRadius: 2)])),
+                  const SizedBox(height: 8),
+                  Text(t['name'], style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold))
+                ],
+              ),
+            )).toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
 // HOME SCREEN
 // ==========================================
 class HomeScreen extends StatelessWidget {
@@ -619,9 +773,9 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: getBg(context),
       appBar: AppBar(
         backgroundColor: getBg(context), elevation: 0,
-        title: RichText(text: const TextSpan(children: [
-          TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
-          TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
+        title: RichText(text: TextSpan(children: [
+          const TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
+          TextSpan(text: "player", style: TextStyle(color: primColor, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
         ])),
         actions:[IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: onSearchTap)],
       ),
@@ -647,7 +801,7 @@ class HomeScreen extends StatelessWidget {
                     final String heroTag = hero['tag'] ?? "NEW";
                     String hexColor = hero['tag_color']?.toString().replaceAll('#', '') ?? "FF8A2BE2";
                     if(hexColor.length == 6) hexColor = 'FF$hexColor';
-                    Color tagColor = Color(int.tryParse(hexColor, radix: 16) ?? 0xFF8A2BE2);
+                    Color tagColor = Color(int.tryParse(hexColor, radix: 16) ?? primColor.value);
                     
                     return GestureDetector(
                       onTap: () { 
@@ -1231,7 +1385,7 @@ class _ServersScreenState extends State<ServersScreen> {
 }
 
 // ==========================================
-// MY LIST SCREEN
+// MY LIST SCREEN (Watchlist)
 // ==========================================
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
@@ -1328,7 +1482,7 @@ class ParticlePainter extends CustomPainter {
 }
 
 // ==========================================
-// PROFILE SCREEN
+// PROFILE SCREEN (REDESIGNED)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -1352,6 +1506,13 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  void _showThemeSelector(BuildContext context) {
+    showModalBottomSheet(
+      context: context, backgroundColor: getCard(context), shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => const ThemeSelectorBottomSheet()
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
@@ -1371,8 +1532,6 @@ class ProfileScreen extends StatelessWidget {
                   Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
                   const SizedBox(height: 6),
                   Text("UID: $currentUserUid", style: const TextStyle(color: Colors.white70, fontSize: 13, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text("Device: $currentDeviceName", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11, letterSpacing: 1.0)),
                   const SizedBox(height: 40),
                   
                   Container(
@@ -1381,6 +1540,12 @@ class ProfileScreen extends StatelessWidget {
                       _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
                       const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
                       _buildGroupedItem(context, title: "Payment Proof", icon: Icons.receipt_long_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentProofPage()))),
+                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
+                      // NEW ORDER HISTORY ADDED HERE
+                      _buildGroupedItem(context, title: "Order History", icon: Icons.history_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage()))),
+                      const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
+                      // NEW THEME SELECTOR ADDED HERE
+                      _buildGroupedItem(context, title: "App Theme", icon: Icons.color_lens_rounded, onTap: () => _showThemeSelector(context)),
                       const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
                       _buildGroupedItem(context, title: "Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
                       const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
@@ -1395,6 +1560,90 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ==========================================
+// ORDER HISTORY PAGE (NEW)
+// ==========================================
+class OrderHistoryPage extends StatefulWidget {
+  const OrderHistoryPage({super.key});
+
+  @override
+  State<OrderHistoryPage> createState() => _OrderHistoryPageState();
+}
+
+class _OrderHistoryPageState extends State<OrderHistoryPage> {
+  List<dynamic> _orders = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOrders();
+  }
+
+  Future<void> _fetchOrders() async {
+    try {
+      final res = await Supabase.instance.client.from('payment_requests').select().eq('user_id', currentUserId).order('created_at', ascending: false);
+      setState(() { _orders = res; _isLoading = false; });
+    } catch(e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Color primColor = Theme.of(context).primaryColor;
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(title: Text("Order History", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
+      body: _isLoading 
+        ? Center(child: CircularProgressIndicator(color: primColor))
+        : _orders.isEmpty 
+          ? Center(child: Text("No orders found.", style: TextStyle(color: getSubText(context), fontSize: 16)))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _orders.length,
+              itemBuilder: (context, index) {
+                final order = _orders[index];
+                String status = order['status'] ?? "Pending";
+                Color statusColor = status == 'Approved' ? Colors.green : (status == 'Rejected' ? Colors.redAccent : Colors.orange);
+                String date = "Unknown";
+                if(order['created_at'] != null) {
+                  DateTime d = DateTime.parse(order['created_at']).toLocal();
+                  date = "${d.day}/${d.month}/${d.year}";
+                }
+                
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(order['plan'] ?? "Unknown Plan", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)))
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Amount", style: TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 2), Text("₹${order['amount'] ?? 0}", style: TextStyle(color: primColor, fontSize: 16, fontWeight: FontWeight.bold))]),
+                          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [const Text("Date", style: TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 2), Text(date, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))]),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8)), child: Row(children: [const Icon(Icons.receipt_long, color: Colors.white54, size: 16), const SizedBox(width: 8), Text("UTR: ${order['transaction_id'] ?? 'N/A'}", style: const TextStyle(color: Colors.white70, fontSize: 12))]))
+                    ],
+                  ),
+                );
+              }
+            )
     );
   }
 }
@@ -1666,6 +1915,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     _currentSeasonIndex = widget.seasonIndex;
     _currentEpisodeIndex = widget.episodeIndex;
     
+    // 🔥 "COMING SOON" ISSUE FIXED: Double checking if actual episodes exist before blocking! 🔥
     if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
       return; 
     }
@@ -1779,6 +2029,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor; 
 
+    // SHOW COMING SOON ONLY IF NO EPISODES TRULY EXIST
     if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
       return Scaffold(
         backgroundColor: Colors.black,
