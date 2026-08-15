@@ -30,8 +30,8 @@ String globalWhatsappLink = "https://wa.me/";
 String globalUpiId = "wicvlox.i@oksbi";
 String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 
-String globalPrivacyPolicy = "At AniXplayer, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience for both Anime and Movies without compromising your personal data.\n\nData Security & Storage\nWe utilize encryption to protect your hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized to your device.\n\nContent Information\nAniXplayer provides a vast library of Anime and Movies. To ensure fast and consistent releases, a large portion of our dubbed content is powered by high-quality AI Dubbing technology, alongside our Original dubs.\n\nHardware Tracking\nAniXplayer securely scans and hashes your device's hardware ID to keep your account safe without needing passwords.";
-String globalTermsConditions = "Welcome to AniXplayer. By continuing to browse and use this app, you are agreeing to comply with and be bound by the following terms and conditions of use.";
+String globalPrivacyPolicy = "At AniXplayer, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience...";
+String globalTermsConditions = "Terms and Conditions will be updated soon."; 
 
 List<String> globalRecentSearches = [];
 List<String> globalRecommendedSearches = ["Naruto", "One Piece", "Solo Leveling", "Action", "Romance", "Demon Slayer", "Jujutsu Kaisen", "Movie"];
@@ -93,9 +93,6 @@ DateTime? getPlanExpiryDate(String createdAt, String planName) {
   return start.add(const Duration(days: 30)); 
 }
 
-// ==========================================
-// REUSABLE CUSTOM DELETE DIALOG
-// ==========================================
 Future<bool?> showCustomDeleteDialog(BuildContext context, String title, String actionText) {
   return showDialog<bool>(
     context: context,
@@ -131,9 +128,6 @@ Future<bool?> showCustomDeleteDialog(BuildContext context, String title, String 
   );
 }
 
-// ==========================================
-// SECURITY & HARDWARE ID CONFIG
-// ==========================================
 Future<bool> checkVpnConnection() async {
   bool isVpn = false;
   try {
@@ -218,9 +212,6 @@ class MyListService {
   }
 }
 
-// ==========================================
-// DATA MODELS
-// ==========================================
 class CWItem {
   final Anime anime; int seasonIndex; int episodeIndex; Duration position; Duration totalDuration;
   CWItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.position, required this.totalDuration});
@@ -262,9 +253,6 @@ class LatestEpisodeItem {
   LatestEpisodeItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.episode});
 }
 
-// ==========================================
-// MAIN ENTRY POINT
-// ==========================================
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   String secureUrl = utf8.decode(base64Decode('aHR0cHM6Ly95bmd6ZmdmcHl1ZnVzcmJpdGFnbC5zdXBhYmFzZS5jbw=='));
@@ -307,9 +295,6 @@ class AniXApp extends StatelessWidget {
   }
 }
 
-// ==========================================
-// SKELETON LOADER WIDGET
-// ==========================================
 class SkeletonLoader extends StatefulWidget {
   final double width; final double height; final double borderRadius;
   const SkeletonLoader({super.key, required this.width, required this.height, this.borderRadius = 10});
@@ -332,9 +317,41 @@ class _SkeletonLoaderState extends State<SkeletonLoader> with SingleTickerProvid
   }
 }
 
-// ==========================================
-// VPN & SECURITY BLOCKER SCREEN
-// ==========================================
+class SearchListSkeleton extends StatelessWidget {
+  const SearchListSkeleton({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SkeletonLoader(width: 110, height: 160, borderRadius: 8),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                SkeletonLoader(width: double.infinity, height: 20, borderRadius: 4),
+                SizedBox(height: 8),
+                SkeletonLoader(width: 150, height: 14, borderRadius: 4),
+                SizedBox(height: 8),
+                SkeletonLoader(width: 100, height: 14, borderRadius: 4),
+                SizedBox(height: 12),
+                SkeletonLoader(width: double.infinity, height: 10, borderRadius: 2),
+                SizedBox(height: 4),
+                SkeletonLoader(width: double.infinity, height: 10, borderRadius: 2),
+                SizedBox(height: 4),
+                SkeletonLoader(width: 180, height: 10, borderRadius: 2),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
 class SecurityBlockScreen extends StatelessWidget {
   final String title;
   final String message;
@@ -376,9 +393,6 @@ class SecurityBlockScreen extends StatelessWidget {
   }
 }
 
-// ==========================================
-// SUPABASE AUTH GATE
-// ==========================================
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
   @override State<AuthGate> createState() => _AuthGateState();
@@ -504,9 +518,6 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
   }
 }
 
-// ==========================================
-// MAIN SCREEN 
-// ==========================================
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
   @override State<MainScreen> createState() => _MainScreenState();
@@ -555,7 +566,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _fetchSettings() async {
     try {
-      final res = await Supabase.instance.client.from('app_settings').select('website_url, telegram_url, whatsapp_url, privacy_policy, terms_conditions, payment_qr_url, upi_id, recommended_searches').limit(1).maybeSingle();
+      final res = await Supabase.instance.client.from('app_settings').select('website_url, telegram_url, whatsapp_url, privacy_policy, terms_conditions, recommended_searches, payment_qr_url, upi_id').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
         if(res['telegram_url'] != null) globalTelegramLink = res['telegram_url'];
@@ -564,7 +575,12 @@ class _MainScreenState extends State<MainScreen> {
         if(res['terms_conditions'] != null) globalTermsConditions = res['terms_conditions'];
         if(res['payment_qr_url'] != null) globalPaymentQrUrl = res['payment_qr_url'];
         if(res['upi_id'] != null) globalUpiId = res['upi_id'];
-        if(res['recommended_searches'] != null) globalRecommendedSearches = List<String>.from(res['recommended_searches']);
+        
+        if(res['recommended_searches'] != null) {
+          var recData = res['recommended_searches'];
+          if (recData is String) { globalRecommendedSearches = List<String>.from(jsonDecode(recData)); } 
+          else if (recData is List) { globalRecommendedSearches = List<String>.from(recData); }
+        }
       }
     } catch(e) { }
   }
@@ -665,9 +681,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// ==========================================
-// HOME SCREEN
-// ==========================================
 class HomeScreen extends StatelessWidget {
   final VoidCallback onSearchTap;
   final bool isDataLoading;
@@ -699,7 +712,7 @@ class HomeScreen extends StatelessWidget {
           TextSpan(text: "player", style: TextStyle(color: primColor, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
         ])),
         actions:[
-          IconButton(icon: Icon(Icons.notifications_none, color: getText(context), size: 24), onPressed: (){}),
+          IconButton(icon: Icon(Icons.notifications_none, color: getText(context), size: 24), onPressed: () {}),
           IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: onSearchTap)
         ],
       ),
@@ -949,9 +962,6 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ==========================================
-// THUMBNAIL LATEST CARD
-// ==========================================
 class ThumbnailLatestCard extends StatelessWidget {
   final LatestEpisodeItem item; 
   const ThumbnailLatestCard({super.key, required this.item});
@@ -1002,9 +1012,6 @@ class ThumbnailLatestCard extends StatelessWidget {
   }
 }
 
-// ==========================================
-// LATEST EPISODES "SEE ALL" PAGE
-// ==========================================
 class LatestEpisodesSeeAllPage extends StatelessWidget {
   final List<LatestEpisodeItem> latestList;
   const LatestEpisodesSeeAllPage({super.key, required this.latestList});
@@ -1067,9 +1074,6 @@ class LatestEpisodesSeeAllPage extends StatelessWidget {
   }
 }
 
-// ==========================================
-// CUSTOM LIST ITEM FOR BROWSE/SEARCH RESULTS
-// ==========================================
 class SearchListCard extends StatelessWidget {
   final Anime anime;
   const SearchListCard({super.key, required this.anime});
@@ -1078,97 +1082,70 @@ class SearchListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     int totalEp = getTotalEpisodes(anime);
     int totalSeasons = anime.seasonsList.length;
-    String langText = anime.dubStatus.toUpperCase().contains("DUB") ? "Hindi | Japanese" : "Japanese";
+    String langText = anime.dubStatus.toUpperCase().contains("DUB") ? "Hindi, Japanese" : "Japanese";
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      child: Column(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image Section with gradient and tags
-              SizedBox(
-                width: 120,
-                height: 170,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                      Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.9), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))),
-                      Positioned(
-                        bottom: 8, left: 0, right: 0,
-                        child: Column(
-                          children: [
-                            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.blueAccent, borderRadius: BorderRadius.circular(4)), child: Text(getSeasonText(anime).toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
-                            const SizedBox(height: 4),
-                            Text(langText.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                      )
-                    ],
-                  )
-                ),
+          SizedBox(
+            width: 110,
+            height: 160,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                anime.image,
+                fit: BoxFit.cover,
+                errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54),
               ),
-              const SizedBox(width: 16),
-              
-              // Info Section
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)), 
-                      child: const Text("SHOW", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 6),
-                    Text("Japanese, ${anime.genre}, ${anime.createdAt.year}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                    const SizedBox(height: 4),
-                    Text("$totalSeasons seasons, $totalEp episodes", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                    const SizedBox(height: 8),
-                    Text(anime.description, style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
-                  ],
-                ),
-              )
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-          
-          // Season Buttons Wrap
-          if(anime.seasonsList.isNotEmpty)
-            Wrap(
-              spacing: 8, runSpacing: 8,
-              children: anime.seasonsList.asMap().entries.map((entry) {
-                int sIdx = entry.key;
-                Season s = entry.value;
-                if(s.episodes.isEmpty) return const SizedBox.shrink();
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)),
-                    child: Text(s.name.isEmpty ? "Season ${sIdx+1}" : s.name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
-                  ),
-                );
-              }).toList(),
-            )
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)), 
+                  child: const Text("SHOW", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 6),
+                Text("$langText, ${anime.genre}, ${anime.createdAt.year}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 4),
+                Text("$totalSeasons seasons, $totalEp episodes", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                const SizedBox(height: 8),
+                Text(anime.description, style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8, runSpacing: 8,
+                  children: anime.seasonsList.asMap().entries.map((entry) {
+                    int sIdx = entry.key;
+                    Season s = entry.value;
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)),
+                        child: Text(s.name.isEmpty ? "Season ${sIdx+1}" : s.name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                      ),
+                    );
+                  }).toList(),
+                )
+              ],
+            ),
+          )
         ],
       ),
     );
   }
 }
 
-// ==========================================
-// BROWSE (SEARCH) SCREEN 
-// ==========================================
 class BrowseScreen extends StatefulWidget {
   const BrowseScreen({super.key}); 
   @override 
@@ -1180,7 +1157,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
   List<Anime> _searchResults = [];
   bool _isLoadingSearches = true;
   bool _isSearching = false;
-  Timer? _debounce;
 
   @override
   void initState() {
@@ -1214,20 +1190,13 @@ class _BrowseScreenState extends State<BrowseScreen> {
     try { await Supabase.instance.client.from('user_preferences').update({'recent_searches': '[]'}).eq('id', currentUserId); } catch (e) {}
   }
 
-  void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    if (query.isEmpty) {
-      setState(() { _searchResults = []; _isSearching = false; });
-      return;
-    }
-    setState(() => _isSearching = true);
-    _debounce = Timer(const Duration(milliseconds: 600), () {
-      _performSearch(query);
-    });
-  }
-
-  void _performSearch(String query) { 
-    if (query.isEmpty) { setState(() { _searchResults = []; _isSearching = false; }); } else { 
+  void _performSearch(String query) async { 
+    if (query.isEmpty) { 
+      setState(() { _searchResults = []; _isSearching = false; }); 
+    } else { 
+      setState(() { _isSearching = true; });
+      await Future.delayed(const Duration(milliseconds: 300)); 
+      if(!mounted) return;
       setState(() { 
         _searchResults = animeListNotifier.value.where((anime) {
           return anime.title.toLowerCase().contains(query.toLowerCase()) || anime.genre.toLowerCase().contains(query.toLowerCase()) || anime.category.toLowerCase().contains(query.toLowerCase());
@@ -1237,50 +1206,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
     } 
   }
 
-  void _setSearchQuery(String query) { _searchController.text = query; _onSearchChanged(query); if (query.isNotEmpty) { _updateRecentSearchesInDb(query); } }
+  void _setSearchQuery(String query) { _searchController.text = query; _performSearch(query); if (query.isNotEmpty) { _updateRecentSearchesInDb(query); } }
 
   void _submitSearch(String query) { 
     if (query.trim().isNotEmpty && !globalRecentSearches.contains(query.trim())) { setState(() { globalRecentSearches.insert(0, query.trim()); }); _updateRecentSearchesInDb(query.trim()); } 
-    _onSearchChanged(query); 
+    _performSearch(query); 
   }
 
   void _removeRecentSearch(int index) { setState(() { globalRecentSearches.removeAt(index); }); _updateRecentSearchesInDb(globalRecentSearches.join(',')); }
-
-  Widget _buildSearchSkeleton() {
-    return ListView.builder(
-      shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: 4,
-      itemBuilder: (ctx, i) => Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SkeletonLoader(width: 120, height: 170, borderRadius: 8),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  SkeletonLoader(width: double.infinity, height: 18),
-                  SizedBox(height: 8),
-                  SkeletonLoader(width: 50, height: 14),
-                  SizedBox(height: 8),
-                  SkeletonLoader(width: 150, height: 12),
-                  SizedBox(height: 4),
-                  SkeletonLoader(width: 120, height: 12),
-                  SizedBox(height: 12),
-                  SkeletonLoader(width: double.infinity, height: 10),
-                  SizedBox(height: 4),
-                  SkeletonLoader(width: double.infinity, height: 10),
-                  SizedBox(height: 4),
-                  SkeletonLoader(width: 100, height: 10),
-                ],
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1295,16 +1228,19 @@ class _BrowseScreenState extends State<BrowseScreen> {
               Container(
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
                 child: TextField(
-                  controller: _searchController, onChanged: _onSearchChanged, onSubmitted: _submitSearch, style: TextStyle(color: getText(context), fontSize: 15), 
-                  decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _onSearchChanged(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
+                  controller: _searchController, onChanged: _performSearch, onSubmitted: _submitSearch, style: TextStyle(color: getText(context), fontSize: 15), 
+                  decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _performSearch(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
                 )
               ),
               const SizedBox(height: 24),
               
               if (_searchController.text.isNotEmpty) ...[
-                if (_isSearching) _buildSearchSkeleton()
-                else if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 15)))) 
-                else ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _searchResults.length, itemBuilder: (context, index) => SearchListCard(anime: _searchResults[index]))
+                if (_isSearching)
+                  ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: 3, itemBuilder: (context, index) => const SearchListSkeleton())
+                else if (_searchResults.isEmpty) 
+                  const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 15)))) 
+                else 
+                  ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _searchResults.length, itemBuilder: (context, index) => SearchListCard(anime: _searchResults[index]))
               ] else ...[
                 Text("Recommended", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
                 const SizedBox(height: 12),
@@ -1368,9 +1304,6 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 }
 
-// ==========================================
-// EXPLORE SCREEN (REPLACED SERVERS) - 3 CARDS LAYOUT
-// ==========================================
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
   @override State<ExploreScreen> createState() => _ExploreScreenState();
@@ -1381,7 +1314,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   String _selectedTag = "";
   List<Anime> _exploreResults = [];
   bool _isSearching = false;
-  Timer? _debounce;
   
   final List<Map<String, dynamic>> _tags = [
     {"name": "Action", "icon": "⚔️"},
@@ -1394,15 +1326,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override void initState() { super.initState(); _exploreResults = animeListNotifier.value; }
 
-  void _onFilterChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    setState(() => _isSearching = true);
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _filterExplore();
-    });
-  }
-
-  void _filterExplore() {
+  void _filterExplore() async {
+    setState(() { _isSearching = true; });
+    await Future.delayed(const Duration(milliseconds: 300));
+    if(!mounted) return;
     String q = _exploreSearchCtrl.text.toLowerCase();
     setState(() {
       _exploreResults = animeListNotifier.value.where((a) {
@@ -1413,15 +1340,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
       _isSearching = false;
     });
   }
-  
-  Widget _buildGridSkeleton() {
-    return GridView.builder(
-      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16),
-      itemCount: 9,
-      itemBuilder: (context, index) => const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 10)
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1431,19 +1349,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Search Bar Top
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Container(
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: primColor.withOpacity(0.3))), 
                 child: TextField(
-                  controller: _exploreSearchCtrl, onChanged: (v) => _onFilterChanged(), style: TextStyle(color: getText(context), fontSize: 15), 
+                  controller: _exploreSearchCtrl, onChanged: (v) => _filterExplore(), style: TextStyle(color: getText(context), fontSize: 15), 
                   decoration: InputDecoration(hintText: "Search anime...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: const Icon(Icons.filter_alt_outlined, color: Colors.white54), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
                 )
               ),
             ),
             
-            // Horizontal Tags
             SizedBox(
               height: 40,
               child: ListView.builder(
@@ -1451,7 +1367,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 itemBuilder: (ctx, i) {
                   bool isSelected = _selectedTag == _tags[i]['name'];
                   return GestureDetector(
-                    onTap: () { setState(() { _selectedTag = isSelected ? "" : _tags[i]['name']; }); _onFilterChanged(); },
+                    onTap: () { setState(() { _selectedTag = isSelected ? "" : _tags[i]['name']; }); _filterExplore(); },
                     child: Container(
                       margin: const EdgeInsets.only(right: 10), padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(color: isSelected ? primColor : getCard(context), borderRadius: BorderRadius.circular(20), border: Border.all(color: isSelected ? primColor : Colors.white12)),
@@ -1464,10 +1380,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Grid View (3 Cards)
             Expanded(
               child: _isSearching
-              ? _buildGridSkeleton()
+              ? GridView.builder(
+                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16),
+                  itemCount: 6,
+                  itemBuilder: (context, index) => const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 10)
+                )
               : _exploreResults.isEmpty 
                   ? const Center(child: Text("No anime found.", style: TextStyle(color: Colors.white54)))
                   : GridView.builder(
@@ -1502,7 +1422,7 @@ class ExploreAnimeCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white, width: 1.5) // White border as requested
+          border: Border.all(color: Colors.white, width: 1.5) 
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
@@ -1542,9 +1462,6 @@ class ExploreAnimeCard extends StatelessWidget {
   }
 }
 
-// ==========================================
-// MY LIST SCREEN (Redesigned)
-// ==========================================
 class MyListScreen extends StatefulWidget {
   const MyListScreen({super.key});
   @override State<MyListScreen> createState() => _MyListScreenState();
@@ -1604,7 +1521,6 @@ class _MyListScreenState extends State<MyListScreen> {
               String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "DUB" : "SUB";
               String seasonText = getSeasonText(anime);
               
-              // Real-time Progress Logic
               final cwList = continueWatchingNotifier.value;
               CWItem? cwItem;
               try {
@@ -1635,7 +1551,6 @@ class _MyListScreenState extends State<MyListScreen> {
                   decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
                   child: Row(
                     children: [
-                      // Image Section
                       SizedBox(
                         width: 90, height: 120,
                         child: ClipRRect(
@@ -1649,7 +1564,6 @@ class _MyListScreenState extends State<MyListScreen> {
                           )
                         ),
                       ), 
-                      // Text Section
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10), 
@@ -1683,7 +1597,6 @@ class _MyListScreenState extends State<MyListScreen> {
                           )
                         )
                       ), 
-                      // Actions Section
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                         child: Column(
@@ -1712,21 +1625,14 @@ class _MyListScreenState extends State<MyListScreen> {
   }
 }
 
-// ==========================================
-// MY PROFILE PAGE (Local Avatar Upload)
-// ==========================================
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
-
-  @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  @override State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
-
 class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _selectedImage;
 
-  @override
-  void initState() {
+  @override void initState() {
     super.initState();
     if(localProfileImagePath.isNotEmpty) {
       _selectedImage = File(localProfileImagePath);
@@ -1755,8 +1661,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }); 
   }
 
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context),
@@ -1804,53 +1709,69 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 }
 
-// ==========================================
-// ANIMATED GLOWING PROGRESS BAR
-// ==========================================
-class AnimatedPlanProgress extends StatelessWidget {
-  final double progress;
-  final Color color;
-  const AnimatedPlanProgress({super.key, required this.progress, required this.color});
+// Custom Animated Progress Bar with Particles
+class AnimatedPlanProgressBar extends StatelessWidget {
+  final double progress; 
+  const AnimatedPlanProgressBar({super.key, required this.progress});
 
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: progress),
+      tween: Tween<double>(begin: 0.0, end: progress),
       duration: const Duration(seconds: 2),
-      curve: Curves.easeInOutQuart,
+      curve: Curves.easeOutCubic,
       builder: (context, value, child) {
-        return Stack(
-          children: [
-            Container(height: 8, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4))),
-            FractionallySizedBox(
-              widthFactor: value,
-              child: Container(
-                height: 8,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                  boxShadow: [BoxShadow(color: color, blurRadius: 8, spreadRadius: 1)],
-                  gradient: LinearGradient(colors: [color.withOpacity(0.5), color])
-                )
-              )
-            )
-          ]
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final double activeWidth = constraints.maxWidth * value;
+            return Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.centerLeft,
+              children: [
+                Container(
+                  height: 8,
+                  width: double.infinity,
+                  decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(10))
+                ),
+                Container(
+                  height: 8,
+                  width: activeWidth,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: const LinearGradient(
+                      colors: [Colors.pink, Colors.redAccent, Colors.yellow, Colors.blueAccent],
+                      begin: Alignment.centerLeft, end: Alignment.centerRight
+                    ),
+                  ),
+                ),
+                if (value > 0.0)
+                  Positioned(
+                    left: activeWidth - 8,
+                    child: Container(
+                      width: 16, height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(color: Colors.blueAccent.withOpacity(0.8), blurRadius: 8, spreadRadius: 2),
+                          BoxShadow(color: Colors.pink.withOpacity(0.5), blurRadius: 15, spreadRadius: 4),
+                        ]
+                      ),
+                    ),
+                  )
+              ],
+            );
+          },
         );
-      }
+      },
     );
   }
 }
 
-
-// ==========================================
-// PROFILE SCREEN (Account Page Redesigned)
-// ==========================================
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key}); 
-
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  @override State<ProfileScreen> createState() => _ProfileScreenState();
 }
-
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _activePlan;
   bool _isLoadingPlan = true;
@@ -1864,7 +1785,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _fetchActivePlan();
     
-    // Live Indian Time Update
     _timeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       DateTime istTime = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
       String ampm = istTime.hour >= 12 ? 'PM' : 'AM';
@@ -1901,8 +1821,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _planProgress = totalDays > 0 ? (daysPassed / totalDays).clamp(0.0, 1.0) : 0.0;
             
             setState(() { _activePlan = res; _activePlan!['expiry'] = expiry; });
-          } else {
-            // Plan expired 
           }
         }
       }
@@ -1998,7 +1916,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      // Live Time
                       Text(_istTimeString, style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
                   )
@@ -2006,7 +1923,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 30),
               
-              // Premium Card Logic
               if(_isLoadingPlan)
                  Center(child: CircularProgressIndicator(color: primColor))
               else if(_activePlan != null)
@@ -2039,15 +1955,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           )
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      AnimatedPlanProgress(progress: _planProgress, color: primColor),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 20),
+                      AnimatedPlanProgressBar(progress: _planProgress),
+                      const SizedBox(height: 12),
                       Align(alignment: Alignment.centerRight, child: Text(_daysLeftText, style: const TextStyle(color: Colors.white54, fontSize: 11)))
                     ],
                   ),
                 )
               else 
-                // No Plan - Upgrade Banner
                 GestureDetector(
                   onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())),
                   child: Container(
@@ -2085,9 +2000,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   _buildGroupedItem(context, title: "Order History", icon: Icons.history_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Watch History", icon: Icons.history, onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Coming Soon")))),
+                  _buildGroupedItem(context, title: "Watch History", icon: Icons.schedule, onTap: () {}),
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Downloads", icon: Icons.download_done_rounded, onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Coming Soon")))),
+                  _buildGroupedItem(context, title: "Download Settings", icon: Icons.download, onTap: () {}),
                 ]),
               ),
               const SizedBox(height: 30),
@@ -2149,52 +2064,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-// ==========================================
-// ORDER HISTORY PAGE (WITH EXPIRY LOGIC)
-// ==========================================
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
-
-  @override
-  State<OrderHistoryPage> createState() => _OrderHistoryPageState();
+  @override State<OrderHistoryPage> createState() => _OrderHistoryPageState();
 }
-
 class _OrderHistoryPageState extends State<OrderHistoryPage> {
   List<dynamic> _orders = [];
   bool _isLoading = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchOrders();
-  }
+  @override void initState() { super.initState(); _fetchOrders(); }
 
   Future<void> _fetchOrders() async {
     try {
       final res = await Supabase.instance.client.from('payment_requests').select().eq('user_id', currentUserId).order('created_at', ascending: false);
-      
-      // Calculate Expiry Logic to mark as Expired locally
       List<dynamic> updatedOrders = [];
       for(var order in res) {
         String status = order['status'] ?? "Pending";
         if (status == 'Approved' && order['created_at'] != null) {
           DateTime? expiry = getPlanExpiryDate(order['created_at'], order['plan'] ?? "");
           if (expiry != null && DateTime.now().isAfter(expiry)) {
-            status = "Expired"; // Change local status visually
+            status = "Expired"; 
           }
         }
         order['display_status'] = status;
         updatedOrders.add(order);
       }
-
       setState(() { _orders = updatedOrders; _isLoading = false; });
     } catch(e) {
       setState(() => _isLoading = false);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context),
@@ -2248,18 +2149,12 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   }
 }
 
-// ==========================================
-// SUBSCRIPTION PAGE (REDESIGNED)
-// ==========================================
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
-
-  @override
-  State<SubscriptionPage> createState() => _SubscriptionPageState();
+  @override State<SubscriptionPage> createState() => _SubscriptionPageState();
 }
-
 class _SubscriptionPageState extends State<SubscriptionPage> {
-  int _selectedPlanIndex = 1; // Default to standard plan
+  int _selectedPlanIndex = 1; 
 
   final List<Map<String, dynamic>> _plans = [
     {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
@@ -2280,10 +2175,8 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     Color btnColor = const Color(0xFF3B82F6); 
-
     return Scaffold(
       backgroundColor: getBg(context), 
       body: Column(
@@ -2291,55 +2184,49 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           Expanded(
             child: SingleChildScrollView(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Stack(
                     children: [
-                      Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", height: 260, width: double.infinity, fit: BoxFit.cover),
+                      Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", fit: BoxFit.cover, height: 280, width: double.infinity),
                       Container(
-                        height: 260,
+                        height: 280,
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.black.withOpacity(0.3), Colors.black],
-                            begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                            stops: const [0.3, 1.0]
-                          )
+                          gradient: LinearGradient(colors: [Colors.black.withOpacity(0.1), Colors.black], begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: const [0.3, 1.0])
                         ),
                       ),
-                      // Custom Back Button Overlay
                       Positioned(
-                        top: 40, left: 16,
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                          onPressed: () => Navigator.pop(context),
-                        ),
+                        top: MediaQuery.of(context).padding.top + 10, left: 16,
+                        child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)),
                       ),
                       Positioned(
                         bottom: 0, left: 0, right: 0,
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF2563EB)], begin: Alignment.topLeft, end: Alignment.bottomRight), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 30, spreadRadius: 5)]),
-                              child: const Icon(Icons.workspace_premium, color: Colors.white, size: 50),
+                              child: const Icon(Icons.workspace_premium, color: Colors.white, size: 45),
                             ),
+                            const SizedBox(height: 16),
+                            const Text("Improve your experience", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       )
                     ],
                   ),
-                  
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Center(child: Text("Improve your experience", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
                         const SizedBox(height: 10),
-                        const Center(child: Text("Activate VIP membership to enjoy unlimited streaming no ads, 4K quality movies or series and more", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5))),
-                        const SizedBox(height: 24),
-                        
+                        const Text("Activate VIP membership to enjoy unlimited streaming no ads, 4K quality movies or series and more", style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
+                        const SizedBox(height: 20),
+                        _buildPerkRow("Stream in high-quality"),
+                        _buildPerkRow("Free from ads"),
+                        _buildPerkRow("Early access to the latest episodes"),
+                        const SizedBox(height: 30),
+
                         const Text("Premium Plan", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
 
@@ -2395,7 +2282,6 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
             ),
           ),
           
-          // Fixed Bottom Button Layout
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
@@ -2420,18 +2306,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 }
 
-// ==========================================
-// UNIFIED PAYMENT & VERIFICATION SCREEN (Single Page)
-// ==========================================
 class UnifiedPaymentScreen extends StatefulWidget {
   final String planName;
   final String price;
   const UnifiedPaymentScreen({super.key, required this.planName, required this.price});
-
-  @override
-  State<UnifiedPaymentScreen> createState() => _UnifiedPaymentScreenState();
+  @override State<UnifiedPaymentScreen> createState() => _UnifiedPaymentScreenState();
 }
-
 class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   File? _imageFile;
   final TextEditingController _trxController = TextEditingController();
@@ -2493,212 +2373,185 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+  @override Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0).copyWith(top: 50),
-              child: Column(
-                children: [
-                  // CONTAINER 1: SCAN & PAY
-                  Expanded(
-                    flex: 5,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: getCard(context),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white10)
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("1. Scan & Pay", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          const Text("Scan the QR code using any UPI app and pay the amount.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: Row(
-                              children: [
-                                // QR Code
-                                AspectRatio(
-                                  aspectRatio: 1,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black))
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                // Amount & UPI Details
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text("Amount to Pay", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                      Text(widget.price, style: TextStyle(color: primColor, fontSize: 24, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 12),
-                                      const Text("UPI ID", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                        decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8)),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(child: Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                            GestureDetector(
-                                              onTap: () {
-                                                Clipboard.setData(ClipboardData(text: globalUpiId));
-                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
-                                              },
-                                              child: const Icon(Icons.copy, color: Colors.white70, size: 16)
-                                            )
-                                          ],
-                                        ),
-                                      )
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 45,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                              onPressed: () => _launchUPIApp(context),
-                              icon: const Icon(Icons.payment, color: Colors.white, size: 20),
-                              label: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                            )
-                          )
-                        ],
-                      ),
-                    ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+          child: Column(
+            children: [
+              Expanded(
+                flex: 5,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: getCard(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10)
                   ),
-                  const SizedBox(height: 16),
-
-                  // CONTAINER 2: VERIFY PAYMENT
-                  Expanded(
-                    flex: 6,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: getCard(context),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white10)
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("2. Verify Payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 4),
-                          const Text("After successful payment, submit your proof.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                          const SizedBox(height: 12),
-
-                          const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 6),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: _pickImage,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("1. Scan & Pay", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      const Text("Scan the QR code using any UPI app and pay the amount.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            AspectRatio(
+                              aspectRatio: 1,
                               child: Container(
-                                width: double.infinity,
-                                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12, style: BorderStyle.solid)),
-                                child: _imageFile != null
-                                    ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(_imageFile!, fit: BoxFit.cover))
-                                    : Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.cloud_upload, color: primColor, size: 30),
-                                          const SizedBox(height: 8),
-                                          const Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 12))
-                                        ]
-                                      ),
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black))
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          const Text("12-Digit UTR Number", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                          const SizedBox(height: 6),
-                          SizedBox(
-                            height: 45,
-                            child: TextField(
-                              controller: _trxController,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
-                              style: const TextStyle(color: Colors.white, fontSize: 14),
-                              decoration: InputDecoration(
-                                hintText: "Enter 12-digit UTR number",
-                                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                                filled: true,
-                                fillColor: Colors.black45,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
-                              )
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-
-                          SizedBox(
-                            width: double.infinity,
-                            height: 45,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                              onPressed: _isSubmitting ? null : _submitRequest,
-                              child: _isSubmitting
-                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Amount to Pay", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  Text(widget.price, style: TextStyle(color: primColor, fontSize: 24, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 12),
+                                  const Text("UPI ID", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                    decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8)),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(child: Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                        GestureDetector(
+                                          onTap: () {
+                                            Clipboard.setData(ClipboardData(text: globalUpiId));
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
+                                          },
+                                          child: const Icon(Icons.copy, color: Colors.white70, size: 16)
+                                        )
+                                      ],
+                                    ),
+                                  )
+                                ],
+                              ),
                             )
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.verified_user_outlined, color: Colors.white38, size: 14),
-                              SizedBox(width: 4),
-                              Text("Your payment will be verified within a few minutes.", style: TextStyle(color: Colors.white38, fontSize: 10))
-                            ],
-                          )
-                        ],
+                          ],
+                        ),
                       ),
-                    )
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                          onPressed: () => _launchUPIApp(context),
+                          icon: const Icon(Icons.payment, color: Colors.white, size: 20),
+                          label: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                        )
+                      )
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-            
-            // Custom Back Button Overlay
-            Positioned(
-              top: 10, left: 16,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-                onPressed: () => Navigator.pop(context),
+              const SizedBox(height: 16),
+              Expanded(
+                flex: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: getCard(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10)
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("2. Verify Payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      const Text("After successful payment, submit your proof.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      const SizedBox(height: 12),
+
+                      const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            width: double.infinity,
+                            decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12, style: BorderStyle.solid)),
+                            child: _imageFile != null
+                                ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.cloud_upload, color: primColor, size: 30),
+                                      const SizedBox(height: 8),
+                                      const Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 12))
+                                    ]
+                                  ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      const Text("12-Digit UTR Number", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      SizedBox(
+                        height: 45,
+                        child: TextField(
+                          controller: _trxController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: "Enter 12-digit UTR number",
+                            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                            filled: true,
+                            fillColor: Colors.black45,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
+                          )
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 45,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                          onPressed: _isSubmitting ? null : _submitRequest,
+                          child: _isSubmitting
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                        )
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.verified_user_outlined, color: Colors.white38, size: 14),
+                          SizedBox(width: 4),
+                          Text("Your payment will be verified within a few minutes.", style: TextStyle(color: Colors.white38, fontSize: 10))
+                        ],
+                      )
+                    ],
+                  ),
+                )
               ),
-            ),
-          ],
+            ],
+          ),
         )
       )
     );
   }
-}
-
-class TermsConditionsPage extends StatelessWidget { 
-  const TermsConditionsPage({super.key});
-  @override Widget build(BuildContext context) { 
-    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Terms & Conditions", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalTermsConditions, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
-  } 
 }
 
 class SupportPage extends StatelessWidget {
@@ -2727,9 +2580,13 @@ class PrivacyPolicyPage extends StatelessWidget {
   } 
 }
 
-// ==========================================
-// CATEGORY PAGES & CARDS 
-// ==========================================
+class TermsConditionsPage extends StatelessWidget { 
+  const TermsConditionsPage({super.key});
+  @override Widget build(BuildContext context) { 
+    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Terms & Conditions", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalTermsConditions, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
+  } 
+}
+
 class SeeAllCategoryPage extends StatelessWidget {
   final String title; final List<Anime> animeList; final bool isLatestOnly;
   const SeeAllCategoryPage({super.key, required this.title, required this.animeList, this.isLatestOnly = false});
@@ -2773,13 +2630,10 @@ class GridCategoryCard extends StatefulWidget {
 }
 class _GridCategoryCardState extends State<GridCategoryCard> {
   @override Widget build(BuildContext context) {
-    return ExploreAnimeCard(anime: widget.anime);
+    return ExploreAnimeCard(anime: widget.anime); 
   }
 }
 
-// ==========================================
-// SEPARATE DESCRIPTION PAGE 
-// ==========================================
 class DescriptionPage extends StatelessWidget {
   final Anime anime;
   const DescriptionPage({super.key, required this.anime});
@@ -2797,9 +2651,6 @@ class DescriptionPage extends StatelessWidget {
   }
 }
 
-// ==========================================
-// FAST LOAD VIDEO PLAYER PAGE (WITH LIKES)
-// ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
   final int seasonIndex; 
@@ -2823,7 +2674,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   
   int _likeCount = 0;
   int _dislikeCount = 0;
-  int _userLikeStatus = 0; // 0 = none, 1 = liked, -1 = disliked
+  int _userLikeStatus = 0; 
 
   @override 
   void initState() { 
@@ -2863,14 +2714,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     int targetStatus = isLikeAction ? 1 : -1;
     bool isRemoving = _userLikeStatus == targetStatus;
     
-    // Optimistic UI Update
     setState(() {
-      // Remove old status
       if (_userLikeStatus == 1) _likeCount--;
       if (_userLikeStatus == -1) _dislikeCount--;
       
       if (isRemoving) {
-        _userLikeStatus = 0; // Removing the like/dislike
+        _userLikeStatus = 0; 
       } else {
         _userLikeStatus = targetStatus;
         if (_userLikeStatus == 1) _likeCount++;
@@ -2889,7 +2738,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         });
       }
     } catch (e) {
-      // Revert if error occurs (fetch accurate again)
       _fetchLikes();
     }
   }
@@ -3115,7 +2963,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       child: Text(widget.anime.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4)),
                     ),
                     
-                    // Likes & Read More Row
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
@@ -3128,7 +2975,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             )
                           else const SizedBox(),
                           
-                          // Custom Like & Dislike System
                           Row(
                             children: [
                               GestureDetector(
@@ -3235,7 +3081,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: animeListNotifier.value.length, 
                         itemBuilder: (context, index) { 
                           Anime anime = animeListNotifier.value[index];
-                          if(anime.title == widget.anime.title) return const SizedBox.shrink(); // Skip current
+                          if(anime.title == widget.anime.title) return const SizedBox.shrink(); 
                           String epCount = "E${getTotalEpisodes(anime)}";
                           String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
                           String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
