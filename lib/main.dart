@@ -22,18 +22,19 @@ String currentUserUid = "";
 String currentHardwareId = ""; 
 String currentDeviceName = "Unknown Device";
 String currentUserName = "User"; 
-String localProfileImagePath = ""; // Local image save for user
+String localProfileImagePath = ""; 
 
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
-String globalWhatsappLink = "https://wa.me/"; // Added WhatsApp global var
+String globalWhatsappLink = "https://wa.me/"; 
 String globalUpiId = "wicvlox.i@oksbi";
 String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 
 String globalPrivacyPolicy = "At AniXplayer, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience for both Anime and Movies without compromising your personal data.\n\nData Security & Storage\nWe utilize encryption to protect your hardware identifiers. All your personal preferences—such as your watch history, recent searches, and saved items—are securely synchronized to your device.\n\nContent Information\nAniXplayer provides a vast library of Anime and Movies. To ensure fast and consistent releases, a large portion of our dubbed content is powered by high-quality AI Dubbing technology, alongside our Original dubs.\n\nHardware Tracking\nAniXplayer securely scans and hashes your device's hardware ID to keep your account safe without needing passwords.";
+String globalTermsConditions = "Welcome to AniXplayer. By continuing to browse and use this app, you are agreeing to comply with and be bound by the following terms and conditions of use.";
 
 List<String> globalRecentSearches = [];
-List<String> recommendedSearches = ["Naruto", "One Piece", "Solo Leveling", "Action", "Romance", "Demon Slayer", "Jujutsu Kaisen", "Movie"];
+List<String> globalRecommendedSearches = ["Naruto", "One Piece", "Solo Leveling", "Action", "Romance", "Demon Slayer", "Jujutsu Kaisen", "Movie"];
 
 final ValueNotifier<List<Anime>> animeListNotifier = ValueNotifier([]);
 final ValueNotifier<List<Map<String, dynamic>>> heroSliderNotifier = ValueNotifier([]);
@@ -83,7 +84,6 @@ int getFirstValidSeason(Anime anime) {
   return idx == -1 ? 0 : idx;
 }
 
-// Helper to calculate Expiry
 DateTime? getPlanExpiryDate(String createdAt, String planName) {
   DateTime start = DateTime.parse(createdAt).toLocal();
   if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze")) return start.add(const Duration(days: 7));
@@ -271,7 +271,6 @@ void main() async {
   String secureKey = utf8.decode(base64Decode('c2JfcHVibGlzaGFibGVfNkJEMG1vRXBPblVUZmloYlJVcGRPUV9VMmdKQ0g1VQ=='));
   await Supabase.initialize(url: secureUrl, anonKey: secureKey);
   
-  // Load Local Avatar 
   SharedPreferences prefs = await SharedPreferences.getInstance();
   localProfileImagePath = prefs.getString('local_avatar_path') ?? "";
 
@@ -399,7 +398,6 @@ class _AuthGateState extends State<AuthGate> {
       currentHardwareId = await getHardwareDeviceId(); 
       currentDeviceName = await getActualDeviceName();
 
-      // AUTO-LOGIN CHECK: Automatically restoring account using hardware ID
       final existingUser = await Supabase.instance.client.from('user_preferences').select().eq('device_id', currentHardwareId).maybeSingle();
       
       if (existingUser != null) {
@@ -415,7 +413,6 @@ class _AuthGateState extends State<AuthGate> {
         return;
       }
 
-      // NO OLD ACCOUNT FOUND
       final session = Supabase.instance.client.auth.currentSession;
       if (session == null) {
         await Supabase.instance.client.auth.signInAnonymously();
@@ -552,71 +549,24 @@ class _MainScreenState extends State<MainScreen> {
   @override void dispose() { _presenceChannel?.unsubscribe(); _dbChannel?.unsubscribe(); super.dispose(); }
   
   Future<void> _loadEverything() async {
-    await _fetchSettings(); await _checkForUpdates(context); await fetchGlobalAnimeViews(); await _fetchDatabaseCatalog(); await _fetchUserPreferences(); 
+    await _fetchSettings(); await fetchGlobalAnimeViews(); await _fetchDatabaseCatalog(); await _fetchUserPreferences(); 
     if(mounted) setState(() => _isDataLoading = false);
   }
 
   Future<void> _fetchSettings() async {
     try {
-      final res = await Supabase.instance.client.from('app_settings').select('website_url, telegram_url, whatsapp_url, privacy_policy, payment_qr_url, upi_id').limit(1).maybeSingle();
+      final res = await Supabase.instance.client.from('app_settings').select('website_url, telegram_url, whatsapp_url, privacy_policy, terms_conditions, payment_qr_url, upi_id, recommended_searches').limit(1).maybeSingle();
       if (res != null) {
         if(res['website_url'] != null) globalWebsiteUrl = res['website_url'];
         if(res['telegram_url'] != null) globalTelegramLink = res['telegram_url'];
         if(res['whatsapp_url'] != null) globalWhatsappLink = res['whatsapp_url'];
         if(res['privacy_policy'] != null) globalPrivacyPolicy = res['privacy_policy'];
+        if(res['terms_conditions'] != null) globalTermsConditions = res['terms_conditions'];
         if(res['payment_qr_url'] != null) globalPaymentQrUrl = res['payment_qr_url'];
         if(res['upi_id'] != null) globalUpiId = res['upi_id'];
+        if(res['recommended_searches'] != null) globalRecommendedSearches = List<String>.from(res['recommended_searches']);
       }
     } catch(e) { }
-  }
-
-  bool _isVersionGreater(String latest, String current) {
-    List<String> lParts = latest.split('.'); List<String> cParts = current.split('.');
-    for(int i = 0; i < min(lParts.length, cParts.length); i++) {
-      int l = int.tryParse(lParts[i]) ?? 0; int c = int.tryParse(cParts[i]) ?? 0;
-      if(l > c) return true; if(l < c) return false;
-    }
-    return lParts.length > cParts.length;
-  }
-
-  Future<void> _checkForUpdates(BuildContext context) async {
-    try {
-      final response = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
-      if (response != null) {
-        String latestVersion = response['version'] ?? CURRENT_APP_VERSION;
-        String updateUrl = response['apk_url'] ?? globalWebsiteUrl; if (updateUrl.isEmpty) updateUrl = globalWebsiteUrl;
-        if (_isVersionGreater(latestVersion, CURRENT_APP_VERSION)) { _showUpdateDialog(updateUrl); }
-      }
-    } catch (e) {}
-  }
-
-  void _showUpdateDialog(String updateUrl) {
-    showDialog(
-      context: context, barrierDismissible: false, 
-      builder: (ctx) => Dialog(
-        backgroundColor: const Color(0xFF1E1E24), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 60, height: 60, decoration: const BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [Color(0xFF9D4EDD), Color(0xFF6B21A8)])), child: const Icon(Icons.download_rounded, color: Colors.white, size: 30)),
-              const SizedBox(height: 16),
-              const Text("Install New Version", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-              Text("A new version of AniXplayer is available.\nInstall now to enjoy the latest features.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.4)),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: GestureDetector(onTap: () => Navigator.pop(ctx), child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(border: Border.all(color: Colors.white24), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: const Text("Later", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))))),
-                  const SizedBox(width: 12),
-                  Expanded(child: GestureDetector(onTap: () { launchInBrowser(updateUrl); Navigator.pop(ctx); }, child: Container(padding: const EdgeInsets.symmetric(vertical: 12), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]), borderRadius: BorderRadius.circular(12)), alignment: Alignment.center, child: const Text("Install Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14))))),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   Future<void> _fetchDatabaseCatalog() async {
@@ -748,7 +698,10 @@ class HomeScreen extends StatelessWidget {
           const TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
           TextSpan(text: "player", style: TextStyle(color: primColor, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
         ])),
-        actions:[IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: onSearchTap)],
+        actions:[
+          IconButton(icon: Icon(Icons.notifications_none, color: getText(context), size: 24), onPressed: (){}),
+          IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: onSearchTap)
+        ],
       ),
       body: isDataLoading 
       ? _buildSkeletonHome() 
@@ -1125,27 +1078,39 @@ class SearchListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     int totalEp = getTotalEpisodes(anime);
     int totalSeasons = anime.seasonsList.length;
-    String langText = anime.dubStatus.toUpperCase().contains("DUB") ? "Hindi, Japanese" : "Japanese";
+    String langText = anime.dubStatus.toUpperCase().contains("DUB") ? "Hindi | Japanese" : "Japanese";
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image Section
+              // Image Section with gradient and tags
               SizedBox(
-                width: 110,
-                height: 160,
+                width: 120,
+                height: 170,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(
-                    anime.image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54),
-                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
+                      Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.9), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))),
+                      Positioned(
+                        bottom: 8, left: 0, right: 0,
+                        child: Column(
+                          children: [
+                            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.blueAccent, borderRadius: BorderRadius.circular(4)), child: Text(getSeasonText(anime).toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
+                            const SizedBox(height: 4),
+                            Text(langText.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      )
+                    ],
+                  )
                 ),
               ),
               const SizedBox(width: 16),
@@ -1156,18 +1121,18 @@ class SearchListCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)), // Green tag
+                      decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)), 
                       child: const Text("SHOW", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 6),
-                    Text("$langText, ${anime.genre}, ${anime.createdAt.year}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text("Japanese, ${anime.genre}, ${anime.createdAt.year}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
                     const SizedBox(height: 4),
                     Text("$totalSeasons seasons, $totalEp episodes", style: const TextStyle(color: Colors.white70, fontSize: 12)),
                     const SizedBox(height: 8),
-                    Text(anime.description, style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.3), maxLines: 3, overflow: TextOverflow.ellipsis),
+                    Text(anime.description, style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.4), maxLines: 3, overflow: TextOverflow.ellipsis),
                   ],
                 ),
               )
@@ -1176,23 +1141,25 @@ class SearchListCard extends StatelessWidget {
           const SizedBox(height: 12),
           
           // Season Buttons Wrap
-          Wrap(
-            spacing: 8, runSpacing: 8,
-            children: anime.seasonsList.asMap().entries.map((entry) {
-              int sIdx = entry.key;
-              Season s = entry.value;
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)),
-                  child: Text(s.name.isEmpty ? "Season ${sIdx+1}" : s.name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-                ),
-              );
-            }).toList(),
-          )
+          if(anime.seasonsList.isNotEmpty)
+            Wrap(
+              spacing: 8, runSpacing: 8,
+              children: anime.seasonsList.asMap().entries.map((entry) {
+                int sIdx = entry.key;
+                Season s = entry.value;
+                if(s.episodes.isEmpty) return const SizedBox.shrink();
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)),
+                    child: Text(s.name.isEmpty ? "Season ${sIdx+1}" : s.name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+                );
+              }).toList(),
+            )
         ],
       ),
     );
@@ -1212,6 +1179,8 @@ class _BrowseScreenState extends State<BrowseScreen> {
   final TextEditingController _searchController = TextEditingController(); 
   List<Anime> _searchResults = [];
   bool _isLoadingSearches = true;
+  bool _isSearching = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -1245,24 +1214,73 @@ class _BrowseScreenState extends State<BrowseScreen> {
     try { await Supabase.instance.client.from('user_preferences').update({'recent_searches': '[]'}).eq('id', currentUserId); } catch (e) {}
   }
 
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    if (query.isEmpty) {
+      setState(() { _searchResults = []; _isSearching = false; });
+      return;
+    }
+    setState(() => _isSearching = true);
+    _debounce = Timer(const Duration(milliseconds: 600), () {
+      _performSearch(query);
+    });
+  }
+
   void _performSearch(String query) { 
-    if (query.isEmpty) { setState(() { _searchResults = []; }); } else { 
+    if (query.isEmpty) { setState(() { _searchResults = []; _isSearching = false; }); } else { 
       setState(() { 
         _searchResults = animeListNotifier.value.where((anime) {
           return anime.title.toLowerCase().contains(query.toLowerCase()) || anime.genre.toLowerCase().contains(query.toLowerCase()) || anime.category.toLowerCase().contains(query.toLowerCase());
         }).toList(); 
+        _isSearching = false;
       }); 
     } 
   }
 
-  void _setSearchQuery(String query) { _searchController.text = query; _performSearch(query); if (query.isNotEmpty) { _updateRecentSearchesInDb(query); } }
+  void _setSearchQuery(String query) { _searchController.text = query; _onSearchChanged(query); if (query.isNotEmpty) { _updateRecentSearchesInDb(query); } }
 
   void _submitSearch(String query) { 
     if (query.trim().isNotEmpty && !globalRecentSearches.contains(query.trim())) { setState(() { globalRecentSearches.insert(0, query.trim()); }); _updateRecentSearchesInDb(query.trim()); } 
-    _performSearch(query); 
+    _onSearchChanged(query); 
   }
 
   void _removeRecentSearch(int index) { setState(() { globalRecentSearches.removeAt(index); }); _updateRecentSearchesInDb(globalRecentSearches.join(',')); }
+
+  Widget _buildSearchSkeleton() {
+    return ListView.builder(
+      shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: 4,
+      itemBuilder: (ctx, i) => Container(
+        margin: const EdgeInsets.only(bottom: 20),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SkeletonLoader(width: 120, height: 170, borderRadius: 8),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  SkeletonLoader(width: double.infinity, height: 18),
+                  SizedBox(height: 8),
+                  SkeletonLoader(width: 50, height: 14),
+                  SizedBox(height: 8),
+                  SkeletonLoader(width: 150, height: 12),
+                  SizedBox(height: 4),
+                  SkeletonLoader(width: 120, height: 12),
+                  SizedBox(height: 12),
+                  SkeletonLoader(width: double.infinity, height: 10),
+                  SizedBox(height: 4),
+                  SkeletonLoader(width: double.infinity, height: 10),
+                  SizedBox(height: 4),
+                  SkeletonLoader(width: 100, height: 10),
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1277,21 +1295,22 @@ class _BrowseScreenState extends State<BrowseScreen> {
               Container(
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
                 child: TextField(
-                  controller: _searchController, onChanged: _performSearch, onSubmitted: _submitSearch, style: TextStyle(color: getText(context), fontSize: 15), 
-                  decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _performSearch(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
+                  controller: _searchController, onChanged: _onSearchChanged, onSubmitted: _submitSearch, style: TextStyle(color: getText(context), fontSize: 15), 
+                  decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _onSearchChanged(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
                 )
               ),
               const SizedBox(height: 24),
               
               if (_searchController.text.isNotEmpty) ...[
-                if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 15)))) 
+                if (_isSearching) _buildSearchSkeleton()
+                else if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 15)))) 
                 else ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _searchResults.length, itemBuilder: (context, index) => SearchListCard(anime: _searchResults[index]))
               ] else ...[
                 Text("Recommended", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 10, runSpacing: 10,
-                  children: recommendedSearches.map((e) => GestureDetector(
+                  children: globalRecommendedSearches.map((e) => GestureDetector(
                     onTap: () => _setSearchQuery(e),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1361,6 +1380,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _exploreSearchCtrl = TextEditingController();
   String _selectedTag = "";
   List<Anime> _exploreResults = [];
+  bool _isSearching = false;
+  Timer? _debounce;
   
   final List<Map<String, dynamic>> _tags = [
     {"name": "Action", "icon": "⚔️"},
@@ -1373,6 +1394,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   @override void initState() { super.initState(); _exploreResults = animeListNotifier.value; }
 
+  void _onFilterChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    setState(() => _isSearching = true);
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _filterExplore();
+    });
+  }
+
   void _filterExplore() {
     String q = _exploreSearchCtrl.text.toLowerCase();
     setState(() {
@@ -1381,7 +1410,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
         bool matchesTag = _selectedTag.isEmpty || a.category.toLowerCase().contains(_selectedTag.toLowerCase()) || a.subCategory.toLowerCase().contains(_selectedTag.toLowerCase());
         return matchesQ && matchesTag;
       }).toList();
+      _isSearching = false;
     });
+  }
+  
+  Widget _buildGridSkeleton() {
+    return GridView.builder(
+      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16),
+      itemCount: 9,
+      itemBuilder: (context, index) => const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 10)
+    );
   }
 
   @override
@@ -1398,7 +1437,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
               child: Container(
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: primColor.withOpacity(0.3))), 
                 child: TextField(
-                  controller: _exploreSearchCtrl, onChanged: (v) => _filterExplore(), style: TextStyle(color: getText(context), fontSize: 15), 
+                  controller: _exploreSearchCtrl, onChanged: (v) => _onFilterChanged(), style: TextStyle(color: getText(context), fontSize: 15), 
                   decoration: InputDecoration(hintText: "Search anime...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: const Icon(Icons.filter_alt_outlined, color: Colors.white54), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
                 )
               ),
@@ -1412,7 +1451,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 itemBuilder: (ctx, i) {
                   bool isSelected = _selectedTag == _tags[i]['name'];
                   return GestureDetector(
-                    onTap: () { setState(() { _selectedTag = isSelected ? "" : _tags[i]['name']; }); _filterExplore(); },
+                    onTap: () { setState(() { _selectedTag = isSelected ? "" : _tags[i]['name']; }); _onFilterChanged(); },
                     child: Container(
                       margin: const EdgeInsets.only(right: 10), padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(color: isSelected ? primColor : getCard(context), borderRadius: BorderRadius.circular(20), border: Border.all(color: isSelected ? primColor : Colors.white12)),
@@ -1427,14 +1466,16 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
             // Grid View (3 Cards)
             Expanded(
-              child: _exploreResults.isEmpty 
-              ? const Center(child: Text("No anime found.", style: TextStyle(color: Colors.white54)))
-              : GridView.builder(
-                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16),
-                  itemCount: _exploreResults.length,
-                  itemBuilder: (context, index) => ExploreAnimeCard(anime: _exploreResults[index])
-                ),
+              child: _isSearching
+              ? _buildGridSkeleton()
+              : _exploreResults.isEmpty 
+                  ? const Center(child: Text("No anime found.", style: TextStyle(color: Colors.white54)))
+                  : GridView.builder(
+                      padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16),
+                      itemCount: _exploreResults.length,
+                      itemBuilder: (context, index) => ExploreAnimeCard(anime: _exploreResults[index])
+                    ),
             )
           ],
         )
@@ -1764,6 +1805,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 }
 
 // ==========================================
+// ANIMATED GLOWING PROGRESS BAR
+// ==========================================
+class AnimatedPlanProgress extends StatelessWidget {
+  final double progress;
+  final Color color;
+  const AnimatedPlanProgress({super.key, required this.progress, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: progress),
+      duration: const Duration(seconds: 2),
+      curve: Curves.easeInOutQuart,
+      builder: (context, value, child) {
+        return Stack(
+          children: [
+            Container(height: 8, decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(4))),
+            FractionallySizedBox(
+              widthFactor: value,
+              child: Container(
+                height: 8,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: [BoxShadow(color: color, blurRadius: 8, spreadRadius: 1)],
+                  gradient: LinearGradient(colors: [color.withOpacity(0.5), color])
+                )
+              )
+            )
+          ]
+        );
+      }
+    );
+  }
+}
+
+
+// ==========================================
 // PROFILE SCREEN (Account Page Redesigned)
 // ==========================================
 class ProfileScreen extends StatefulWidget {
@@ -1818,14 +1896,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             int daysLeft = expiry.difference(now).inDays;
             _daysLeftText = "$daysLeft days left";
             
-            // Fix: Progress goes up as days pass
             int totalDays = expiry.difference(start).inDays;
             int daysPassed = now.difference(start).inDays;
             _planProgress = totalDays > 0 ? (daysPassed / totalDays).clamp(0.0, 1.0) : 0.0;
             
             setState(() { _activePlan = res; _activePlan!['expiry'] = expiry; });
           } else {
-            // Plan expired - local state handling. (Real DB cleanup handled in Order History)
+            // Plan expired 
           }
         }
       }
@@ -1963,7 +2040,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: _planProgress, backgroundColor: Colors.white10, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 6)),
+                      AnimatedPlanProgress(progress: _planProgress, color: primColor),
                       const SizedBox(height: 8),
                       Align(alignment: Alignment.centerRight, child: Text(_daysLeftText, style: const TextStyle(color: Colors.white54, fontSize: 11)))
                     ],
@@ -2007,6 +2084,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   _buildGroupedItem(context, title: "Order History", icon: Icons.history_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
+                  _buildGroupedItem(context, title: "Watch History", icon: Icons.history, onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Coming Soon")))),
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
+                  _buildGroupedItem(context, title: "Downloads", icon: Icons.download_done_rounded, onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Coming Soon")))),
                 ]),
               ),
               const SizedBox(height: 30),
@@ -2020,7 +2101,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, onTap: () {}),
+                  _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage()))),
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   Material(
                     color: Colors.transparent,
@@ -2039,7 +2120,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 30),
 
-              // Bottom Social Links replacing visual logout
               Row(
                 children: [
                   Expanded(
@@ -2182,9 +2262,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   int _selectedPlanIndex = 1; // Default to standard plan
 
   final List<Map<String, dynamic>> _plans = [
-    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Ad-free", "Can be canceled at any time"]},
-    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Ad-free", "Can be canceled at any time"]},
-    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Ad-free", "Can be canceled at any time"]},
+    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
+    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
+    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
   ];
 
   Widget _buildPerkRow(String text) {
@@ -2206,63 +2286,60 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
     return Scaffold(
       backgroundColor: getBg(context), 
-      // Replaced CustomScrollView top level with Column to fix button to bottom
       body: Column(
         children: [
           Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverAppBar(
-                  expandedHeight: 280, // Reduced height for better fit
-                  backgroundColor: getBg(context),
-                  iconTheme: const IconThemeData(color: Colors.white),
-                  pinned: true,
-                  flexibleSpace: FlexibleSpaceBar(
-                    background: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", fit: BoxFit.cover),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Colors.black.withOpacity(0.3), Colors.black],
-                              begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                              stops: const [0.3, 1.0]
-                            )
-                          ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Stack(
+                    children: [
+                      Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", height: 260, width: double.infinity, fit: BoxFit.cover),
+                      Container(
+                        height: 260,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.black.withOpacity(0.3), Colors.black],
+                            begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                            stops: const [0.3, 1.0]
+                          )
                         ),
-                        Column(
+                      ),
+                      // Custom Back Button Overlay
+                      Positioned(
+                        top: 40, left: 16,
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 0, left: 0, right: 0,
+                        child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 60),
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF2563EB)], begin: Alignment.topLeft, end: Alignment.bottomRight), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 30, spreadRadius: 5)]),
                               child: const Icon(Icons.workspace_premium, color: Colors.white, size: 50),
                             ),
-                            const SizedBox(height: 16),
-                            const Text("Subscribe to join VIP", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black, blurRadius: 10)])),
                           ],
-                        )
-                      ],
-                    ),
+                        ),
+                      )
+                    ],
                   ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Improve your experience", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Center(child: Text("Improve your experience", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold))),
                         const SizedBox(height: 10),
-                        const Text("Activate VIP membership to enjoy unlimited streaming no ads, 4K quality movies or series and more", style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
-                        const SizedBox(height: 20),
-                        _buildPerkRow("Stream in high-quality"),
-                        _buildPerkRow("Free from ads"),
-                        _buildPerkRow("Early access to the latest episodes"),
-                        const SizedBox(height: 30),
-
+                        const Center(child: Text("Activate VIP membership to enjoy unlimited streaming no ads, 4K quality movies or series and more", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5))),
+                        const SizedBox(height: 24),
+                        
                         const Text("Premium Plan", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
 
@@ -2312,9 +2389,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                         }),
                       ],
                     ),
-                  ),
-                )
-              ],
+                  )
+                ],
+              ),
             ),
           ),
           
@@ -2422,191 +2499,206 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text("Payment", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Column(
-            children: [
-              // CONTAINER 1: SCAN & PAY
-              Expanded(
-                flex: 5,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: getCard(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white10)
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("1. Scan & Pay", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      const Text("Scan the QR code using any UPI app and pay the amount.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 12),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            // QR Code
-                            AspectRatio(
-                              aspectRatio: 1,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black))
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0).copyWith(top: 50),
+              child: Column(
+                children: [
+                  // CONTAINER 1: SCAN & PAY
+                  Expanded(
+                    flex: 5,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: getCard(context),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white10)
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("1. Scan & Pay", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          const Text("Scan the QR code using any UPI app and pay the amount.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                          const SizedBox(height: 12),
+                          Expanded(
+                            child: Row(
+                              children: [
+                                // QR Code
+                                AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black))
+                                    ),
+                                  ),
                                 ),
+                                const SizedBox(width: 16),
+                                // Amount & UPI Details
+                                Expanded(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text("Amount to Pay", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                      Text(widget.price, style: TextStyle(color: primColor, fontSize: 24, fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 12),
+                                      const Text("UPI ID", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                        decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8)),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(child: Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                            GestureDetector(
+                                              onTap: () {
+                                                Clipboard.setData(ClipboardData(text: globalUpiId));
+                                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
+                                              },
+                                              child: const Icon(Icons.copy, color: Colors.white70, size: 16)
+                                            )
+                                          ],
+                                        ),
+                                      )
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 45,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                              onPressed: () => _launchUPIApp(context),
+                              icon: const Icon(Icons.payment, color: Colors.white, size: 20),
+                              label: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                            )
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // CONTAINER 2: VERIFY PAYMENT
+                  Expanded(
+                    flex: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: getCard(context),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white10)
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("2. Verify Payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          const Text("After successful payment, submit your proof.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                          const SizedBox(height: 12),
+
+                          const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12, style: BorderStyle.solid)),
+                                child: _imageFile != null
+                                    ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.cloud_upload, color: primColor, size: 30),
+                                          const SizedBox(height: 8),
+                                          const Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 12))
+                                        ]
+                                      ),
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            // Amount & UPI Details
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text("Amount to Pay", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                  Text(widget.price, style: TextStyle(color: primColor, fontSize: 24, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 12),
-                                  const Text("UPI ID", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                    decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8)),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(child: Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                        GestureDetector(
-                                          onTap: () {
-                                            Clipboard.setData(ClipboardData(text: globalUpiId));
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
-                                          },
-                                          child: const Icon(Icons.copy, color: Colors.white70, size: 16)
-                                        )
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 45,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                          onPressed: () => _launchUPIApp(context),
-                          icon: const Icon(Icons.payment, color: Colors.white, size: 20),
-                          label: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                        )
-                      )
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // CONTAINER 2: VERIFY PAYMENT
-              Expanded(
-                flex: 6,
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: getCard(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white10)
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("2. Verify Payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      const Text("After successful payment, submit your proof.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 12),
-
-                      const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12, style: BorderStyle.solid)),
-                            child: _imageFile != null
-                                ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(_imageFile!, fit: BoxFit.cover))
-                                : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.cloud_upload, color: primColor, size: 30),
-                                      const SizedBox(height: 8),
-                                      const Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 12))
-                                    ]
-                                  ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
-                      const Text("12-Digit UTR Number", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        height: 45,
-                        child: TextField(
-                          controller: _trxController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: "Enter 12-digit UTR number",
-                            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                            filled: true,
-                            fillColor: Colors.black45,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
+                          const Text("12-Digit UTR Number", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          SizedBox(
+                            height: 45,
+                            child: TextField(
+                              controller: _trxController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
+                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                              decoration: InputDecoration(
+                                hintText: "Enter 12-digit UTR number",
+                                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                                filled: true,
+                                fillColor: Colors.black45,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
+                              )
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 45,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                              onPressed: _isSubmitting ? null : _submitRequest,
+                              child: _isSubmitting
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                            )
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.verified_user_outlined, color: Colors.white38, size: 14),
+                              SizedBox(width: 4),
+                              Text("Your payment will be verified within a few minutes.", style: TextStyle(color: Colors.white38, fontSize: 10))
+                            ],
                           )
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      SizedBox(
-                        width: double.infinity,
-                        height: 45,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                          onPressed: _isSubmitting ? null : _submitRequest,
-                          child: _isSubmitting
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                        )
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.verified_user_outlined, color: Colors.white38, size: 14),
-                          SizedBox(width: 4),
-                          Text("Your payment will be verified within a few minutes.", style: TextStyle(color: Colors.white38, fontSize: 10))
                         ],
-                      )
-                    ],
+                      ),
+                    )
                   ),
-                )
+                ],
               ),
-            ],
-          ),
+            ),
+            
+            // Custom Back Button Overlay
+            Positioned(
+              top: 10, left: 16,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
         )
       )
     );
   }
+}
+
+class TermsConditionsPage extends StatelessWidget { 
+  const TermsConditionsPage({super.key});
+  @override Widget build(BuildContext context) { 
+    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Terms & Conditions", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalTermsConditions, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
+  } 
 }
 
 class SupportPage extends StatelessWidget {
@@ -2681,7 +2773,7 @@ class GridCategoryCard extends StatefulWidget {
 }
 class _GridCategoryCardState extends State<GridCategoryCard> {
   @override Widget build(BuildContext context) {
-    return ExploreAnimeCard(anime: widget.anime); // Resusing new 3 grid design everywhere
+    return ExploreAnimeCard(anime: widget.anime);
   }
 }
 
