@@ -38,37 +38,35 @@ final ValueNotifier<List<Map<String, dynamic>>> heroSliderNotifier = ValueNotifi
 final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
-final ValueNotifier<int> connectedServerNotifier = ValueNotifier(1);
 
 const Color animeMxPurple = Color(0xFF8A2BE2); 
 final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
 
 Color getBg(BuildContext context) => Colors.black;
-Color getCard(BuildContext context) => const Color(0xFF1A1A1A);
+Color getCard(BuildContext context) => const Color(0xFF16161E);
 Color getText(BuildContext context) => Colors.white;
 Color getSubText(BuildContext context) => Colors.white54;
 
-// PROFILE AVATAR HELPERS (Restored to fix build error)
 final List<Color> avatarColors = [Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
+
 Color getAvatarColor(String input) => input.isEmpty ? Colors.grey : avatarColors[input.codeUnitAt(0) % avatarColors.length];
 String getAvatarLetter(String input) => input.isEmpty ? "?" : input[0].toUpperCase();
-
 String formatViewsCount(int views) {
   if (views >= 1000000) return "${(views / 1000000).toStringAsFixed(1)}M";
-  if (views >= 1000) return "${(views / 1000).toStringAsFixed(1)}K";
+  if (views >= 1000) return "${(views / 1000).toStringAsFixed(1)}k";
   return views.toString();
 }
 
 String getSeasonText(Anime anime) {
   if (anime.category.toLowerCase().contains("movie")) return "MOVIE";
-  if (anime.seasonsList.isEmpty) return "SEASON 1";
+  if (anime.seasonsList.isEmpty) return "S1";
   List<String> sNums = [];
   for (var s in anime.seasonsList) {
     String num = s.name.replaceAll(RegExp(r'[^0-9]'), '');
     if (num.isNotEmpty) sNums.add(num);
   }
-  if (sNums.isEmpty) return "SEASON 1";
-  return "SEASON ${sNums.join(',')}";
+  if (sNums.isEmpty) return "S1";
+  return "S${sNums.join(',')}";
 }
 
 int getTotalEpisodes(Anime anime) {
@@ -76,7 +74,7 @@ int getTotalEpisodes(Anime anime) {
   return anime.seasonsList.fold(0, (sum, season) => sum + season.episodes.length);
 }
 
-// Helper to find the correct starting season
+// Helper to find the correct starting season (Fix for COTE episode bug)
 int getFirstValidSeason(Anime anime) {
   if (anime.seasonsList.isEmpty) return 0;
   int idx = anime.seasonsList.indexWhere((s) => s.episodes.isNotEmpty);
@@ -347,7 +345,7 @@ class _AuthGateState extends State<AuthGate> {
       currentHardwareId = await getHardwareDeviceId(); 
       currentDeviceName = await getActualDeviceName();
 
-      // AUTO-LOGIN CHECK
+      // AUTO-LOGIN CHECK: Automatically restoring account using hardware ID
       final existingUser = await Supabase.instance.client.from('user_preferences').select().eq('device_id', currentHardwareId).maybeSingle();
       
       if (existingUser != null) {
@@ -386,7 +384,7 @@ class _AuthGateState extends State<AuthGate> {
 
   @override Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: getBg(context), 
+      backgroundColor: Colors.black, 
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center, 
@@ -644,7 +642,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [HomeScreen(onSearchTap: _goToSearch, isDataLoading: _isDataLoading), const BrowseScreen(), const ServersScreen(), const MyListScreen(), const ProfileScreen()];
+    final List<Widget> pages = [HomeScreen(onSearchTap: _goToSearch, isDataLoading: _isDataLoading), const BrowseScreen(), const ExploreScreen(), const MyListScreen(), const ProfileScreen()];
     return Scaffold(
       extendBody: true, body: pages[_index],
       bottomNavigationBar: BottomNavigationBar(
@@ -653,7 +651,7 @@ class _MainScreenState extends State<MainScreen> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
-          BottomNavigationBarItem(icon: Icon(Icons.dns_rounded), label: "Server"),
+          BottomNavigationBarItem(icon: Icon(Icons.explore), label: "Explore"), // EXPLORE INSTEAD OF SERVERS
           BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: "My List"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Account"),
         ],
@@ -1192,121 +1190,98 @@ class _BrowseScreenState extends State<BrowseScreen> {
 }
 
 // ==========================================
-// SERVERS SCREEN 
+// EXPLORE SCREEN (REPLACED SERVERS)
 // ==========================================
-class ServersScreen extends StatefulWidget {
-  const ServersScreen({super.key}); 
+class ExploreScreen extends StatelessWidget {
+  const ExploreScreen({super.key});
+
   @override
-  State<ServersScreen> createState() => _ServersScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: getBg(context),
+      appBar: AppBar(
+        title: Text("Explore Anime", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)),
+        backgroundColor: getBg(context), elevation: 0
+      ),
+      body: ValueListenableBuilder<List<Anime>>(
+        valueListenable: animeListNotifier,
+        builder: (context, allAnime, child) {
+          if(allAnime.isEmpty) {
+            return Center(child: Text("No Anime Available", style: TextStyle(color: getSubText(context))));
+          }
+          return GridView.builder(
+            padding: const EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 100),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 0.65, crossAxisSpacing: 14, mainAxisSpacing: 16),
+            itemCount: allAnime.length,
+            itemBuilder: (context, index) => ExploreAnimeCard(anime: allAnime[index])
+          );
+        },
+      )
+    );
+  }
 }
 
-class _ServersScreenState extends State<ServersScreen> {
-  Timer? _pingTimer;
-  int _currentPing = 45;
+class ExploreAnimeCard extends StatelessWidget {
+  final Anime anime;
+  const ExploreAnimeCard({super.key, required this.anime});
 
   @override
-  void initState() {
-    super.initState();
-    _pingTimer = Timer.periodic(const Duration(seconds: 2), (t) {
-      if (mounted) setState(() => _currentPing = Random().nextInt(60) + 20);
-    });
-  }
+  Widget build(BuildContext context) {
+    int totalEp = getTotalEpisodes(anime);
+    String seasonText = getSeasonText(anime);
+    String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
 
-  @override
-  void dispose() {
-    _pingTimer?.cancel();
-    super.dispose();
-  }
-
-  @override 
-  Widget build(BuildContext context) { 
-    Color primColor = Theme.of(context).primaryColor;
-    
-    return Scaffold(
-      backgroundColor: getBg(context), 
-      appBar: AppBar(
-        title: Text("Servers", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), 
-        backgroundColor: getBg(context), 
-        elevation: 0
-      ), 
-      body: Column(
-        children: [
-          Container(
-            margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: primColor)),
-            child: Row(
-              children: [
-                Icon(Icons.wifi_tethering, color: primColor, size: 30),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Currently Connected", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      ValueListenableBuilder(
-                        valueListenable: connectedServerNotifier,
-                        builder: (ctx, val, _) => Text("Server $val", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))
-                      )
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text("$_currentPing ms", style: TextStyle(color: _currentPing < 50 ? Colors.green : Colors.yellow, fontWeight: FontWeight.bold, fontSize: 16)),
-                    const Text("Ping", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  ],
+    return GestureDetector(
+      onTap: () {
+        int sIdx = getFirstValidSeason(anime);
+        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white, width: 1.5) // White border as per screenshot
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.black.withOpacity(0.9), Colors.transparent], 
+                    begin: Alignment.bottomCenter, end: Alignment.center
+                  )
                 )
-              ],
-            ),
+              ),
+              Positioned(
+                bottom: 12, left: 12, right: 12,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(anime.title.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text("$seasonText | Ep $totalEp", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        Row(
+                          children: [
+                            const Icon(Icons.remove_red_eye, color: Colors.white, size: 12),
+                            const SizedBox(width: 4),
+                            Text(views, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ],
+                        )
+                      ],
+                    )
+                  ],
+                ),
+              )
+            ],
           ),
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), 
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 2.5, crossAxisSpacing: 14, mainAxisSpacing: 14), 
-              itemCount: 10, 
-              itemBuilder: (context, index) { 
-                return _buildServerCard(context, index + 1, primColor);
-              }
-            ),
-          ),
-        ],
-      )
-    ); 
-  }
-
-  Widget _buildServerCard(BuildContext context, int number, Color primColor) {
-    return ValueListenableBuilder(
-      valueListenable: connectedServerNotifier,
-      builder: (ctx, connectedVal, _) {
-        bool isConnected = connectedVal == number;
-        return GestureDetector(
-          onTap: () {
-            connectedServerNotifier.value = number;
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Connected to Server $number")));
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: isConnected ? primColor.withOpacity(0.2) : getCard(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: isConnected ? primColor : Colors.white12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.dns_rounded, color: isConnected ? primColor : Colors.white70, size: 20),
-                const SizedBox(width: 10),
-                Text("Server $number", style: TextStyle(color: isConnected ? Colors.white : Colors.white70, fontWeight: FontWeight.bold, fontSize: 14)),
-                if (isConnected) ...[
-                  const SizedBox(width: 10),
-                  Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle))
-                ]
-              ],
-            ),
-          ),
-        );
-      }
+        ),
+      ),
     );
   }
 }
@@ -1391,7 +1366,7 @@ class _MyListScreenState extends State<MyListScreen> {
 }
 
 // ==========================================
-// PROFILE SCREEN (CLEAN, ORDER HISTORY ADDED)
+// PROFILE SCREEN (REDESIGNED LIKE SCREENSHOT)
 // ==========================================
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key}); 
@@ -1400,7 +1375,7 @@ class ProfileScreen extends StatelessWidget {
     return Material(
       color: Colors.transparent, 
       child: InkWell(
-        onTap: onTap, borderRadius: BorderRadius.circular(16),
+        onTap: onTap, borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
@@ -1420,36 +1395,159 @@ class ProfileScreen extends StatelessWidget {
     Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent, elevation: 0,
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications_none, color: Colors.white), onPressed: (){}),
+          IconButton(icon: const Icon(Icons.settings_outlined, color: Colors.white), onPressed: (){}),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 20).copyWith(bottom: 100),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center, 
+            crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
-              Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2)), child: CircleAvatar(radius: 45, backgroundColor: getAvatarColor(currentUserName), child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold)))),
-              const SizedBox(height: 16),
-              Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)), 
-              const SizedBox(height: 6),
-              Text("UID: $currentUserUid", style: const TextStyle(color: Colors.white70, fontSize: 13, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 40),
+              // User Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(3), 
+                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2), boxShadow: [BoxShadow(color: primColor.withOpacity(0.3), blurRadius: 20)]), 
+                    child: CircleAvatar(radius: 40, backgroundColor: getAvatarColor(currentUserName), child: Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)))
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: primColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
+                            child: Row(
+                              children: [
+                                Icon(Icons.star, color: primColor, size: 12),
+                                const SizedBox(width: 4),
+                                Text("Premium", style: TextStyle(color: primColor, fontSize: 10, fontWeight: FontWeight.bold))
+                              ],
+                            ),
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text("UID: $currentUserUid", style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_month, color: Colors.white54, size: 12),
+                          const SizedBox(width: 4),
+                          Text("Member since 2024", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                        ],
+                      )
+                    ],
+                  )
+                ],
+              ),
+              const SizedBox(height: 30),
               
+              // Premium Card
               Container(
-                margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white12)),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: primColor.withOpacity(0.2), shape: BoxShape.circle), child: Icon(Icons.diamond, color: primColor, size: 20)),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Premium Plan", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Text("Valid till Active", style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11)),
+                              ],
+                            )
+                          ],
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: primColor.withOpacity(0.15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0), elevation: 0),
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())), 
+                          child: Text("View Plan", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 12))
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: 0.7, backgroundColor: Colors.white10, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 6)),
+                    const SizedBox(height: 8),
+                    const Align(alignment: Alignment.centerRight, child: Text("Active", style: TextStyle(color: Colors.white54, fontSize: 11)))
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
                 child: Column(children: [
+                  _buildGroupedItem(context, title: "My Profile", icon: Icons.person, onTap: () {}),
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
-                  const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Payment Proof", icon: Icons.receipt_long_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentProofPage()))),
-                  const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
-                  // 🔥 ORDER HISTORY BUTTON 🔥
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
+                  _buildGroupedItem(context, title: "Payment Proof", icon: Icons.account_balance_wallet, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentProofPage()))),
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   _buildGroupedItem(context, title: "Order History", icon: Icons.history_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage()))),
-                  const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
-                  const Divider(color: Colors.white12, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
                 ]),
               ),
-              const SizedBox(height: 20),
-              const Text("AniXplayer v1.0.1", style: TextStyle(color: Colors.white38, fontSize: 12))
+              const SizedBox(height: 30),
+
+              const Text("SUPPORT & INFO", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
+                child: Column(children: [
+                  _buildGroupedItem(context, title: "Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
+                  _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
+                  _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, onTap: () {}),
+                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
+                  Material(
+                    color: Colors.transparent,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(children: [Icon(Icons.info_outline, color: primColor, size: 22), const SizedBox(width: 14), const Text("About AniXplayer", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))]),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: primColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text("v$CURRENT_APP_VERSION", style: TextStyle(color: primColor, fontSize: 11, fontWeight: FontWeight.bold)))
+                        ],
+                      ),
+                    ),
+                  )
+                ]),
+              ),
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity, height: 50,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent, width: 1.5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: () async {
+                    await Supabase.instance.client.auth.signOut();
+                    if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate()));
+                  }, 
+                  icon: const Icon(Icons.logout, color: Colors.redAccent),
+                  label: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16))
+                ),
+              )
             ],
           ),
         ),
@@ -1459,7 +1557,7 @@ class ProfileScreen extends StatelessWidget {
 }
 
 // ==========================================
-// ORDER HISTORY PAGE (NEW)
+// ORDER HISTORY PAGE
 // ==========================================
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key});
@@ -1542,37 +1640,150 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   }
 }
 
-class SubscriptionPage extends StatelessWidget {
+// ==========================================
+// SUBSCRIPTION PAGE (REDESIGNED)
+// ==========================================
+class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
+
   @override
-  Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Premium Plans", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), iconTheme: IconThemeData(color: getText(context))),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+  State<SubscriptionPage> createState() => _SubscriptionPageState();
+}
+
+class _SubscriptionPageState extends State<SubscriptionPage> {
+  int _selectedPlanIndex = 1; // Default to standard plan
+
+  final List<Map<String, dynamic>> _plans = [
+    {"name": "Basic Plan", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Ad-free", "Can be canceled at any time"]},
+    {"name": "Standard Plan", "desc": "Premium for 3 Months", "price": "₹299", "duration": "3 months", "features": ["Ad-free", "Can be canceled at any time"]},
+    {"name": "Premium Plan", "desc": "Premium for 6 Months", "price": "₹499", "duration": "6 months", "features": ["Ad-free", "Can be canceled at any time"]},
+  ];
+
+  Widget _buildPerkRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
         children: [
-          _buildPlanCard(context, "Basic Plan", "₹99", "1 Month", "Ad free monthly support 24/7", Colors.blueAccent),
-          const SizedBox(height: 20),
-          _buildPlanCard(context, "Standard Plan", "₹299", "3 Months", "Full access unlimited support 24/7", primColor),
+          Container(decoration: BoxDecoration(color: const Color(0xFF3B82F6), borderRadius: BorderRadius.circular(6)), padding: const EdgeInsets.all(2), child: const Icon(Icons.check, color: Colors.white, size: 14)),
+          const SizedBox(width: 12),
+          Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14))
         ],
       ),
     );
   }
-  Widget _buildPlanCard(BuildContext context, String title, String price, String duration, String desc, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: color.withOpacity(0.5), width: 2)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [Text(price, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), Text(" / $duration", style: const TextStyle(color: Colors.white54, fontSize: 14))]),
-          const SizedBox(height: 10),
-          Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-          const SizedBox(height: 20),
-          SizedBox(width: double.infinity, height: 45, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => QRCodePaymentPage(planName: title, price: price))), child: const Text("Choose Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))
-        ],
+
+  @override
+  Widget build(BuildContext context) {
+    Color btnColor = const Color(0xFF3B82F6); // Blue color from screenshot
+
+    return Scaffold(
+      backgroundColor: getBg(context), 
+      appBar: AppBar(backgroundColor: getBg(context), iconTheme: const IconThemeData(color: Colors.white), elevation: 0),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Top Header
+                    Center(
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF2563EB)], begin: Alignment.topLeft, end: Alignment.bottomRight), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.3), blurRadius: 20, spreadRadius: 5)]),
+                            child: const Icon(Icons.workspace_premium, color: Colors.white, size: 40),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text("Subscribe to join VIP", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Perks
+                    const Text("Improve your experience", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    const Text("Activate VIP membership to enjoy unlimited streaming no ads, 4K quality movies or series and more", style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
+                    const SizedBox(height: 20),
+                    _buildPerkRow("Stream in high-quality"),
+                    _buildPerkRow("Free from ads"),
+                    _buildPerkRow("Early access to the latest episodes"),
+                    const SizedBox(height: 30),
+
+                    // Plans List
+                    const Text("Premium Plan", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+
+                    ...List.generate(_plans.length, (index) {
+                      bool isSelected = _selectedPlanIndex == index;
+                      final plan = _plans[index];
+
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedPlanIndex = index),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: getCard(context),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1)
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? btnColor : Colors.white54, size: 22),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(plan['name'], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text(plan['desc'], style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                    const SizedBox(height: 8),
+                                    ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(plan['price'], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                  Text("/${plan['duration']}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                ],
+                              )
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+
+            // Bottom Button
+            Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SizedBox(
+                width: double.infinity, height: 55,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: btnColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: () {
+                    final p = _plans[_selectedPlanIndex];
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => QRCodePaymentPage(planName: p['name'], price: p['price'])));
+                  }, 
+                  child: const Text("Continue to payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                ),
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
@@ -1620,7 +1831,7 @@ class PaymentProofPage extends StatefulWidget {
 }
 class _PaymentProofPageState extends State<PaymentProofPage> {
   String? _selectedPlan; File? _imageFile; final TextEditingController _trxController = TextEditingController(); bool _isSubmitting = false;
-  final List<String> _plans = ["Basic Plan", "Standard Plan"];
+  final List<String> _plans = ["Basic Plan", "Standard Plan", "Premium Plan"];
   @override void initState() { super.initState(); if (widget.initialPlan != null && _plans.contains(widget.initialPlan)) { _selectedPlan = widget.initialPlan; } }
   Future<void> _pickImage() async { final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); if (pickedFile != null) { setState(() { _imageFile = File(pickedFile.path); }); } }
   Future<void> _submitRequest() async {
@@ -1786,7 +1997,7 @@ class DescriptionPage extends StatelessWidget {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE (RE-DESIGNED)
+// FAST LOAD VIDEO PLAYER PAGE
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
