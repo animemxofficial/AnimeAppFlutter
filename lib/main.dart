@@ -45,7 +45,7 @@ const Color animeMxPurple = Color(0xFF8A2BE2);
 final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
 
 Color getBg(BuildContext context) => Colors.black;
-Color getCard(BuildContext context) => const Color(0xFF13131A); // Adjusted slightly for cleaner dark cards
+Color getCard(BuildContext context) => const Color(0xFF13131A); 
 Color getText(BuildContext context) => Colors.white;
 Color getSubText(BuildContext context) => Colors.white54;
 
@@ -90,7 +90,7 @@ DateTime? getPlanExpiryDate(String createdAt, String planName) {
   if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("basic")) return start.add(const Duration(days: 30));
   if (planName.toLowerCase().contains("3 month") || planName.toLowerCase().contains("gold") || planName.toLowerCase().contains("standard")) return start.add(const Duration(days: 90));
   if (planName.toLowerCase().contains("6 month") || planName.toLowerCase().contains("premium")) return start.add(const Duration(days: 180));
-  return start.add(const Duration(days: 30)); // fallback 1 month
+  return start.add(const Duration(days: 30)); 
 }
 
 // ==========================================
@@ -1115,6 +1115,91 @@ class LatestEpisodesSeeAllPage extends StatelessWidget {
 }
 
 // ==========================================
+// CUSTOM LIST ITEM FOR BROWSE/SEARCH RESULTS
+// ==========================================
+class SearchListCard extends StatelessWidget {
+  final Anime anime;
+  const SearchListCard({super.key, required this.anime});
+
+  @override
+  Widget build(BuildContext context) {
+    int totalEp = getTotalEpisodes(anime);
+    int totalSeasons = anime.seasonsList.length;
+    String langText = anime.dubStatus.toUpperCase().contains("DUB") ? "Hindi, Japanese" : "Japanese";
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image Section
+              SizedBox(
+                width: 110,
+                height: 160,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    anime.image,
+                    fit: BoxFit.cover,
+                    errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              
+              // Info Section
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)), // Green tag
+                      child: const Text("SHOW", style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(height: 6),
+                    Text("$langText, ${anime.genre}, ${anime.createdAt.year}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text("$totalSeasons seasons, $totalEp episodes", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 8),
+                    Text(anime.description, style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.3), maxLines: 3, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Season Buttons Wrap
+          Wrap(
+            spacing: 8, runSpacing: 8,
+            children: anime.seasonsList.asMap().entries.map((entry) {
+              int sIdx = entry.key;
+              Season s = entry.value;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(color: const Color(0xFF10B981), borderRadius: BorderRadius.circular(4)),
+                  child: Text(s.name.isEmpty ? "Season ${sIdx+1}" : s.name, style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              );
+            }).toList(),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
 // BROWSE (SEARCH) SCREEN 
 // ==========================================
 class BrowseScreen extends StatefulWidget {
@@ -1200,7 +1285,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
               
               if (_searchController.text.isNotEmpty) ...[
                 if (_searchResults.isEmpty) const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 15)))) 
-                else GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16), itemCount: _searchResults.length, itemBuilder: (context, index) => ExploreAnimeCard(anime: _searchResults[index]))
+                else ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _searchResults.length, itemBuilder: (context, index) => SearchListCard(anime: _searchResults[index]))
               ] else ...[
                 Text("Recommended", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: getText(context))), 
                 const SizedBox(height: 12),
@@ -1692,11 +1777,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _activePlan;
   bool _isLoadingPlan = true;
   String _daysLeftText = "";
+  double _planProgress = 0.0;
+  Timer? _timeTimer;
+  String _istTimeString = "";
 
   @override
   void initState() {
     super.initState();
     _fetchActivePlan();
+    
+    // Live Indian Time Update
+    _timeTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      DateTime istTime = DateTime.now().toUtc().add(const Duration(hours: 5, minutes: 30));
+      String ampm = istTime.hour >= 12 ? 'PM' : 'AM';
+      int hour12 = istTime.hour > 12 ? istTime.hour - 12 : (istTime.hour == 0 ? 12 : istTime.hour);
+      if(mounted) {
+        setState(() {
+          _istTimeString = "${hour12.toString().padLeft(2, '0')}:${istTime.minute.toString().padLeft(2, '0')}:${istTime.second.toString().padLeft(2, '0')} $ampm (IST)";
+        });
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _timeTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchActivePlan() async {
@@ -1706,9 +1812,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         DateTime? expiry = getPlanExpiryDate(res['created_at'], res['plan']);
         if(expiry != null) {
           DateTime now = DateTime.now();
+          DateTime start = DateTime.parse(res['created_at']).toLocal();
+          
           if(expiry.isAfter(now)) {
             int daysLeft = expiry.difference(now).inDays;
             _daysLeftText = "$daysLeft days left";
+            
+            // Fix: Progress goes up as days pass
+            int totalDays = expiry.difference(start).inDays;
+            int daysPassed = now.difference(start).inDays;
+            _planProgress = totalDays > 0 ? (daysPassed / totalDays).clamp(0.0, 1.0) : 0.0;
+            
             setState(() { _activePlan = res; _activePlan!['expiry'] = expiry; });
           } else {
             // Plan expired - local state handling. (Real DB cleanup handled in Order History)
@@ -1805,7 +1919,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(width: 4),
                           Text("Member since ${_formatJoinDate()}", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
                         ],
-                      )
+                      ),
+                      const SizedBox(height: 4),
+                      // Live Time
+                      Text(_istTimeString, style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                     ],
                   )
                 ],
@@ -1846,7 +1963,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: 0.7, backgroundColor: Colors.white10, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 6)),
+                      ClipRRect(borderRadius: BorderRadius.circular(10), child: LinearProgressIndicator(value: _planProgress, backgroundColor: Colors.white10, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 6)),
                       const SizedBox(height: 8),
                       Align(alignment: Alignment.centerRight, child: Text(_daysLeftText, style: const TextStyle(color: Colors.white54, fontSize: 11)))
                     ],
@@ -1888,8 +2005,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   }),
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
-                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Payment Proof", icon: Icons.account_balance_wallet, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentProofPage()))),
                   const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
                   _buildGroupedItem(context, title: "Order History", icon: Icons.history_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
                 ]),
@@ -2091,121 +2206,134 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 
     return Scaffold(
       backgroundColor: getBg(context), 
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 380,
-            backgroundColor: getBg(context),
-            iconTheme: const IconThemeData(color: Colors.white),
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", fit: BoxFit.cover),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.black.withOpacity(0.3), Colors.black],
-                        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                        stops: const [0.3, 1.0]
-                      )
+      // Replaced CustomScrollView top level with Column to fix button to bottom
+      body: Column(
+        children: [
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: 280, // Reduced height for better fit
+                  backgroundColor: getBg(context),
+                  iconTheme: const IconThemeData(color: Colors.white),
+                  pinned: true,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", fit: BoxFit.cover),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.black.withOpacity(0.3), Colors.black],
+                              begin: Alignment.topCenter, end: Alignment.bottomCenter,
+                              stops: const [0.3, 1.0]
+                            )
+                          ),
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const SizedBox(height: 60),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF2563EB)], begin: Alignment.topLeft, end: Alignment.bottomRight), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 30, spreadRadius: 5)]),
+                              child: const Icon(Icons.workspace_premium, color: Colors.white, size: 50),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text("Subscribe to join VIP", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black, blurRadius: 10)])),
+                          ],
+                        )
+                      ],
                     ),
                   ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 60),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF2563EB)], begin: Alignment.topLeft, end: Alignment.bottomRight), boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.5), blurRadius: 30, spreadRadius: 5)]),
-                        child: const Icon(Icons.workspace_premium, color: Colors.white, size: 50),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text("Subscribe to join VIP", style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black, blurRadius: 10)])),
-                    ],
-                  )
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Improve your experience", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  const Text("Activate VIP membership to enjoy unlimited streaming no ads, 4K quality movies or series and more", style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
-                  const SizedBox(height: 20),
-                  _buildPerkRow("Stream in high-quality"),
-                  _buildPerkRow("Free from ads"),
-                  _buildPerkRow("Early access to the latest episodes"),
-                  const SizedBox(height: 30),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Improve your experience", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 10),
+                        const Text("Activate VIP membership to enjoy unlimited streaming no ads, 4K quality movies or series and more", style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
+                        const SizedBox(height: 20),
+                        _buildPerkRow("Stream in high-quality"),
+                        _buildPerkRow("Free from ads"),
+                        _buildPerkRow("Early access to the latest episodes"),
+                        const SizedBox(height: 30),
 
-                  const Text("Premium Plan", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
+                        const Text("Premium Plan", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 16),
 
-                  ...List.generate(_plans.length, (index) {
-                    bool isSelected = _selectedPlanIndex == index;
-                    final plan = _plans[index];
+                        ...List.generate(_plans.length, (index) {
+                          bool isSelected = _selectedPlanIndex == index;
+                          final plan = _plans[index];
 
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedPlanIndex = index),
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: getCard(context),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1)
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? btnColor : Colors.white54, size: 22),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          return GestureDetector(
+                            onTap: () => setState(() => _selectedPlanIndex = index),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: getCard(context),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1)
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text(plan['name'], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Text(plan['desc'], style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                                  const SizedBox(height: 8),
-                                  ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
+                                  Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? btnColor : Colors.white54, size: 22),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(plan['name'], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 4),
+                                        Text(plan['desc'], style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                        const SizedBox(height: 8),
+                                        ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
+                                      ],
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(plan['price'], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                                      Text("/${plan['duration']}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                    ],
+                                  )
                                 ],
                               ),
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(plan['price'], style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                Text("/${plan['duration']}", style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                              ],
-                            )
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                  const SizedBox(height: 30),
-                  
-                  SizedBox(
-                    width: double.infinity, height: 55,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: btnColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      onPressed: () {
-                        final p = _plans[_selectedPlanIndex];
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => UnifiedPaymentScreen(planName: p['name'], price: p['price'])));
-                      }, 
-                      child: const Text("Continue to payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                          );
+                        }),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 40)
-                ],
+                )
+              ],
+            ),
+          ),
+          
+          // Fixed Bottom Button Layout
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              color: getBg(context),
+              border: const Border(top: BorderSide(color: Colors.white10))
+            ),
+            child: SizedBox(
+              width: double.infinity, height: 55,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: btnColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: () {
+                  final p = _plans[_selectedPlanIndex];
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => UnifiedPaymentScreen(planName: p['name'], price: p['price'])));
+                }, 
+                child: const Text("Continue to payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
               ),
             ),
           )
@@ -2481,66 +2609,6 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 }
 
-// PaymentProofPage kept ONLY for the fallback "Payment Proof" standalone menu button found in the account page
-class PaymentProofPage extends StatefulWidget {
-  final String? initialPlan;
-  final String? initialPrice;
-  const PaymentProofPage({super.key, this.initialPlan, this.initialPrice});
-  @override State<PaymentProofPage> createState() => _PaymentProofPageState();
-}
-class _PaymentProofPageState extends State<PaymentProofPage> {
-  String? _selectedPlan; File? _imageFile; final TextEditingController _trxController = TextEditingController(); bool _isSubmitting = false;
-  final List<String> _plans = ["Bronze", "Silver", "Gold"];
-  @override void initState() { super.initState(); if (widget.initialPlan != null && _plans.contains(widget.initialPlan)) { _selectedPlan = widget.initialPlan; } }
-  Future<void> _pickImage() async { final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); if (pickedFile != null) { setState(() { _imageFile = File(pickedFile.path); }); } }
-  Future<void> _submitRequest() async {
-    if (_selectedPlan == null || _imageFile == null || _trxController.text.length != 12) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please fill all details correctly."))); return; }
-    setState(() => _isSubmitting = true);
-    try {
-      final ext = _imageFile!.path.split('.').last; final fileName = '${DateTime.now().millisecondsSinceEpoch}.$ext';
-      await Supabase.instance.client.storage.from('payment_proofs').upload(fileName, _imageFile!);
-      String imageUrl = Supabase.instance.client.storage.from('payment_proofs').getPublicUrl(fileName);
-      
-      String amountStr = widget.initialPrice?.replaceAll(RegExp(r'[^0-9.]'), '') ?? "0";
-      double amount = double.tryParse(amountStr) ?? 0.0;
-
-      await Supabase.instance.client.from('payment_requests').insert({
-        'user_id': currentUserId, 
-        'user_name': currentUserName,
-        'uid': currentUserUid,
-        'plan': _selectedPlan, 
-        'amount': amount,
-        'transaction_id': _trxController.text.trim(), 
-        'image_path': imageUrl, 
-        'status': 'Pending', 
-        'created_at': DateTime.now().toIso8601String()
-      });
-      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted!"), backgroundColor: Colors.green)); Navigator.pop(context); }
-    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"))); } finally { if (mounted) setState(() => _isSubmitting = false); }
-  }
-  @override Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(title: Text("Verify Payment", style: TextStyle(color: getText(context))), backgroundColor: getBg(context)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:[
-            Text("Select Plan", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 16), decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(isExpanded: true, dropdownColor: getCard(context), hint: Text("Choose your plan", style: TextStyle(color: getSubText(context))), value: _selectedPlan, items: _plans.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(color: Colors.white)))).toList(), onChanged: (v) => setState(() => _selectedPlan = v)))), const SizedBox(height: 20),
-            Text("Screenshot", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-            GestureDetector(onTap: _pickImage, child: Container(width: double.infinity, height: 160, decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), child: _imageFile != null ? ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_imageFile!, fit: BoxFit.cover)) : Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.cloud_upload, color: primColor, size: 40), const SizedBox(height: 10), Text("Tap to upload", style: TextStyle(color: getSubText(context)))]))), const SizedBox(height: 20),
-            Text("12-Digit UTR", style: TextStyle(color: getText(context), fontSize: 16, fontWeight: FontWeight.bold)), const SizedBox(height: 10),
-            TextField(controller: _trxController, keyboardType: TextInputType.number, inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)], style: TextStyle(color: getText(context)), decoration: InputDecoration(hintText: "Enter UTR number", filled: true, fillColor: getCard(context), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))), const SizedBox(height: 40),
-            SizedBox(width: double.infinity, height: 50, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _isSubmitting ? null : _submitRequest, child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white) : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
   @override Widget build(BuildContext context) {
@@ -2638,7 +2706,7 @@ class DescriptionPage extends StatelessWidget {
 }
 
 // ==========================================
-// FAST LOAD VIDEO PLAYER PAGE
+// FAST LOAD VIDEO PLAYER PAGE (WITH LIKES)
 // ==========================================
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -2660,6 +2728,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   
   late int _currentSeasonIndex;
   late int _currentEpisodeIndex; 
+  
+  int _likeCount = 0;
+  int _dislikeCount = 0;
+  int _userLikeStatus = 0; // 0 = none, 1 = liked, -1 = disliked
 
   @override 
   void initState() { 
@@ -2672,7 +2744,62 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     }
     
     _incrementAndFetchViews(); 
+    _fetchLikes();
     _initPlayer();
+  }
+
+  Future<void> _fetchLikes() async {
+    try {
+      final res = await Supabase.instance.client.from('anime_likes').select('is_like').eq('anime_id', widget.anime.id);
+      int likes = 0; int dislikes = 0;
+      for (var r in res) {
+        if (r['is_like'] == true) likes++;
+        else if (r['is_like'] == false) dislikes++;
+      }
+      
+      final userRes = await Supabase.instance.client.from('anime_likes').select('is_like').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
+      int userStatus = 0;
+      if (userRes != null) {
+        userStatus = userRes['is_like'] == true ? 1 : -1;
+      }
+      
+      if (mounted) setState(() { _likeCount = likes; _dislikeCount = dislikes; _userLikeStatus = userStatus; });
+    } catch(e) {}
+  }
+  
+  Future<void> _toggleLike(bool isLikeAction) async {
+    int targetStatus = isLikeAction ? 1 : -1;
+    bool isRemoving = _userLikeStatus == targetStatus;
+    
+    // Optimistic UI Update
+    setState(() {
+      // Remove old status
+      if (_userLikeStatus == 1) _likeCount--;
+      if (_userLikeStatus == -1) _dislikeCount--;
+      
+      if (isRemoving) {
+        _userLikeStatus = 0; // Removing the like/dislike
+      } else {
+        _userLikeStatus = targetStatus;
+        if (_userLikeStatus == 1) _likeCount++;
+        if (_userLikeStatus == -1) _dislikeCount++;
+      }
+    });
+
+    try {
+      if (isRemoving) {
+        await Supabase.instance.client.from('anime_likes').delete().eq('anime_id', widget.anime.id).eq('user_id', currentUserId);
+      } else {
+        await Supabase.instance.client.from('anime_likes').upsert({
+          'anime_id': widget.anime.id,
+          'user_id': currentUserId,
+          'is_like': isLikeAction
+        });
+      }
+    } catch (e) {
+      // Revert if error occurs (fetch accurate again)
+      _fetchLikes();
+    }
   }
 
   void _initPlayer() {
@@ -2895,16 +3022,51 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Text(widget.anime.description, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 13, height: 1.4)),
                     ),
-                    if (widget.anime.description.length > 100)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DescriptionPage(anime: widget.anime))),
-                          child: Text("Read More", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)),
-                        ),
-                      ),
                     
-                    const SizedBox(height: 24),
+                    // Likes & Read More Row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (widget.anime.description.length > 100)
+                            GestureDetector(
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DescriptionPage(anime: widget.anime))),
+                              child: Text("Read More", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                            )
+                          else const SizedBox(),
+                          
+                          // Custom Like & Dislike System
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () => _toggleLike(true),
+                                child: Row(
+                                  children: [
+                                    Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _userLikeStatus == 1 ? primColor : Colors.white70, size: 20),
+                                    const SizedBox(width: 4),
+                                    Text("$_likeCount", style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold))
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              GestureDetector(
+                                onTap: () => _toggleLike(false),
+                                child: Row(
+                                  children: [
+                                    Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: _userLikeStatus == -1 ? Colors.redAccent : Colors.white70, size: 20),
+                                    const SizedBox(width: 4),
+                                    Text("$_dislikeCount", style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold))
+                                  ],
+                                ),
+                              )
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 16),
                     
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -2982,7 +3144,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                         itemBuilder: (context, index) { 
                           Anime anime = animeListNotifier.value[index];
                           if(anime.title == widget.anime.title) return const SizedBox.shrink(); // Skip current
-                          bool isCompleted = anime.status.toLowerCase() == "completed";
                           String epCount = "E${getTotalEpisodes(anime)}";
                           String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
                           String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
@@ -3006,8 +3167,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                         fit: StackFit.expand,
                                         children: [
                                           Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                                          if (isCompleted)
-                                            Positioned(top: 15, left: -35, child: Transform.rotate(angle: -0.785398, child: Container(color: Colors.redAccent.withOpacity(0.9), padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4), child: const Text("Completed", style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))),
                                           Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
                                           Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
                                           Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
