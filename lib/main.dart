@@ -681,7 +681,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TALL FULL-WIDTH HERO SLIDER WIDGET
+// WIDE CINEMATIC HERO SLIDER WIDGET (16:9 PROPORTION)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
@@ -737,238 +737,247 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
       list.add(SavedEpisode(anime: linkedAnime, seasonIndex: 0, episodeIndex: 0));
       myListNotifier.value = list;
       MyListService().saveMyList(currentUserId, list);
-      
-      // Clean, elegant success animation without text
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text("Added to My List", style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          backgroundColor: Colors.green.shade600,
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        )
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Added to My List"), backgroundColor: animeMxPurple, duration: const Duration(seconds: 1)));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Already in My List"), duration: Duration(seconds: 1)));
     }
-    // Purposely do nothing if already saved, removing the annoying text
   }
 
   @override
   Widget build(BuildContext context) {
     if (widget.heroList.isEmpty) return const SizedBox.shrink();
 
-    return AspectRatio(
-      // Makes the image much bigger vertically (perfect square ratio spans full width)
-      aspectRatio: 1.0, 
-      child: ClipRRect(
-        // Makes the image edges perfectly sharp and square (No round shape)
-        borderRadius: BorderRadius.zero,
-        child: Listener(
-          onPointerDown: (_) => _timer?.cancel(),
-          onPointerUp: (_) => _startTimer(),
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPage = index;
-              });
-            },
-            itemCount: widget.heroList.length,
-            itemBuilder: (context, index) {
-              final hero = widget.heroList[index];
-              final bool isCustom = hero['is_custom'] ?? false;
-              String rawTitle = hero['title'] ?? "";
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: AspectRatio(
+        // FIXED AspectRatio to 16/9: Solves the height issue and shows full horizontal context
+        aspectRatio: 16 / 9, 
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Listener(
+            onPointerDown: (_) => _timer?.cancel(),
+            onPointerUp: (_) => _startTimer(),
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              itemCount: widget.heroList.length,
+              itemBuilder: (context, index) {
+                final hero = widget.heroList[index];
+                final bool isCustom = hero['is_custom'] ?? false;
+                String rawTitle = hero['title'] ?? "";
+                String heroTag = hero['tag'] ?? "Top Pick";
 
-              Anime? linkedAnime;
-              if (!isCustom && hero['anime_id'] != null) {
-                try {
-                  linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
-                  if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
-                } catch (e) {}
-              }
+                Anime? linkedAnime;
+                if (!isCustom && hero['anime_id'] != null) {
+                  try {
+                    linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
+                    if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
+                  } catch (e) {}
+                }
 
-              String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
-              String category = linkedAnime?.category ?? "Movie";
-              String dubStatus = linkedAnime != null && linkedAnime.dubStatus.toUpperCase().contains("DUB") ? "Hindi Dub" : "Multi";
-              String metadata = "$category • $dubStatus";
+                String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
+                String category = linkedAnime?.category ?? "Movie";
+                String dubStatus = linkedAnime != null && linkedAnime.dubStatus.toUpperCase().contains("DUB") ? "Hindi Dub" : "Multi";
+                String metadata = "$category • $dubStatus";
 
-              // Keep max 2 genres for clean layout
-              String rawGenres = linkedAnime?.genre ?? "Romance, Drama";
-              List<String> genres = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).take(2).toList();
-              if (genres.isEmpty) genres = ["Romance", "Drama"];
+                String rawGenres = linkedAnime?.genre ?? "Romance, Drama";
+                List<String> genres = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).take(2).toList();
+                if (genres.isEmpty) genres = ["Romance", "Drama"];
 
-              return GestureDetector(
-                onTap: () {
-                  if (linkedAnime != null) {
-                    _handleWatchNow(linkedAnime);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
-                  }
-                },
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Base Artwork filling full space
-                    Image.network(
-                      hero['image_url'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
-                    ),
-
-                    // Strong Bottom Gradient to make text and buttons extremely clear
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.black.withOpacity(0.95), // Heavy bottom
-                            Colors.black.withOpacity(0.5),  // Middle dark transition
-                            Colors.transparent,             // Clear top
-                          ],
-                          stops: const [0.0, 0.4, 1.0],
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                        ),
+                return GestureDetector(
+                  onTap: () {
+                    if (linkedAnime != null) {
+                      _handleWatchNow(linkedAnime);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
+                    }
+                  },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Full Wide Image (Since container is 16:9, BoxFit.cover shows almost everything without tall cutoff)
+                      Image.network(
+                        hero['image_url'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
                       ),
-                    ),
 
-                    // Top Pick Badge - Always says "Top Pick"
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      // Gradient Overlay
+                      Container(
                         decoration: BoxDecoration(
-                          color: animeMxPurple,
-                          borderRadius: BorderRadius.circular(20),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withOpacity(0.95), 
+                              Colors.black.withOpacity(0.3),  
+                              Colors.transparent,             
+                            ],
+                            stops: const [0.0, 0.6, 1.0],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
                         ),
-                        child: Row(
+                      ),
+
+                      // Top Pick Badge (Slightly adjusted padding for compact layout)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: animeMxPurple,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star, color: Colors.white, size: 12),
+                              const SizedBox(width: 4),
+                              Text(
+                                heroTag,
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Main Content Area
+                      Positioned(
+                        left: 12,
+                        right: 12,
+                        bottom: 12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.star, color: Colors.white, size: 14),
-                            SizedBox(width: 4),
+                          children: [
+                            // Reduced Font Size for Title
                             Text(
-                              "Top Pick",
-                              style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                              displayTitle,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22, // Reduced from 26 to 22
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 4),
+
+                            // Reduced Font Size for Metadata
+                            Text(
+                              metadata,
+                              style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500), // Reduced to 12
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Compact Genre Chips
+                            Row(
+                              children: genres.map((genre) => Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.4),
+                                    border: Border.all(color: Colors.white24, width: 1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    genre,
+                                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              )).toList(),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Buttons & Indicator Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Row(
+                                  children: [
+                                    // Watch Now Button (Height reduced to 36)
+                                    SizedBox(
+                                      height: 36,
+                                      child: ElevatedButton.icon(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: Colors.black,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        ),
+                                        onPressed: () {
+                                          if (linkedAnime != null) _handleWatchNow(linkedAnime);
+                                        },
+                                        icon: const Icon(Icons.play_arrow, size: 16),
+                                        label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8), 
+                                    
+                                    // My List Button (Height reduced to 36)
+                                    SizedBox(
+                                      height: 36,
+                                      child: OutlinedButton.icon(
+                                        style: OutlinedButton.styleFrom(
+                                          side: const BorderSide(color: Colors.white54, width: 1),
+                                          foregroundColor: Colors.white,
+                                          backgroundColor: Colors.transparent, 
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        ),
+                                        onPressed: () {
+                                          if (linkedAnime != null) _handleMyList(linkedAnime);
+                                        },
+                                        icon: const Icon(Icons.add, size: 16),
+                                        label: const Text("My List", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                // Custom Indicator aligned to bottom right
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Row(
+                                      children: List.generate(
+                                        widget.heroList.length,
+                                        (dotIdx) => Container(
+                                          width: 14, 
+                                          height: 3,
+                                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                                          decoration: BoxDecoration(
+                                            color: _currentPage == dotIdx ? animeMxPurple : Colors.white38,
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "${_currentPage + 1} / ${widget.heroList.length}",
+                                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                    )
+                                  ],
+                                )
+                              ],
+                            )
                           ],
                         ),
                       ),
-                    ),
-
-                    // Content Layout placed elegantly at bottom left
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 24, // Added breathing room
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Title - Reduced size
-                          Text(
-                            displayTitle,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22, // Smaller title as requested
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 6),
-
-                          // Metadata
-                          Text(
-                            metadata,
-                            style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 8),
-
-                          // Genre Chips
-                          Row(
-                            children: genres.map((genre) => Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.05),
-                                  border: Border.all(color: Colors.white24, width: 1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  genre,
-                                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                            )).toList(),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Buttons aligned STRICTLY TO THE LEFT with no pagination counter
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start, // Left aligned
-                            children: [
-                              // Watch Now Button - Reduced Size
-                              SizedBox(
-                                height: 36, // Smaller button
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                                  ),
-                                  onPressed: () {
-                                    if (linkedAnime != null) _handleWatchNow(linkedAnime);
-                                  },
-                                  icon: const Icon(Icons.play_arrow, size: 18),
-                                  label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              
-                              // My List Button - Dynamic Icon
-                              ValueListenableBuilder<List<SavedEpisode>>(
-                                valueListenable: myListNotifier,
-                                builder: (context, savedList, child) {
-                                  bool isSaved = linkedAnime != null && savedList.any((item) => item.anime.title == linkedAnime!.title);
-                                  
-                                  return SizedBox(
-                                    height: 36, // Smaller button
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: Colors.white54, width: 1),
-                                        foregroundColor: Colors.white,
-                                        backgroundColor: Colors.transparent, 
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                                      ),
-                                      onPressed: () {
-                                        if (linkedAnime != null) _handleMyList(linkedAnime!);
-                                      },
-                                      // Transforms dynamically
-                                      icon: Icon(isSaved ? Icons.check : Icons.add, size: 16, color: isSaved ? Colors.greenAccent : Colors.white),
-                                      label: Text(isSaved ? "Saved" : "My List", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                    ),
-                                  );
-                                }
-                              )
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -986,10 +995,13 @@ class HomeScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Update skeleton aspect ratio and radius to match new hero
-        AspectRatio(
-          aspectRatio: 1.0,
-          child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 0),
+        // Ensure skeleton matches the new 16/9 aspect ratio height
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: AspectRatio(
+            aspectRatio: 16 / 9,
+            child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 16),
+          ),
         ),
         const SizedBox(height: 20),
         const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
@@ -1062,7 +1074,6 @@ class HomeScreen extends StatelessWidget {
 
                 return Column(
                   children: [
-                    const SizedBox(height: 10), // Adjust spacing after hero
                     _buildPortraitSection(context, "Recently Added", null, null, allAnime), 
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", null, null, trendingList),
                     if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", null, null, popularList),
