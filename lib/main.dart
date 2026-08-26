@@ -681,7 +681,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// POLISHED COMPACT PREMIUM HERO SLIDER WIDGET
+// EXACT REFERENCE PREMIUM HERO SLIDER WIDGET
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
@@ -750,8 +750,8 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: AspectRatio(
-        // Perfectly matches the reference image proportion
-        aspectRatio: 1.5, 
+        // Precise cinematic ratio to match the reference card shape
+        aspectRatio: 1.6, 
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
           child: Listener(
@@ -784,9 +784,10 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                 String dubStatus = linkedAnime != null && linkedAnime.dubStatus.toUpperCase().contains("DUB") ? "Hindi Dub" : "Multi";
                 String metadata = "$category • $dubStatus";
 
-                // Extract exactly up to TWO genre chips to match reference [ Romance ] [ Drama ]
+                // Extract EXACTLY two genres to match [ Romance ] [ Drama ] layout
                 String rawGenres = linkedAnime?.genre ?? "Romance, Drama";
                 List<String> genres = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).take(2).toList();
+                if (genres.isEmpty) genres = ["Romance", "Drama"];
 
                 return GestureDetector(
                   onTap: () {
@@ -806,16 +807,16 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                         errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
                       ),
 
-                      // Adjusted Gradient to match reference
+                      // Adjusted Gradient Overlay matching reference exactly
                       Container(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              Colors.black.withOpacity(0.95), 
-                              Colors.black.withOpacity(0.4),  
-                              Colors.transparent,             
+                              Colors.black.withOpacity(0.95), // Bottom (Dark)
+                              Colors.black.withOpacity(0.4),  // Middle 
+                              Colors.transparent,             // Top (Clear)
                             ],
-                            stops: const [0.0, 0.6, 1.0],
+                            stops: const [0.0, 0.5, 1.0],
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                           ),
@@ -824,10 +825,10 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
 
                       // EXACT Top Pick Badge Position
                       Positioned(
-                        top: 14,
-                        left: 14,
+                        top: 16,
+                        left: 16,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: animeMxPurple,
                             borderRadius: BorderRadius.circular(20),
@@ -846,11 +847,11 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                         ),
                       ),
 
-                      // Content Layout stacked strictly to match reference
+                      // Content Layout perfectly matching reference structure
                       Positioned(
-                        left: 14,
-                        right: 14,
-                        bottom: 14,
+                        left: 16,
+                        right: 16,
+                        bottom: 16,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
@@ -876,14 +877,14 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                             ),
                             const SizedBox(height: 8),
 
-                            // Genre Chips
+                            // Exact Two Genre Chips Style
                             Row(
                               children: genres.map((genre) => Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.05),
+                                    color: Colors.black.withOpacity(0.4),
                                     border: Border.all(color: Colors.white24, width: 1),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
@@ -894,7 +895,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                                 ),
                               )).toList(),
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
 
                             // Buttons & Indicator Row
                             Row(
@@ -903,7 +904,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                               children: [
                                 Row(
                                   children: [
-                                    // Watch Now Button
+                                    // Watch Now Button (Exact sizing and gap)
                                     SizedBox(
                                       height: 40,
                                       child: ElevatedButton.icon(
@@ -911,16 +912,16 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                                           backgroundColor: Colors.white,
                                           foregroundColor: Colors.black,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14),
                                         ),
                                         onPressed: () {
                                           if (linkedAnime != null) _handleWatchNow(linkedAnime);
                                         },
-                                        icon: const Icon(Icons.play_arrow, size: 20),
+                                        icon: const Icon(Icons.play_arrow, size: 18),
                                         label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 10), // Strict gap between buttons
                                     
                                     // My List Button
                                     SizedBox(
@@ -929,9 +930,9 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                                         style: OutlinedButton.styleFrom(
                                           side: const BorderSide(color: Colors.white54, width: 1),
                                           foregroundColor: Colors.white,
-                                          backgroundColor: Colors.transparent, // Completely transparent like reference
+                                          backgroundColor: Colors.transparent, // Transparent like reference
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                                          padding: const EdgeInsets.symmetric(horizontal: 12),
                                         ),
                                         onPressed: () {
                                           if (linkedAnime != null) _handleMyList(linkedAnime);
@@ -943,18 +944,19 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                                   ],
                                 ),
 
-                                // Custom Indicator aligned bottom right
+                                // Custom Indicator aligned perfectly to bottom right
                                 Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Row(
                                       children: List.generate(
                                         widget.heroList.length,
                                         (dotIdx) => Container(
-                                          width: _currentPage == dotIdx ? 16 : 10,
+                                          width: 16, // All lines are equal width based on reference
                                           height: 3,
                                           margin: const EdgeInsets.symmetric(horizontal: 2),
                                           decoration: BoxDecoration(
-                                            color: _currentPage == dotIdx ? animeMxPurple : Colors.white24,
+                                            color: _currentPage == dotIdx ? animeMxPurple : Colors.white38,
                                             borderRadius: BorderRadius.circular(2),
                                           ),
                                         ),
@@ -994,10 +996,11 @@ class HomeScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Make skeleton match the exact aspect ratio padding layout
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: AspectRatio(
-            aspectRatio: 1.5,
+            aspectRatio: 1.6,
             child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 16),
           ),
         ),
