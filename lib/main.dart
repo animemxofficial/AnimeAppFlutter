@@ -681,7 +681,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// POLISHED PREMIUM HERO SLIDER WIDGET
+// POLISHED COMPACT PREMIUM HERO SLIDER WIDGET
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
@@ -747,198 +747,203 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
   Widget build(BuildContext context) {
     if (widget.heroList.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      height: 420, // Strict height kept exactly as requested
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Ensures round edges are clearly visible
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16), // Fixed smooth rounded corners
-        child: Listener(
-          onPointerDown: (_) => _timer?.cancel(),
-          onPointerUp: (_) => _startTimer(),
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() {
-                _currentPage = index;
-              });
-            },
-            itemCount: widget.heroList.length,
-            itemBuilder: (context, index) {
-              final hero = widget.heroList[index];
-              final bool isCustom = hero['is_custom'] ?? false;
-              String rawTitle = hero['title'] ?? "";
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: AspectRatio(
+        // Forces a responsive horizontal container that resembles ~16:10 or 1.6:1
+        // Ensures the artwork never becomes a tall vertical poster
+        aspectRatio: 16 / 10, 
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Listener(
+            onPointerDown: (_) => _timer?.cancel(),
+            onPointerUp: (_) => _startTimer(),
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              itemCount: widget.heroList.length,
+              itemBuilder: (context, index) {
+                final hero = widget.heroList[index];
+                final bool isCustom = hero['is_custom'] ?? false;
+                String rawTitle = hero['title'] ?? "";
 
-              Anime? linkedAnime;
-              if (!isCustom && hero['anime_id'] != null) {
-                try {
-                  linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
-                  if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
-                } catch (e) {}
-              }
+                Anime? linkedAnime;
+                if (!isCustom && hero['anime_id'] != null) {
+                  try {
+                    linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
+                    if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
+                  } catch (e) {}
+                }
 
-              String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
-              String category = linkedAnime?.category ?? "Movie";
-              String dubStatus = linkedAnime != null && linkedAnime.dubStatus.toUpperCase().contains("DUB") ? "Hindi Dub" : "Multi";
-              String metadata = "$category • $dubStatus";
+                String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
+                String category = linkedAnime?.category ?? "Movie";
+                String dubStatus = linkedAnime != null && linkedAnime.dubStatus.toUpperCase().contains("DUB") ? "Hindi Dub" : "Multi";
+                String metadata = "$category • $dubStatus";
 
-              // Get strictly ONE genre to display without duplicates
-              String rawGenres = linkedAnime?.genre ?? "Romance";
-              String singleGenre = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).firstOrNull ?? "Romance";
+                // Extract strictly ONE genre chip to prevent duplication
+                String rawGenres = linkedAnime?.genre ?? "Romance";
+                String singleGenre = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).firstOrNull ?? "Romance";
 
-              return GestureDetector(
-                onTap: () {
-                  if (linkedAnime != null) {
-                    _handleWatchNow(linkedAnime);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
-                  }
-                },
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Base Artwork
-                    Image.network(
-                      hero['image_url'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
-                    ),
+                return GestureDetector(
+                  onTap: () {
+                    if (linkedAnime != null) {
+                      _handleWatchNow(linkedAnime);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
+                    }
+                  },
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Base Artwork (Cropped responsively and naturally)
+                      Image.network(
+                        hero['image_url'],
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
+                      ),
 
-                    // Polished Gradient Overlay - Top is clear, bottom is dark for text readability
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.black.withOpacity(0.95), // Bottom (Dark for buttons/text)
-                            Colors.black.withOpacity(0.4),  // Middle (Lightly darkened)
-                            Colors.transparent,             // Top (Clear for character visibility)
-                          ],
-                          stops: const [0.0, 0.5, 1.0],
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
+                      // Adjusted Gradient: Top is completely clear to see characters perfectly
+                      // Middle slightly tinted, bottom dark to make text and buttons readable
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withOpacity(0.9),  // Bottom
+                              Colors.black.withOpacity(0.3),  // Middle
+                              Colors.transparent,             // Top
+                            ],
+                            stops: const [0.0, 0.6, 1.0],
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                          ),
                         ),
                       ),
-                    ),
 
-                    // Content Layout
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Spacer(),
-
-                          // Title
-                          Text(
-                            displayTitle,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.w900,
-                              height: 1.1,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 6),
-
-                          // Metadata
-                          Text(
-                            metadata,
-                            style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Compact Genre Chip (Single)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.4),
-                              border: Border.all(color: animeMxPurple, width: 1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              singleGenre,
-                              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Buttons & Indicator Row
-                          Row(
-                            children: [
-                              // Watch Now Button
-                              SizedBox(
-                                height: 42,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  ),
-                                  onPressed: () {
-                                    if (linkedAnime != null) _handleWatchNow(linkedAnime);
-                                  },
-                                  icon: const Icon(Icons.play_arrow, size: 20),
-                                  label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                ),
+                      // Content Layout stacked naturally at the bottom
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // Title
+                            Text(
+                              displayTitle,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24, // Optimized font size for compact height
+                                fontWeight: FontWeight.w900,
+                                height: 1.1,
                               ),
-                              const SizedBox(width: 12), // Strict gap between buttons
-                              
-                              // My List Button
-                              SizedBox(
-                                height: 42,
-                                child: OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.white70),
-                                    foregroundColor: Colors.white,
-                                    backgroundColor: Colors.black38,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                                  ),
-                                  onPressed: () {
-                                    if (linkedAnime != null) _handleMyList(linkedAnime);
-                                  },
-                                  icon: const Icon(Icons.add, size: 18),
-                                  label: const Text("My List", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+
+                            // Metadata
+                            Text(
+                              metadata,
+                              style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 6),
+
+                            // Single Compact Genre Chip
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.4),
+                                border: Border.all(color: animeMxPurple, width: 1),
+                                borderRadius: BorderRadius.circular(6),
                               ),
+                              child: Text(
+                                singleGenre,
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
 
-                              const Spacer(),
+                            // Buttons & Indicator Row
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Watch Now Button - Exactly 40px height
+                                SizedBox(
+                                  height: 40,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.black,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    ),
+                                    onPressed: () {
+                                      if (linkedAnime != null) _handleWatchNow(linkedAnime);
+                                    },
+                                    icon: const Icon(Icons.play_arrow, size: 20),
+                                    label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  ),
+                                ),
+                                const SizedBox(width: 12), // Fixed distinct gap between buttons
+                                
+                                // My List Button - Exactly 40px height
+                                SizedBox(
+                                  height: 40,
+                                  child: OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Colors.white70),
+                                      foregroundColor: Colors.white,
+                                      backgroundColor: Colors.black38,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    ),
+                                    onPressed: () {
+                                      if (linkedAnime != null) _handleMyList(linkedAnime);
+                                    },
+                                    icon: const Icon(Icons.add, size: 18),
+                                    label: const Text("My List", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  ),
+                                ),
 
-                              // Adjusted Carousel Indicator
-                              Row(
-                                children: [
-                                  Row(
-                                    children: List.generate(
-                                      widget.heroList.length,
-                                      (dotIdx) => Container(
-                                        width: _currentPage == dotIdx ? 16 : 8,
-                                        height: 3,
-                                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                                        decoration: BoxDecoration(
-                                          color: _currentPage == dotIdx ? animeMxPurple : Colors.white24,
-                                          borderRadius: BorderRadius.circular(2),
+                                const Spacer(),
+
+                                // Custom Indicator on right side
+                                Row(
+                                  children: [
+                                    Row(
+                                      children: List.generate(
+                                        widget.heroList.length,
+                                        (dotIdx) => Container(
+                                          width: _currentPage == dotIdx ? 16 : 6,
+                                          height: 3,
+                                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                                          decoration: BoxDecoration(
+                                            color: _currentPage == dotIdx ? animeMxPurple : Colors.white24,
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    "${_currentPage + 1} / ${widget.heroList.length}",
-                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                  )
-                                ],
-                              )
-                            ],
-                          )
-                        ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "${_currentPage + 1} / ${widget.heroList.length}",
+                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                    )
+                                  ],
+                                )
+                              ],
+                            )
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -956,9 +961,13 @@ class HomeScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: SkeletonLoader(width: double.infinity, height: 420, borderRadius: 16),
+        // Ensure skeleton matches the responsive AspectRatio height
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: AspectRatio(
+            aspectRatio: 16 / 10,
+            child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 16),
+          ),
         ),
         const SizedBox(height: 20),
         const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
@@ -2936,6 +2945,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     int targetStatus = isLikeAction ? 1 : -1;
     bool isRemoving = _userLikeStatus == targetStatus;
     
+    // Optimistic UI Update (Updates on user's phone instantly)
     setState(() {
       if (_userLikeStatus == 1) _likeCount--;
       if (_userLikeStatus == -1) _dislikeCount--;
@@ -2950,6 +2960,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     });
 
     try {
+      // Sync with Supabase Database
       if (isRemoving) {
         await Supabase.instance.client.from('anime_likes').delete().eq('anime_id', widget.anime.id).eq('user_id', currentUserId);
       } else {
@@ -2960,6 +2971,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         });
       }
     } catch (e) {
+      // Rollback on failure
       _fetchLikes();
     }
   }
