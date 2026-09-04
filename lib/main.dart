@@ -351,6 +351,7 @@ class SearchListSkeleton extends StatelessWidget {
   }
 }
 
+// Security Block Screen (Used for Connection Error & VPN Blocks)
 class SecurityBlockScreen extends StatelessWidget {
   final String title;
   final String message;
@@ -449,6 +450,7 @@ class _AuthGateState extends State<AuthGate> {
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
 
     } catch (e) { 
+      // FIX: Masked the raw Supabase SocketException error to secure the app and improve UX
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(
           title: "Connection Failed", 
@@ -511,6 +513,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
     } catch (e) { 
+      // FIX: Ensure clean error handling
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Something went wrong. Check your connection."), 
@@ -693,17 +696,17 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// REVERTED TO SIMPLE EDGE-TO-EDGE SLIDER
+// REVERTED: SIMPLE & CLEAN HERO SLIDER (EDGE-TO-EDGE 16:9)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class PremiumHeroSlider extends StatefulWidget {
+class SimpleHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
-  const PremiumHeroSlider({super.key, required this.heroList});
+  const SimpleHeroSlider({super.key, required this.heroList});
 
   @override
-  State<PremiumHeroSlider> createState() => _PremiumHeroSliderState();
+  State<SimpleHeroSlider> createState() => _SimpleHeroSliderState();
 }
 
-class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
+class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
   late PageController _pageController;
   Timer? _timer;
 
@@ -768,7 +771,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
 
             String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
             String dubStatus = linkedAnime != null && linkedAnime.dubStatus.toUpperCase().contains("DUB") ? "Hindi Dub" : "Multi";
-            String metadata = "${linkedAnime?.genre ?? 'Action'} • $dubStatus";
+            String metadata = "${linkedAnime?.genre.split(',').first ?? 'Action'} • $dubStatus";
 
             return GestureDetector(
               onTap: () {
@@ -820,7 +823,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                                 displayTitle,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 22, 
+                                  fontSize: 24, 
                                   fontWeight: FontWeight.w900,
                                   height: 1.1,
                                 ),
@@ -910,10 +913,11 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
             
+            // Replaced with the Simple Hero Slider
             ValueListenableBuilder<List<Map<String,dynamic>>>(
               valueListenable: heroSliderNotifier,
               builder: (context, heroList, child) {
-                return PremiumHeroSlider(heroList: heroList);
+                return SimpleHeroSlider(heroList: heroList);
               }
             ),
             
@@ -1027,8 +1031,6 @@ class HomeScreen extends StatelessWidget {
               Anime anime = list[index];
               String epCount = "EP ${getTotalEpisodes(anime)}";
               String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
-              String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-              String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
 
               return GestureDetector(
                 onTap: () {
@@ -1040,7 +1042,7 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children:[
-                      // REDESIGNED: Exact 2:3 Poster Ratio
+                      // REDESIGNED: Exact 2:3 Poster Ratio (Netflix style)
                       AspectRatio(
                         aspectRatio: 2 / 3,
                         child: ClipRRect(
@@ -1056,6 +1058,7 @@ class HomeScreen extends StatelessWidget {
                                   decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.9), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter))
                                 )
                               ),
+                              // Punchy Badges
                               Positioned(
                                 bottom: 8, left: 6, 
                                 child: Container(
@@ -1077,20 +1080,8 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ), 
                       const SizedBox(height: 8),
-                      Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(seasonText, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Icon(Icons.circle, color: Colors.white24, size: 4),
-                          ),
-                          const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 12),
-                          const SizedBox(width: 3),
-                          Text(views, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
-                        ],
-                      )
+                      // Clean Text Outside Image
+                      Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
                     ]
                   ),
                 )
@@ -2810,31 +2801,6 @@ class SeeAllCategoryPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: getBg(context), appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: IconThemeData(color: getText(context))),
       body: GridView.builder(padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16), itemCount: animeList.length, itemBuilder: (context, index) => ExploreAnimeCard(anime: animeList[index]))
-    );
-  }
-}
-
-class OverlayPopularCard extends StatelessWidget {
-  final Anime anime; 
-  const OverlayPopularCard({super.key, required this.anime});
-  @override Widget build(BuildContext context) {
-    String epCount = "E${getTotalEpisodes(anime)}";
-    String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-    String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
-    String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
-    return GestureDetector(
-      onTap: () {
-        int sIdx = getFirstValidSeason(anime);
-        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
-      },
-      child: Container(
-        width: 140, margin: const EdgeInsets.only(right: 12), decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8), 
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children:[Expanded(child: Stack(fit: StackFit.expand, children: [Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))), Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))), Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))])), Padding(padding: const EdgeInsets.all(8.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), const SizedBox(height: 4), Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)]))]
-          )
-        )
-      )
     );
   }
 }
