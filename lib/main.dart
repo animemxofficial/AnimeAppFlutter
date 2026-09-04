@@ -29,7 +29,7 @@ String globalWhatsappLink = "https://wa.me/";
 String globalUpiId = "wicvlox.i@oksbi";
 String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4wZ-2FEPEhofbqHtjDJ4fSwQUBK2iiyRtQAtikhZeAoQ1GSwBzWh1qfpaelzZWZBW7C_bTtNUdLDAGm8rK71pV4aJ65jRimqxADOR5m_EV6_lK2bI_Ok7R0PpXoDfaYKTn7VO-_a9pfkhjQj_IrZlGfBiP4TFe-2yBab3wE3g8CV0_VLX9KyW5JfnL0s/s769/IMG_20260425_204423.webp";
 
-String globalPrivacyPolicy = "At AniXplayer, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience...";
+String globalPrivacyPolicy = "At Axion DUB, your privacy and security are our highest priorities. We are fully committed to providing a safe streaming experience...";
 String globalTermsConditions = "Terms and Conditions will be updated soon."; 
 
 List<String> globalRecentSearches = [];
@@ -279,7 +279,7 @@ class AniXApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false, 
       themeMode: ThemeMode.dark, 
-      title: "AniXplayer",
+      title: "Axion DUB",
       darkTheme: ThemeData(
         brightness: Brightness.dark, 
         primaryColor: animeMxPurple, 
@@ -351,12 +351,11 @@ class SearchListSkeleton extends StatelessWidget {
   }
 }
 
-// Security Block Screen (Used for Connection Error & VPN Blocks)
 class SecurityBlockScreen extends StatelessWidget {
   final String title;
   final String message;
   final bool isSuspended;
-  const SecurityBlockScreen({super.key, this.title = "Security Violation", this.message = "VPN, Proxy, or unsecured connection detected.\n\nPlease disable any VPN to continue using AniXplayer.", this.isSuspended = false});
+  const SecurityBlockScreen({super.key, this.title = "Security Violation", this.message = "VPN, Proxy, or unsecured connection detected.\n\nPlease disable any VPN to continue using Axion DUB.", this.isSuspended = false});
   
   @override
   Widget build(BuildContext context) {
@@ -450,7 +449,6 @@ class _AuthGateState extends State<AuthGate> {
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
 
     } catch (e) { 
-      // FIX: Masked the raw Supabase SocketException error to secure the app and improve UX
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(
           title: "Connection Failed", 
@@ -467,7 +465,7 @@ class _AuthGateState extends State<AuthGate> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center, 
           children: [
-            RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 40, fontWeight: FontWeight.w900))])),
+            RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900)), TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 40, fontWeight: FontWeight.w900))])),
             const SizedBox(height: 20), 
             const CircularProgressIndicator(color: Color(0xFF8A2BE2))
           ]
@@ -513,7 +511,6 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
     } catch (e) { 
-      // FIX: Ensure clean error handling
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text("Something went wrong. Check your connection."), 
@@ -528,7 +525,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
   }
 
   @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "player", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
+    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
   }
 }
 
@@ -696,17 +693,17 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// REVERTED: SIMPLE & CLEAN HERO SLIDER
+// REVERTED TO SIMPLE EDGE-TO-EDGE SLIDER
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class SimpleHeroSlider extends StatefulWidget {
+class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
-  const SimpleHeroSlider({super.key, required this.heroList});
+  const PremiumHeroSlider({super.key, required this.heroList});
 
   @override
-  State<SimpleHeroSlider> createState() => _SimpleHeroSliderState();
+  State<PremiumHeroSlider> createState() => _PremiumHeroSliderState();
 }
 
-class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
+class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
   late PageController _pageController;
   Timer? _timer;
 
@@ -823,7 +820,7 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
                                 displayTitle,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 24, 
+                                  fontSize: 22, 
                                   fontWeight: FontWeight.w900,
                                   height: 1.1,
                                 ),
@@ -897,8 +894,8 @@ class HomeScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: getBg(context), elevation: 0,
         title: RichText(text: TextSpan(children: [
-          const TextSpan(text: "AniX", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
-          TextSpan(text: "player", style: TextStyle(color: primColor, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
+          const TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
+          TextSpan(text: "DUB", style: TextStyle(color: primColor, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
         ])),
         actions:[
           IconButton(icon: Icon(Icons.notifications_none, color: getText(context), size: 24), onPressed: () {}),
@@ -913,11 +910,10 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children:[
             
-            // Replaced with the Simple Hero Slider
             ValueListenableBuilder<List<Map<String,dynamic>>>(
               valueListenable: heroSliderNotifier,
               builder: (context, heroList, child) {
-                return SimpleHeroSlider(heroList: heroList);
+                return PremiumHeroSlider(heroList: heroList);
               }
             ),
             
@@ -1031,6 +1027,8 @@ class HomeScreen extends StatelessWidget {
               Anime anime = list[index];
               String epCount = "EP ${getTotalEpisodes(anime)}";
               String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
+              String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
+              String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
 
               return GestureDetector(
                 onTap: () {
@@ -1042,7 +1040,7 @@ class HomeScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children:[
-                      // REDESIGNED: Exact 2:3 Poster Ratio (Netflix style)
+                      // REDESIGNED: Exact 2:3 Poster Ratio
                       AspectRatio(
                         aspectRatio: 2 / 3,
                         child: ClipRRect(
@@ -1058,7 +1056,6 @@ class HomeScreen extends StatelessWidget {
                                   decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.9), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter))
                                 )
                               ),
-                              // Punchy Badges
                               Positioned(
                                 bottom: 8, left: 6, 
                                 child: Container(
@@ -1080,8 +1077,20 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ), 
                       const SizedBox(height: 8),
-                      // Clean Text Outside Image
-                      Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
+                      Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(seasonText, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Icon(Icons.circle, color: Colors.white24, size: 4),
+                          ),
+                          const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 12),
+                          const SizedBox(width: 3),
+                          Text(views, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      )
                     ]
                   ),
                 )
@@ -1109,13 +1118,65 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 240, 
+          height: 150, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
             itemBuilder: (context, index) { return OverlayPopularCard(anime: list[index]); }
           ),
         ),
+        const SizedBox(height: 16),
       ],
+    );
+  }
+}
+
+// REDESIGNED WIDE CARDS FOR POPULAR SECTION
+class OverlayPopularCard extends StatelessWidget {
+  final Anime anime; 
+  const OverlayPopularCard({super.key, required this.anime});
+  @override Widget build(BuildContext context) {
+    String epCount = "EP ${getTotalEpisodes(anime)}";
+    String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
+    String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
+    String tagLang = anime.dubStatus.toUpperCase().contains("DUB") ? "HINDI" : "MULTI";
+    
+    return GestureDetector(
+      onTap: () {
+        int sIdx = getFirstValidSeason(anime);
+        Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
+      },
+      child: Container(
+        width: 160, // Wider for popular
+        margin: const EdgeInsets.only(right: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start, 
+          children:[
+            AspectRatio(
+              aspectRatio: 16/9,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand, 
+                  children: [
+                    Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)), 
+                    Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.8), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))), 
+                    // Views Badge (Teen psychology: Fire icon for hype)
+                    Positioned(top: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(6)), child: Row(children: [const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 12), const SizedBox(width: 4), Text(views, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))]))),
+                    // DUB Badge
+                    Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFE50914), borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)))), 
+                    // EP Badge
+                    Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3), decoration: BoxDecoration(color: Theme.of(context).primaryColor, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5))))
+                  ]
+                )
+              )
+            ), 
+            const SizedBox(height: 8),
+            Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis), 
+            const SizedBox(height: 4), 
+            Text("$seasonText • ${anime.genre.split(',').first}", style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis)
+          ]
+        )
+      )
     );
   }
 }
@@ -1599,9 +1660,9 @@ class ExploreAnimeCard extends StatelessWidget {
                         Text("$seasonText | Ep $totalEp", style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
                         Row(
                           children: [
-                            const Icon(Icons.remove_red_eye, color: Colors.white, size: 10),
-                            const SizedBox(width: 4),
-                            Text(views, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                            const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 10),
+                            const SizedBox(width: 3),
+                            Text(views, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                           ],
                         )
                       ],
@@ -2180,7 +2241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(children: [Icon(Icons.info_outline, color: primColor, size: 22), const SizedBox(width: 14), const Text("About AniXplayer", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))]),
+                          Row(children: [Icon(Icons.info_outline, color: primColor, size: 22), const SizedBox(width: 14), const Text("About Axion DUB", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))]),
                           Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: primColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text("v$CURRENT_APP_VERSION", style: TextStyle(color: primColor, fontSize: 11, fontWeight: FontWeight.bold)))
                         ],
                       ),
@@ -2342,9 +2403,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                 children: [
                   Stack(
                     children: [
-                      Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", fit: BoxFit.cover, height: 280, width: double.infinity),
+                      Image.network("https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi9fdZQQdxD9-PxiUsl4kbRIahsqVu0ufAdxxJhCRsClKKEpp9O7hnPJ5ZM16fn6rABRKmz3WyYZPcFz6Lx18wqtObMm5KFQyYJdpBgv2DK6dQo-8I1uRtcVlGonZCg575af4xeDb1MHVhryl5rRBG-CELxfecVkMqALr7bjjUW5F0uF4GT-NQbr8sFlrI/s1536/file_0000000005dc8211b18c7b9ac42e35dc.webp", fit: BoxFit.cover, height: 320, width: double.infinity),
                       Container(
-                        height: 280,
+                        height: 320,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(colors: [Colors.black.withOpacity(0.1), Colors.black], begin: Alignment.topCenter, end: Alignment.bottomCenter, stops: const [0.3, 1.0])
                         ),
@@ -2354,7 +2415,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                         child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () => Navigator.pop(context)),
                       ),
                       Positioned(
-                        bottom: 0, left: 0, right: 0,
+                        bottom: 40, left: 0, right: 0, // Logo and Text shifted upwards
                         child: Column(
                           children: [
                             Container(
@@ -2474,7 +2535,7 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
 
   void _launchUPIApp(BuildContext context) async {
     String cleanPrice = widget.price.replaceAll(RegExp(r'[^0-9.]'), "");
-    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=AniXplayer&am=$cleanPrice&cu=INR&tn=Buy%20${widget.planName}");
+    final Uri uri = Uri.parse("upi://pay?pa=$globalUpiId&pn=Axion%20DUB&am=$cleanPrice&cu=INR&tn=Buy%20${widget.planName}");
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
@@ -2522,7 +2583,7 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Something went wrong. Please try again.")));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
