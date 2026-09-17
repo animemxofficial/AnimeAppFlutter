@@ -793,6 +793,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                 String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
                 String category = linkedAnime?.category ?? "Movie";
                 String dubStat = linkedAnime?.dubStatus.toUpperCase() ?? "";
+                // Logic updated to A-DUB/SUB
                 String dubText = dubStat.contains("SUB") ? "SUB" : "A-DUB";
                 String metadata = "$category • $dubText";
 
@@ -910,30 +911,6 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                                     ),
                                   ],
                                 ),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Row(
-                                      children: List.generate(
-                                        widget.heroList.length,
-                                        (dotIdx) => Container(
-                                          width: 16, 
-                                          height: 3,
-                                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                                          decoration: BoxDecoration(
-                                            color: _currentPage == dotIdx ? animeMxPurple : Colors.white38,
-                                            borderRadius: BorderRadius.circular(2),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "${_currentPage + 1} / ${widget.heroList.length}",
-                                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                                    )
-                                  ],
-                                )
                               ],
                             )
                           ],
@@ -1257,6 +1234,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildPopularSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
+    if(list.isEmpty) return const SizedBox.shrink();
     Color primColor = Theme.of(context).primaryColor;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1355,7 +1333,6 @@ class HomeScreen extends StatelessWidget {
             }
           ),
         ),
-        const SizedBox(height: 16),
       ],
     );
   }
@@ -2285,10 +2262,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: getBg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
+        // Top right se Notification aur Logout icon remove kar diye
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
+          padding: const EdgeInsets.only(bottom: 100), // Adjusted for flat edge-to-edge layout
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
@@ -2421,6 +2399,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
                 child: const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
+              // Flat Edge-to-Edge List Structure
               _buildGroupedItem(context, title: "My Profile", icon: Icons.person_outline, iconColor: Colors.blueAccent, onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())).then((_) => setState((){}));
               }),
@@ -2444,6 +2423,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Divider(color: Colors.white10, height: 1, thickness: 1),
               _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, iconColor: Colors.pinkAccent, trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
+              // Log Out added at the bottom of the list
               _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, iconColor: Colors.redAccent, onTap: () async {
                 await Supabase.instance.client.auth.signOut(); 
                 if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
@@ -3103,6 +3083,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     int targetStatus = isLikeAction ? 1 : -1;
     bool isRemoving = _userLikeStatus == targetStatus;
     
+    // Optimistic UI Update (Updates on user's phone instantly)
     setState(() {
       if (_userLikeStatus == 1) _likeCount--;
       if (_userLikeStatus == -1) _dislikeCount--;
@@ -3117,6 +3098,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     });
 
     try {
+      // Sync with Supabase Database
       if (isRemoving) {
         await Supabase.instance.client.from('anime_likes').delete().eq('anime_id', widget.anime.id).eq('user_id', currentUserId);
       } else {
@@ -3127,6 +3109,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         });
       }
     } catch (e) {
+      // Rollback on failure
       _fetchLikes();
     }
   }
