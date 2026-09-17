@@ -692,6 +692,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EDGE-TO-EDGE PREMIUM HERO SLIDER WIDGET (FULL FIT)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
   const PremiumHeroSlider({super.key, required this.heroList});
@@ -756,12 +759,13 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
   Widget build(BuildContext context) {
     if (widget.heroList.isEmpty) return const SizedBox.shrink();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
       child: AspectRatio(
+        // Edge to edge Full width fit
         aspectRatio: 1.6, 
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.zero,
           child: Listener(
             onPointerDown: (_) => _timer?.cancel(),
             onPointerUp: (_) => _startTimer(),
@@ -1035,12 +1039,9 @@ class HomeScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: AspectRatio(
-            aspectRatio: 1.6,
-            child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 16),
-          ),
+        AspectRatio(
+          aspectRatio: 1.6,
+          child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 0),
         ),
         const SizedBox(height: 20),
         const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: SkeletonLoader(width: 150, height: 20)),
@@ -1054,6 +1055,22 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     
+    // Count new episodes to show in Notification Badge
+    int newNotificationCount = 0;
+    List<LatestEpisodeItem> latestList = [];
+    for (var anime in animeListNotifier.value) {
+      for (int s = 0; s < anime.seasonsList.length; s++) {
+        for (int e = 0; e < anime.seasonsList[s].episodes.length; e++) {
+          final epItem = LatestEpisodeItem(anime: anime, seasonIndex: s, episodeIndex: e, episode: anime.seasonsList[s].episodes[e]);
+          latestList.add(epItem);
+          if (DateTime.now().difference(epItem.episode.createdAt).inDays <= 14) {
+            newNotificationCount++;
+          }
+        }
+      }
+    }
+    latestList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
+
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(
@@ -1064,19 +1081,14 @@ class HomeScreen extends StatelessWidget {
         ])),
         actions:[
           IconButton(
-            icon: Icon(Icons.notifications_none, color: getText(context), size: 24), 
-            onPressed: () {
-              List<LatestEpisodeItem> latestList = [];
-              for (var anime in animeListNotifier.value) {
-                for (int s = 0; s < anime.seasonsList.length; s++) {
-                  for (int e = 0; e < anime.seasonsList[s].episodes.length; e++) {
-                    latestList.add(LatestEpisodeItem(anime: anime, seasonIndex: s, episodeIndex: e, episode: anime.seasonsList[s].episodes[e]));
-                  }
-                }
-              }
-              latestList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
-              _showNotifications(context, latestList);
-            }
+            icon: newNotificationCount > 0 
+              ? Badge(
+                  label: Text(newNotificationCount > 9 ? '9+' : newNotificationCount.toString(), style: const TextStyle(color: Colors.white, fontSize: 10)),
+                  backgroundColor: Colors.redAccent,
+                  child: Icon(Icons.notifications_none, color: getText(context), size: 24),
+                )
+              : Icon(Icons.notifications_none, color: getText(context), size: 24),
+            onPressed: () => _showNotifications(context, latestList)
           ),
           IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: onSearchTap)
         ],
@@ -1114,24 +1126,15 @@ class HomeScreen extends StatelessWidget {
                   return viewsB.compareTo(viewsA); 
                 });
 
-                List<LatestEpisodeItem> latestEpisodesFlatList = [];
-                for (var anime in allAnime) {
-                  for (int s = 0; s < anime.seasonsList.length; s++) {
-                    for (int e = 0; e < anime.seasonsList[s].episodes.length; e++) {
-                      latestEpisodesFlatList.add(LatestEpisodeItem(anime: anime, seasonIndex: s, episodeIndex: e, episode: anime.seasonsList[s].episodes[e]));
-                    }
-                  }
-                }
-                latestEpisodesFlatList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
-                if (latestEpisodesFlatList.length > 20) latestEpisodesFlatList = latestEpisodesFlatList.sublist(0, 20); 
+                if (latestList.length > 20) latestList = latestList.sublist(0, 20); 
 
                 return Column(
                   children: [
                     const SizedBox(height: 10), 
                     _buildPortraitSection(context, "Recently Added", null, null, allAnime), 
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", null, null, trendingList),
-                    if (popularList.isNotEmpty) _buildPortraitSection(context, "Popular Anime", null, null, popularList),
-                    if (latestEpisodesFlatList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestEpisodesFlatList),
+                    if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", null, null, popularList),
+                    if (latestList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestList),
                     if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
                     if (romanceList.isNotEmpty) _buildPortraitSection(context, "Romance", null, null, romanceList),
                     if (comedyList.isNotEmpty) _buildPortraitSection(context, "Comedy", null, null, comedyList),
@@ -1202,7 +1205,8 @@ class HomeScreen extends StatelessWidget {
               Anime anime = list[index];
               String epCount = "EP ${getTotalEpisodes(anime)}";
               
-              String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "A-DUB";
+              String dubStat = anime.dubStatus.toUpperCase();
+              String tagLang = dubStat.contains("SUB") ? "SUB" : "A-DUB";
               
               String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
               String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
@@ -1277,6 +1281,111 @@ class HomeScreen extends StatelessWidget {
             }
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildPopularSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
+    if(list.isEmpty) return const SizedBox.shrink();
+    Color primColor = Theme.of(context).primaryColor;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children:[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+            children: [
+              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) const SizedBox(width: 6), if (icon != null) Icon(icon, color: iconColor, size: 20)]), 
+              GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
+            ]
+          ),
+        ),
+        SizedBox(
+          height: 240, 
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
+            itemBuilder: (context, index) { 
+              Anime anime = list[index];
+              String epCount = "EP ${getTotalEpisodes(anime)}";
+              
+              String dubStat = anime.dubStatus.toUpperCase();
+              String tagLang = dubStat.contains("SUB") ? "SUB" : "A-DUB";
+              
+              String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
+              String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
+
+              return GestureDetector(
+                onTap: () {
+                  int sIdx = getFirstValidSeason(anime);
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
+                },
+                child: Container(
+                  width: 125, margin: const EdgeInsets.only(right: 14), 
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start, 
+                    children:[
+                      AspectRatio(
+                        aspectRatio: 2 / 3,
+                        child: Container(
+                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white70, width: 1.0)),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(9),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                Image.network(anime.image, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
+                                Positioned(
+                                  bottom: 0, left: 0, right: 0, 
+                                  child: Container(
+                                    height: 50, 
+                                    decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.9), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter))
+                                  )
+                                ),
+                                Positioned(
+                                  bottom: 6, left: 6, 
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2), 
+                                    decoration: BoxDecoration(color: const Color(0xFFE50914), borderRadius: BorderRadius.circular(4)), 
+                                    child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.2))
+                                  )
+                                ),
+                                Positioned(
+                                  bottom: 6, right: 6, 
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2), 
+                                    decoration: BoxDecoration(color: primColor, borderRadius: BorderRadius.circular(4)), 
+                                    child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.2))
+                                  )
+                                )
+                              ],
+                            )
+                          ),
+                        ),
+                      ), 
+                      const SizedBox(height: 8),
+                      Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(seasonText, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Icon(Icons.circle, color: Colors.white24, size: 4),
+                          ),
+                          const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 12),
+                          const SizedBox(width: 3),
+                          Text(views, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      )
+                    ]
+                  ),
+                )
+              ); 
+            }
+          ),
+        ),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -2197,129 +2306,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20).copyWith(bottom: 100),
+          padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
               // User Header
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(3), 
-                    decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2), boxShadow: [BoxShadow(color: primColor.withOpacity(0.3), blurRadius: 20)]), 
-                    child: CircleAvatar(
-                      radius: 40, backgroundColor: getAvatarColor(currentUserName), 
-                      backgroundImage: localProfileImagePath.isNotEmpty ? FileImage(File(localProfileImagePath)) : null,
-                      child: localProfileImagePath.isEmpty ? Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)) : null
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(3), 
+                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: primColor, width: 2), boxShadow: [BoxShadow(color: primColor.withOpacity(0.3), blurRadius: 20)]), 
+                      child: CircleAvatar(
+                        radius: 40, backgroundColor: getAvatarColor(currentUserName), 
+                        backgroundImage: localProfileImagePath.isNotEmpty ? FileImage(File(localProfileImagePath)) : null,
+                        child: localProfileImagePath.isEmpty ? Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)) : null
+                      )
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 10),
+                            if(_activePlan != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(color: primColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.star, color: primColor, size: 12),
+                                    const SizedBox(width: 4),
+                                    Text("Premium", style: TextStyle(color: primColor, fontSize: 10, fontWeight: FontWeight.bold))
+                                  ],
+                                ),
+                              )
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text("UID: $currentUserUid", style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_month, color: Colors.white54, size: 12),
+                            const SizedBox(width: 4),
+                            Text("Member since ${_formatJoinDate()}", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(_istTimeString, style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
                     )
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 10),
-                          if(_activePlan != null)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: primColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6)),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.star, color: primColor, size: 12),
-                                  const SizedBox(width: 4),
-                                  Text("Premium", style: TextStyle(color: primColor, fontSize: 10, fontWeight: FontWeight.bold))
-                                ],
-                              ),
-                            )
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text("UID: $currentUserUid", style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_month, color: Colors.white54, size: 12),
-                          const SizedBox(width: 4),
-                          Text("Member since ${_formatJoinDate()}", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11)),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(_istTimeString, style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-                    ],
-                  )
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 30),
               
               if(_isLoadingPlan)
                  Center(child: CircularProgressIndicator(color: primColor))
               else if(_activePlan != null)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: primColor.withOpacity(0.2), shape: BoxShape.circle), child: Icon(Icons.diamond, color: primColor, size: 20)),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(_activePlan!['plan'], style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Text("Valid till ${(_activePlan!['expiry'] as DateTime).day} ${_getMonthStr((_activePlan!['expiry'] as DateTime).month)} ${(_activePlan!['expiry'] as DateTime).year}", style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11)),
-                                ],
-                              )
-                            ],
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: primColor.withOpacity(0.15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0), elevation: 0),
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())), 
-                            child: Text("View Plan", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 12))
-                          )
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      AnimatedPlanProgressBar(progress: _planProgress),
-                      const SizedBox(height: 12),
-                      Align(alignment: Alignment.centerRight, child: Text(_daysLeftText, style: const TextStyle(color: Colors.white54, fontSize: 11)))
-                    ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16)),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: primColor.withOpacity(0.2), shape: BoxShape.circle), child: Icon(Icons.diamond, color: primColor, size: 20)),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(_activePlan!['plan'], style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text("Valid till ${(_activePlan!['expiry'] as DateTime).day} ${_getMonthStr((_activePlan!['expiry'] as DateTime).month)} ${(_activePlan!['expiry'] as DateTime).year}", style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11)),
+                                  ],
+                                )
+                              ],
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: primColor.withOpacity(0.15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0), elevation: 0),
+                              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())), 
+                              child: Text("View Plan", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 12))
+                            )
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        AnimatedPlanProgressBar(progress: _planProgress),
+                        const SizedBox(height: 12),
+                        Align(alignment: Alignment.centerRight, child: Text(_daysLeftText, style: const TextStyle(color: Colors.white54, fontSize: 11)))
+                      ],
+                    ),
                   ),
                 )
               else 
-                GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]), borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text("Upgrade to VIP", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            SizedBox(height: 4),
-                            Text("Enjoy Ad-free 4K Streaming", style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          ],
-                        ),
-                        Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle), child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16))
-                      ],
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)]), borderRadius: BorderRadius.circular(16)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: const [
+                              Text("Upgrade to VIP", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                              SizedBox(height: 4),
+                              Text("Enjoy Ad-free 4K Streaming", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            ],
+                          ),
+                          Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle), child: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16))
+                        ],
+                      ),
                     ),
                   ),
                 ),
                 
               const SizedBox(height: 30),
 
-              const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              ),
               const SizedBox(height: 10),
               Container(
+                width: double.infinity,
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.zero),
                 child: Column(children: [
                   _buildGroupedItem(context, title: "My Profile", icon: Icons.person, onTap: () {
@@ -2333,9 +2455,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 30),
 
-              const Text("SUPPORT & INFO", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: const Text("SUPPORT & INFO", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              ),
               const SizedBox(height: 10),
               Container(
+                width: double.infinity,
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.zero),
                 child: Column(children: [
                   _buildGroupedItem(context, title: "Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
@@ -2366,26 +2492,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 30),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2CA5E0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                      onPressed: () => launchInBrowser(globalTelegramLink), 
-                      icon: const Icon(Icons.telegram, color: Colors.white),
-                      label: const Text("Telegram", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                    )
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                      onPressed: () => launchInBrowser(globalWhatsappLink), 
-                      icon: const Icon(Icons.chat, color: Colors.white),
-                      label: const Text("WhatsApp", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                    )
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2CA5E0), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                        onPressed: () => launchInBrowser(globalTelegramLink), 
+                        icon: const Icon(Icons.telegram, color: Colors.white),
+                        label: const Text("Telegram", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                      )
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                        onPressed: () => launchInBrowser(globalWhatsappLink), 
+                        icon: const Icon(Icons.chat, color: Colors.white),
+                        label: const Text("WhatsApp", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                      )
+                    ),
+                  ],
+                ),
               )
             ],
           ),
