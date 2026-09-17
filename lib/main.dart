@@ -692,6 +692,9 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EDGE-TO-EDGE PREMIUM HERO SLIDER WIDGET (FULL FIT & CLEAN)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
   const PremiumHeroSlider({super.key, required this.heroList});
@@ -759,6 +762,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: AspectRatio(
+        // Edge to edge Full width fit
         aspectRatio: 1.6, 
         child: ClipRRect(
           borderRadius: BorderRadius.zero,
@@ -777,7 +781,6 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                 final hero = widget.heroList[index];
                 final bool isCustom = hero['is_custom'] ?? false;
                 String rawTitle = hero['title'] ?? "";
-                String heroTag = hero['tag'] ?? "Top Pick";
 
                 Anime? linkedAnime;
                 if (!isCustom && hero['anime_id'] != null) {
@@ -793,9 +796,8 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                 String dubText = dubStat.contains("SUB") ? "SUB" : "A-DUB";
                 String metadata = "$category • $dubText";
 
-                String rawGenres = linkedAnime?.genre ?? "Romance, Drama";
-                List<String> genres = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).take(2).toList();
-                if (genres.isEmpty) genres = ["Romance", "Drama"];
+                String rawGenres = linkedAnime?.genre ?? "Romance";
+                String singleGenre = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).firstOrNull ?? "Romance";
 
                 return GestureDetector(
                   onTap: () {
@@ -829,28 +831,6 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                         ),
                       ),
                       Positioned(
-                        top: 16,
-                        left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: animeMxPurple,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star, color: Colors.white, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                heroTag,
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
                         left: 16,
                         right: 16,
                         bottom: 16,
@@ -858,16 +838,16 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            // Full Title with Bold Stylish Font
                             Text(
                               displayTitle,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 26,
+                                fontSize: 28,
                                 fontWeight: FontWeight.w900,
+                                letterSpacing: 1.0,
                                 height: 1.1,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6),
                             Text(
@@ -875,22 +855,17 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                               style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
                             ),
                             const SizedBox(height: 8),
-                            Row(
-                              children: genres.map((genre) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.4),
-                                    border: Border.all(color: Colors.white24, width: 1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    genre,
-                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              )).toList(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.4),
+                                border: Border.all(color: Colors.white24, width: 1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                singleGenre,
+                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Row(
@@ -975,6 +950,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
     );
   }
 }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 class HomeScreen extends StatelessWidget {
   final VoidCallback onSearchTap;
@@ -1050,6 +1026,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     
+    // Count new episodes to show in Notification Badge
     int newNotificationCount = 0;
     List<LatestEpisodeItem> latestList = [];
     for (var anime in animeListNotifier.value) {
@@ -1378,6 +1355,7 @@ class HomeScreen extends StatelessWidget {
             }
           ),
         ),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -2263,8 +2241,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if(mounted) setState(() => _isLoadingPlan = false);
   }
 
-  // REDESIGNED: Flat, Edge-to-Edge List Items like Crunchyroll
-  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, String? trailingText, required VoidCallback onTap}) {
+  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, required Color iconColor, String? trailingText, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -2275,7 +2252,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Row(
               children: [
-                Icon(icon, color: Colors.white70, size: 24),
+                Icon(icon, color: iconColor, size: 24),
                 const SizedBox(width: 16),
                 Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
               ],
@@ -2308,11 +2285,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: getBg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        // Removed Notification & Logout icons here
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100), // Adjusted for flat edge-to-edge layout
+          padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
@@ -2445,14 +2421,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
                 child: const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
-              // Flat Edge-to-Edge List
-              _buildGroupedItem(context, title: "My Profile", icon: Icons.person_outline, onTap: () {
+              _buildGroupedItem(context, title: "My Profile", icon: Icons.person_outline, iconColor: Colors.blueAccent, onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())).then((_) => setState((){}));
               }),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
+              _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium_outlined, iconColor: Colors.amber, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Order History", icon: Icons.history, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
+              _buildGroupedItem(context, title: "Order History", icon: Icons.history, iconColor: Colors.greenAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
               
               const SizedBox(height: 20),
@@ -2461,16 +2436,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
                 child: const Text("SUPPORT & INFO", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
-              _buildGroupedItem(context, title: "Support", icon: Icons.headset_mic_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
+              _buildGroupedItem(context, title: "Support", icon: Icons.headset_mic_outlined, iconColor: Colors.purpleAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
+              _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, iconColor: Colors.tealAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage()))),
+              _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, iconColor: Colors.orangeAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage()))),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
+              _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, iconColor: Colors.pinkAccent, trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              // Log Out Button placed directly in the list
-              _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, onTap: () async {
+              _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, iconColor: Colors.redAccent, onTap: () async {
                 await Supabase.instance.client.auth.signOut(); 
                 if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
               }),
@@ -3129,7 +3103,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     int targetStatus = isLikeAction ? 1 : -1;
     bool isRemoving = _userLikeStatus == targetStatus;
     
-    // Optimistic UI Update (Updates on user's phone instantly)
     setState(() {
       if (_userLikeStatus == 1) _likeCount--;
       if (_userLikeStatus == -1) _dislikeCount--;
@@ -3144,7 +3117,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     });
 
     try {
-      // Sync with Supabase Database
       if (isRemoving) {
         await Supabase.instance.client.from('anime_likes').delete().eq('anime_id', widget.anime.id).eq('user_id', currentUserId);
       } else {
@@ -3155,7 +3127,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         });
       }
     } catch (e) {
-      // Rollback on failure
       _fetchLikes();
     }
   }
