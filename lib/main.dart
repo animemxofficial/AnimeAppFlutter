@@ -692,9 +692,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// EDGE-TO-EDGE PREMIUM HERO SLIDER WIDGET (FULL FIT)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
   const PremiumHeroSlider({super.key, required this.heroList});
@@ -762,7 +759,6 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       child: AspectRatio(
-        // Edge to edge Full width fit
         aspectRatio: 1.6, 
         child: ClipRRect(
           borderRadius: BorderRadius.zero,
@@ -794,7 +790,6 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
                 String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
                 String category = linkedAnime?.category ?? "Movie";
                 String dubStat = linkedAnime?.dubStatus.toUpperCase() ?? "";
-                // Logic updated to A-DUB/SUB
                 String dubText = dubStat.contains("SUB") ? "SUB" : "A-DUB";
                 String metadata = "$category • $dubText";
 
@@ -1055,7 +1050,6 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     
-    // Count new episodes to show in Notification Badge
     int newNotificationCount = 0;
     List<LatestEpisodeItem> latestList = [];
     for (var anime in animeListNotifier.value) {
@@ -1286,7 +1280,6 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildPopularSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
-    if(list.isEmpty) return const SizedBox.shrink();
     Color primColor = Theme.of(context).primaryColor;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1385,7 +1378,6 @@ class HomeScreen extends StatelessWidget {
             }
           ),
         ),
-        const SizedBox(height: 16),
       ],
     );
   }
@@ -2271,20 +2263,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if(mounted) setState(() => _isLoadingPlan = false);
   }
 
-  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, required VoidCallback onTap}) {
-    return Material(
-      color: Colors.transparent, 
-      child: InkWell(
-        onTap: onTap, borderRadius: BorderRadius.zero,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(children: [Icon(icon, color: Theme.of(context).primaryColor, size: 22), const SizedBox(width: 14), Text(title, style: TextStyle(color: getText(context), fontSize: 15, fontWeight: FontWeight.w600))]),
-              Icon(Icons.arrow_forward_ios, color: getSubText(context).withOpacity(0.5), size: 14),
-            ],
-          ),
+  // REDESIGNED: Flat, Edge-to-Edge List Items like Crunchyroll
+  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, String? trailingText, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.white70, size: 24),
+                const SizedBox(width: 16),
+                Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+              ],
+            ),
+            Row(
+              children: [
+                if (trailingText != null) ...[
+                  Text(trailingText, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                  const SizedBox(width: 10),
+                ],
+                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 14),
+              ],
+            )
+          ],
         ),
       ),
     );
@@ -2303,10 +2308,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: getBg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
+        // Removed Notification & Logout icons here
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100),
+          padding: const EdgeInsets.only(bottom: 100), // Adjusted for flat edge-to-edge layout
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
@@ -2436,60 +2442,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 30),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
+                child: const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.zero),
-                child: Column(children: [
-                  _buildGroupedItem(context, title: "My Profile", icon: Icons.person, onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())).then((_) => setState((){}));
-                  }),
-                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
-                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Order History", icon: Icons.history_rounded, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
-                ]),
-              ),
-              const SizedBox(height: 30),
+              // Flat Edge-to-Edge List
+              _buildGroupedItem(context, title: "My Profile", icon: Icons.person_outline, onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())).then((_) => setState((){}));
+              }),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              _buildGroupedItem(context, title: "Order History", icon: Icons.history, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              
+              const SizedBox(height: 20),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: const Text("SUPPORT & INFO", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
+                child: const Text("SUPPORT & INFO", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.zero),
-                child: Column(children: [
-                  _buildGroupedItem(context, title: "Support", icon: Icons.support_agent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
-                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
-                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage()))),
-                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  Material(
-                    color: Colors.transparent,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(children: [Icon(Icons.info_outline, color: primColor, size: 22), const SizedBox(width: 14), const Text("About Axion DUB", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600))]),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: primColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Text("v$CURRENT_APP_VERSION", style: TextStyle(color: primColor, fontSize: 11, fontWeight: FontWeight.bold)))
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Divider(color: Colors.white10, height: 1, indent: 50, endIndent: 16),
-                  _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, onTap: () async {
-                    await Supabase.instance.client.auth.signOut(); 
-                    if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
-                  }),
-                ]),
-              ),
+              _buildGroupedItem(context, title: "Support", icon: Icons.headset_mic_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage()))),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              // Log Out Button placed directly in the list
+              _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, onTap: () async {
+                await Supabase.instance.client.auth.signOut(); 
+                if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
+              }),
+              const Divider(color: Colors.white10, height: 1, thickness: 1),
+
               const SizedBox(height: 30),
 
               Padding(
@@ -3502,66 +3488,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     ),
                     const SizedBox(height: 40),
 
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text("Recommended For You", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 220, 
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: animeListNotifier.value.length, 
-                        itemBuilder: (context, index) { 
-                          Anime anime = animeListNotifier.value[index];
-                          if(anime.title == widget.anime.title) return const SizedBox.shrink(); 
-                          String epCount = "EP ${getTotalEpisodes(anime)}";
-                          String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-                          String bottomLine = anime.category.toLowerCase().contains("movie") ? "MOVIE  ■  $views" : "${getSeasonText(anime)}  ■  $views";
-                          String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "A-DUB";
-
-                          return GestureDetector(
-                            onTap: () {
-                              int sIdx = getFirstValidSeason(anime);
-                              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
-                            },
-                            child: Container(
-                              width: 130, margin: const EdgeInsets.only(right: 12), 
-                              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white24, width: 1)),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start, 
-                                  children:[
-                                    Expanded(
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          Image.network(anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                                          Positioned(bottom: 0, left: 0, right: 0, child: Container(height: 40, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black, Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter)))),
-                                          Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)))),
-                                          Positioned(bottom: 8, right: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(4)), child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))))
-                                        ],
-                                      )
-                                    ), 
-                                    Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis), 
-                                          const SizedBox(height: 4),
-                                          Text(bottomLine, style: TextStyle(color: getSubText(context), fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                        ],
-                                      ),
-                                    )
-                                  ]
-                                ),
-                              )
-                            )
-                          ); 
-                        }
-                      ),
-                    ),
                   ],
                 ),
               ),
