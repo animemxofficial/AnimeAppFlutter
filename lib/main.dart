@@ -693,20 +693,19 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// EDGE-TO-EDGE PREMIUM HERO SLIDER WIDGET (FULL FIT & CLEAN)
+// EDGE-TO-EDGE SIMPLE HERO SLIDER
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class PremiumHeroSlider extends StatefulWidget {
+class SimpleHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
-  const PremiumHeroSlider({super.key, required this.heroList});
+  const SimpleHeroSlider({super.key, required this.heroList});
 
   @override
-  State<PremiumHeroSlider> createState() => _PremiumHeroSliderState();
+  State<SimpleHeroSlider> createState() => _SimpleHeroSliderState();
 }
 
-class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
+class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
   late PageController _pageController;
   Timer? _timer;
-  int _currentPage = 0;
 
   @override
   void initState() {
@@ -720,7 +719,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
     if (widget.heroList.length <= 1) return;
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_pageController.hasClients) {
-        int nextPage = (_currentPage + 1) % widget.heroList.length;
+        int nextPage = (_pageController.page!.toInt() + 1) % widget.heroList.length;
         _pageController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 600),
@@ -742,192 +741,129 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
     Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: linkedAnime, seasonIndex: sIdx, episodeIndex: 0)));
   }
 
-  void _handleMyList(Anime linkedAnime) {
-    final list = List<SavedEpisode>.from(myListNotifier.value);
-    final isSaved = list.any((item) => item.anime.title == linkedAnime.title);
-    if (!isSaved) {
-      list.add(SavedEpisode(anime: linkedAnime, seasonIndex: 0, episodeIndex: 0));
-      myListNotifier.value = list;
-      MyListService().saveMyList(currentUserId, list);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Added to My List"), backgroundColor: animeMxPurple, duration: const Duration(seconds: 1)));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Already in My List"), duration: Duration(seconds: 1)));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (widget.heroList.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: AspectRatio(
-        // Edge to edge Full width fit
-        aspectRatio: 1.6, 
-        child: ClipRRect(
-          borderRadius: BorderRadius.zero,
-          child: Listener(
-            onPointerDown: (_) => _timer?.cancel(),
-            onPointerUp: (_) => _startTimer(),
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPage = index;
-                });
-              },
-              itemCount: widget.heroList.length,
-              itemBuilder: (context, index) {
-                final hero = widget.heroList[index];
-                final bool isCustom = hero['is_custom'] ?? false;
-                String rawTitle = hero['title'] ?? "";
+    return AspectRatio(
+      aspectRatio: 16 / 9, 
+      child: Listener(
+        onPointerDown: (_) => _timer?.cancel(),
+        onPointerUp: (_) => _startTimer(),
+        child: PageView.builder(
+          controller: _pageController,
+          itemCount: widget.heroList.length,
+          itemBuilder: (context, index) {
+            final hero = widget.heroList[index];
+            final bool isCustom = hero['is_custom'] ?? false;
+            String rawTitle = hero['title'] ?? "";
 
-                Anime? linkedAnime;
-                if (!isCustom && hero['anime_id'] != null) {
-                  try {
-                    linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
-                    if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
-                  } catch (e) {}
+            Anime? linkedAnime;
+            if (!isCustom && hero['anime_id'] != null) {
+              try {
+                linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
+                if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
+              } catch (e) {}
+            }
+
+            String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
+            String dubStat = linkedAnime?.dubStatus.toUpperCase() ?? "";
+            String dubText = dubStat.contains("SUB") ? "SUB" : "A-DUB";
+            String metadata = "${linkedAnime?.genre.split(',').first ?? 'Action'} • $dubText";
+
+            return GestureDetector(
+              onTap: () {
+                if (linkedAnime != null) {
+                  _handleWatchNow(linkedAnime);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
                 }
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    hero['image_url'],
+                    fit: BoxFit.cover,
+                    errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
+                  ),
 
-                String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
-                String category = linkedAnime?.category ?? "Movie";
-                String dubStat = linkedAnime?.dubStatus.toUpperCase() ?? "";
-                // Logic updated to A-DUB/SUB
-                String dubText = dubStat.contains("SUB") ? "SUB" : "A-DUB";
-                String metadata = "$category • $dubText";
-
-                String rawGenres = linkedAnime?.genre ?? "Romance";
-                String singleGenre = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).firstOrNull ?? "Romance";
-
-                return GestureDetector(
-                  onTap: () {
-                    if (linkedAnime != null) {
-                      _handleWatchNow(linkedAnime);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
-                    }
-                  },
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        hero['image_url'],
-                        fit: BoxFit.cover,
-                        gaplessPlayback: true,
-                        errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
+                  // Simple fade gradient at bottom
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.95), 
+                          Colors.transparent,             
+                        ],
+                        stops: const [0.0, 0.6],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.black.withOpacity(0.95), 
-                              Colors.black.withOpacity(0.4),  
-                              Colors.transparent,             
+                    ),
+                  ),
+
+                  // Content Layout (Title & Simple Play Button)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                displayTitle,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24, 
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.1,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                metadata,
+                                style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                              ),
                             ],
-                            stops: const [0.0, 0.5, 1.0],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
                           ),
                         ),
-                      ),
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Full Title with Bold Stylish Font
-                            Text(
-                              displayTitle,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.0,
-                                height: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              metadata,
-                              style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.4),
-                                border: Border.all(color: Colors.white24, width: 1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                singleGenre,
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      height: 40,
-                                      child: ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.white,
-                                          foregroundColor: Colors.black,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                                        ),
-                                        onPressed: () {
-                                          if (linkedAnime != null) _handleWatchNow(linkedAnime);
-                                        },
-                                        icon: const Icon(Icons.play_arrow, size: 18),
-                                        label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10), 
-                                    SizedBox(
-                                      height: 40,
-                                      child: OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Colors.white54, width: 1),
-                                          foregroundColor: Colors.white,
-                                          backgroundColor: Colors.transparent, 
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        ),
-                                        onPressed: () {
-                                          if (linkedAnime != null) _handleMyList(linkedAnime);
-                                        },
-                                        icon: const Icon(Icons.add, size: 18),
-                                        label: const Text("My List", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
+                        
+                        // Action / Play Circle 
+                        Container(
+                          width: 45,
+                          height: 45,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: animeMxPurple.withOpacity(0.5), blurRadius: 10, spreadRadius: 1)
+                            ]
+                          ),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 28),
+                        )
+                      ],
+                    ),
                   ),
-                );
-              },
-            ),
-          ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 
 class HomeScreen extends StatelessWidget {
   final VoidCallback onSearchTap;
@@ -988,7 +924,7 @@ class HomeScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AspectRatio(
-          aspectRatio: 1.6,
+          aspectRatio: 16 / 9,
           child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 0),
         ),
         const SizedBox(height: 20),
@@ -1052,7 +988,7 @@ class HomeScreen extends StatelessWidget {
             ValueListenableBuilder<List<Map<String,dynamic>>>(
               valueListenable: heroSliderNotifier,
               builder: (context, heroList, child) {
-                return PremiumHeroSlider(heroList: heroList);
+                return SimpleHeroSlider(heroList: heroList);
               }
             ),
             
@@ -1081,7 +1017,7 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 10), 
                     _buildPortraitSection(context, "Recently Added", null, null, allAnime), 
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", null, null, trendingList),
-                    if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", null, null, popularList),
+                    if (popularList.isNotEmpty) _buildPortraitSection(context, "Popular Anime", null, null, popularList),
                     if (latestList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestList),
                     if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
                     if (romanceList.isNotEmpty) _buildPortraitSection(context, "Romance", null, null, romanceList),
@@ -1141,110 +1077,6 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children:[
               Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) ...[const SizedBox(width: 6), Icon(icon, color: iconColor, size: 20)]]), 
-              GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
-            ]
-          ),
-        ),
-        SizedBox(
-          height: 240, 
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
-            itemBuilder: (context, index) { 
-              Anime anime = list[index];
-              String epCount = "EP ${getTotalEpisodes(anime)}";
-              
-              String dubStat = anime.dubStatus.toUpperCase();
-              String tagLang = dubStat.contains("SUB") ? "SUB" : "A-DUB";
-              
-              String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-              String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
-
-              return GestureDetector(
-                onTap: () {
-                  int sIdx = getFirstValidSeason(anime);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
-                },
-                child: Container(
-                  width: 125, margin: const EdgeInsets.only(right: 14), 
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, 
-                    children:[
-                      AspectRatio(
-                        aspectRatio: 2 / 3,
-                        child: Container(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white70, width: 1.0)),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(9),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.network(anime.image, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                                Positioned(
-                                  bottom: 0, left: 0, right: 0, 
-                                  child: Container(
-                                    height: 50, 
-                                    decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.9), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter))
-                                  )
-                                ),
-                                Positioned(
-                                  bottom: 6, left: 6, 
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2), 
-                                    decoration: BoxDecoration(color: const Color(0xFFE50914), borderRadius: BorderRadius.circular(4)), 
-                                    child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.2))
-                                  )
-                                ),
-                                Positioned(
-                                  bottom: 6, right: 6, 
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2), 
-                                    decoration: BoxDecoration(color: primColor, borderRadius: BorderRadius.circular(4)), 
-                                    child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.2))
-                                  )
-                                )
-                              ],
-                            )
-                          ),
-                        ),
-                      ), 
-                      const SizedBox(height: 8),
-                      Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(seasonText, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Icon(Icons.circle, color: Colors.white24, size: 4),
-                          ),
-                          const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 12),
-                          const SizedBox(width: 3),
-                          Text(views, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
-                        ],
-                      )
-                    ]
-                  ),
-                )
-              ); 
-            }
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPopularSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
-    if(list.isEmpty) return const SizedBox.shrink();
-    Color primColor = Theme.of(context).primaryColor;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-            children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) const SizedBox(width: 6), if (icon != null) Icon(icon, color: iconColor, size: 20)]), 
               GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
             ]
           ),
@@ -2262,11 +2094,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: getBg(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent, elevation: 0,
-        // Top right se Notification aur Logout icon remove kar diye
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 100), // Adjusted for flat edge-to-edge layout
+          padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
@@ -2399,7 +2230,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
                 child: const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
-              // Flat Edge-to-Edge List Structure
               _buildGroupedItem(context, title: "My Profile", icon: Icons.person_outline, iconColor: Colors.blueAccent, onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())).then((_) => setState((){}));
               }),
@@ -2423,7 +2253,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Divider(color: Colors.white10, height: 1, thickness: 1),
               _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, iconColor: Colors.pinkAccent, trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              // Log Out added at the bottom of the list
               _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, iconColor: Colors.redAccent, onTap: () async {
                 await Supabase.instance.client.auth.signOut(); 
                 if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
@@ -3062,14 +2891,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   Future<void> _fetchLikes() async {
     try {
-      final res = await Supabase.instance.client.from('anime_likes').select('is_like').eq('anime_id', widget.anime.id);
+      final res = await Supabase.instance.client.from('axion_anime_reactions').select('is_like').eq('anime_id', widget.anime.id);
       int likes = 0; int dislikes = 0;
       for (var r in res) {
         if (r['is_like'] == true) likes++;
         else if (r['is_like'] == false) dislikes++;
       }
       
-      final userRes = await Supabase.instance.client.from('anime_likes').select('is_like').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
+      final userRes = await Supabase.instance.client.from('axion_anime_reactions').select('is_like').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
       int userStatus = 0;
       if (userRes != null) {
         userStatus = userRes['is_like'] == true ? 1 : -1;
@@ -3098,11 +2927,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     });
 
     try {
-      // Sync with Supabase Database
+      // Sync with NEW Supabase Database Table
       if (isRemoving) {
-        await Supabase.instance.client.from('anime_likes').delete().eq('anime_id', widget.anime.id).eq('user_id', currentUserId);
+        await Supabase.instance.client.from('axion_anime_reactions').delete().eq('anime_id', widget.anime.id).eq('user_id', currentUserId);
       } else {
-        await Supabase.instance.client.from('anime_likes').upsert({
+        await Supabase.instance.client.from('axion_anime_reactions').upsert({
           'anime_id': widget.anime.id,
           'user_id': currentUserId,
           'is_like': isLikeAction
