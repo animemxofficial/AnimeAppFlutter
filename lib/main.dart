@@ -23,7 +23,7 @@ String currentDeviceName = "Unknown Device";
 String currentUserName = "User"; 
 String localProfileImagePath = ""; 
 
-// ADMIN PANEL SETTINGS (Dynamic variables)
+// ADMIN PANEL SETTINGS
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
 String globalWhatsappLink = "https://wa.me/"; 
@@ -56,11 +56,11 @@ final ValueNotifier<List<Map<String, dynamic>>> heroSliderNotifier = ValueNotifi
 final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
-
-// PRELOAD LIKES MAP: {anime_id: {'likes': x, 'dislikes': y, 'user_status': z}}
 final ValueNotifier<Map<String, Map<String, int>>> globalAnimeLikesNotifier = ValueNotifier({});
 
+// 🟣🟢 NEW THEME COLORS (Purple + Neon Green)
 const Color animeMxPurple = Color(0xFF8A2BE2); 
+const Color animeNeonGreen = Color(0xFF39FF14); 
 final ValueNotifier<Color> primaryColorNotifier = ValueNotifier(animeMxPurple); 
 
 Color getBg(BuildContext context) => Colors.black;
@@ -339,16 +339,13 @@ class AniXApp extends StatelessWidget {
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// FORCED UPDATE SCREEN (Clone of requested design)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class AppUpdateScreen extends StatelessWidget {
   const AppUpdateScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // Prevent back button
+      onWillPop: () async => false,
       child: Scaffold(
         backgroundColor: Colors.black,
         body: SafeArea(
@@ -358,7 +355,6 @@ class AppUpdateScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-                // App Logo Placeholder (Replace with actual asset if needed)
                 Container(
                   width: 80, height: 80,
                   decoration: BoxDecoration(
@@ -371,7 +367,6 @@ class AppUpdateScreen extends StatelessWidget {
                 const Text("AXION DUB", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                 const SizedBox(height: 40),
                 
-                // Update Card
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -404,7 +399,6 @@ class AppUpdateScreen extends StatelessWidget {
                 
                 const Spacer(),
                 
-                // Update Button
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -598,9 +592,9 @@ class _AuthGateState extends State<AuthGate> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center, 
           children: [
-            RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900)), TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 40, fontWeight: FontWeight.w900))])),
+            RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.w900)), TextSpan(text: "DUB", style: TextStyle(color: animeNeonGreen, fontSize: 40, fontWeight: FontWeight.w900))])),
             const SizedBox(height: 20), 
-            const CircularProgressIndicator(color: Color(0xFF8A2BE2))
+            const CircularProgressIndicator(color: animeMxPurple)
           ]
         )
       )
@@ -658,7 +652,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
   }
 
   @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
+    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: animeMxPurple, size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "DUB", style: TextStyle(color: animeNeonGreen, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [animeMxPurple, Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
   }
 }
 
@@ -687,7 +681,6 @@ class _MainScreenState extends State<MainScreen> {
           table: 'anime_list',
           callback: (payload) {
              _fetchDatabaseCatalog();
-             // Local App Notification Trigger for new Anime
              if(payload.eventType == PostgresChangeEvent.insert) {
                 _showInAppNotification("New Anime Added!", "A new anime was just added to Axion DUB. Check it out now!");
              }
@@ -701,7 +694,6 @@ class _MainScreenState extends State<MainScreen> {
       ..subscribe();
   }
 
-  // Helper to show real-time banner notification inside the app
   void _showInAppNotification(String title, String body) {
     if(!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -735,7 +727,6 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
     
-    // Forced Update Check
     if (CURRENT_APP_VERSION != globalLatestAppVersion) {
       if(mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AppUpdateScreen()));
@@ -744,7 +735,7 @@ class _MainScreenState extends State<MainScreen> {
     }
 
     await fetchGlobalAnimeViews(); 
-    await fetchGlobalAnimeLikes(); // Pre-load all likes
+    await fetchGlobalAnimeLikes(); 
     await _fetchDatabaseCatalog(); 
     await _fetchUserPreferences(); 
     if(mounted) setState(() => _isDataLoading = false);
@@ -764,7 +755,6 @@ class _MainScreenState extends State<MainScreen> {
         if(res['payment_qr_url'] != null) globalPaymentQrUrl = res['payment_qr_url'];
         if(res['upi_id'] != null) globalUpiId = res['upi_id'];
         
-        // Update Settings variables if available in DB
         if(res['latest_app_version'] != null) globalLatestAppVersion = res['latest_app_version'];
         if(res['app_apk_url'] != null) globalAppApkUrl = res['app_apk_url'];
         if(res['update_features'] != null) {
@@ -860,12 +850,11 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Navigation Updated: Replaced My List with Upcoming
     final List<Widget> pages = [HomeScreen(onSearchTap: _goToSearch, isDataLoading: _isDataLoading), const BrowseScreen(), const ExploreScreen(), const UpcomingScreen(), const ProfileScreen()];
     return Scaffold(
       extendBody: true, body: pages[_index],
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.black, type: BottomNavigationBarType.fixed, selectedItemColor: Theme.of(context).primaryColor, unselectedItemColor: Colors.grey[500], selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
+        backgroundColor: Colors.black, type: BottomNavigationBarType.fixed, selectedItemColor: animeNeonGreen, unselectedItemColor: Colors.grey[600], selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
         currentIndex: _index, onTap: (i) => setState(() => _index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
@@ -880,7 +869,7 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// UPCOMING SCREEN (Replaces My List in Bottom Nav)
+// UPCOMING SCREEN
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class UpcomingScreen extends StatelessWidget {
   const UpcomingScreen({super.key});
@@ -895,7 +884,7 @@ class UpcomingScreen extends StatelessWidget {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// EDGE-TO-EDGE PREMIUM HERO SLIDER WIDGET
+// ULTRA-CLEAN EDGE-TO-EDGE HERO SLIDER WIDGET
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class PremiumHeroSlider extends StatefulWidget {
   final List<Map<String, dynamic>> heroList;
@@ -908,7 +897,6 @@ class PremiumHeroSlider extends StatefulWidget {
 class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
   late PageController _pageController;
   Timer? _timer;
-  int _currentPage = 0;
 
   @override
   void initState() {
@@ -922,7 +910,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
     if (widget.heroList.length <= 1) return;
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_pageController.hasClients) {
-        int nextPage = (_currentPage + 1) % widget.heroList.length;
+        int nextPage = (_pageController.page!.toInt() + 1) % widget.heroList.length;
         _pageController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 600),
@@ -951,7 +939,7 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
       list.add(SavedEpisode(anime: linkedAnime, seasonIndex: 0, episodeIndex: 0));
       myListNotifier.value = list;
       MyListService().saveMyList(currentUserId, list);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Added to My List"), backgroundColor: animeMxPurple, duration: const Duration(seconds: 1)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Added to My List"), backgroundColor: animeNeonGreen, duration: const Duration(seconds: 1)));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Already in My List"), duration: Duration(seconds: 1)));
     }
@@ -961,220 +949,138 @@ class _PremiumHeroSliderState extends State<PremiumHeroSlider> {
   Widget build(BuildContext context) {
     if (widget.heroList.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      child: AspectRatio(
-        aspectRatio: 1.6, 
-        child: ClipRRect(
-          borderRadius: BorderRadius.zero,
-          child: Listener(
-            onPointerDown: (_) => _timer?.cancel(),
-            onPointerUp: (_) => _startTimer(),
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentPage = index;
-                });
-              },
-              itemCount: widget.heroList.length,
-              itemBuilder: (context, index) {
-                final hero = widget.heroList[index];
-                final bool isCustom = hero['is_custom'] ?? false;
-                String rawTitle = hero['title'] ?? "";
-                String heroTag = hero['tag'] ?? "Top Pick";
+    return AspectRatio(
+      aspectRatio: 16 / 9, 
+      child: Listener(
+        onPointerDown: (_) => _timer?.cancel(),
+        onPointerUp: (_) => _startTimer(),
+        child: PageView.builder(
+          controller: _pageController,
+          itemCount: widget.heroList.length,
+          itemBuilder: (context, index) {
+            final hero = widget.heroList[index];
+            final bool isCustom = hero['is_custom'] ?? false;
+            String rawTitle = hero['title'] ?? "";
 
-                Anime? linkedAnime;
-                if (!isCustom && hero['anime_id'] != null) {
-                  try {
-                    linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
-                    if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
-                  } catch (e) {}
+            Anime? linkedAnime;
+            if (!isCustom && hero['anime_id'] != null) {
+              try {
+                linkedAnime = animeListNotifier.value.firstWhere((a) => a.id == hero['anime_id'].toString());
+                if (rawTitle.isEmpty) rawTitle = linkedAnime.title;
+              } catch (e) {}
+            }
+
+            String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
+            String category = linkedAnime?.category ?? "Movie";
+            String dubStat = linkedAnime?.dubStatus.toUpperCase() ?? "";
+            String dubText = dubStat.contains("SUB") ? "SUB" : "A-DUB";
+            String metadata = "$category • $dubText";
+
+            return GestureDetector(
+              onTap: () {
+                if (linkedAnime != null) {
+                  _handleWatchNow(linkedAnime);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
                 }
-
-                String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
-                String category = linkedAnime?.category ?? "Movie";
-                String dubStat = linkedAnime?.dubStatus.toUpperCase() ?? "";
-                String dubText = dubStat.contains("SUB") ? "SUB" : "A-DUB";
-                String metadata = "$category • $dubText";
-
-                String rawGenres = linkedAnime?.genre ?? "Romance, Drama";
-                List<String> genres = rawGenres.split(RegExp(r'[,\s]+')).where((e) => e.isNotEmpty).take(2).toList();
-                if (genres.isEmpty) genres = ["Romance", "Drama"];
-
-                return GestureDetector(
-                  onTap: () {
-                    if (linkedAnime != null) {
-                      _handleWatchNow(linkedAnime);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
-                    }
-                  },
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.network(
-                        hero['image_url'],
-                        fit: BoxFit.cover,
-                        gaplessPlayback: true,
-                        errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.black.withOpacity(0.95), 
-                              Colors.black.withOpacity(0.4),  
-                              Colors.transparent,             
-                            ],
-                            stops: const [0.0, 0.5, 1.0],
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        top: 16,
-                        left: 16,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: animeMxPurple,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.star, color: Colors.white, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                heroTag,
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 16,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              displayTitle,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                height: 1.1,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              metadata,
-                              style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: genres.map((genre) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.4),
-                                    border: Border.all(color: Colors.white24, width: 1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    genre,
-                                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                              )).toList(),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      height: 40,
-                                      child: ElevatedButton.icon(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.white,
-                                          foregroundColor: Colors.black,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                                        ),
-                                        onPressed: () {
-                                          if (linkedAnime != null) _handleWatchNow(linkedAnime);
-                                        },
-                                        icon: const Icon(Icons.play_arrow, size: 18),
-                                        label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10), 
-                                    SizedBox(
-                                      height: 40,
-                                      child: OutlinedButton.icon(
-                                        style: OutlinedButton.styleFrom(
-                                          side: const BorderSide(color: Colors.white54, width: 1),
-                                          foregroundColor: Colors.white,
-                                          backgroundColor: Colors.transparent, 
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                                        ),
-                                        onPressed: () {
-                                          if (linkedAnime != null) _handleMyList(linkedAnime);
-                                        },
-                                        icon: const Icon(Icons.add, size: 18),
-                                        label: const Text("My List", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Row(
-                                      children: List.generate(
-                                        widget.heroList.length,
-                                        (dotIdx) => Container(
-                                          width: 16, 
-                                          height: 3,
-                                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                                          decoration: BoxDecoration(
-                                            color: _currentPage == dotIdx ? animeMxPurple : Colors.white38,
-                                            borderRadius: BorderRadius.circular(2),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      "${_currentPage + 1} / ${widget.heroList.length}",
-                                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                                    )
-                                  ],
-                                )
-                              ],
-                            )
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
               },
-            ),
-          ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    hero['image_url'],
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.black.withOpacity(0.95), 
+                          Colors.black.withOpacity(0.3),  
+                          Colors.transparent,             
+                        ],
+                        stops: const [0.0, 0.5, 1.0],
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          displayTitle,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
+                            height: 1.1,
+                            shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          metadata,
+                          style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            SizedBox(
+                              height: 38,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: animeNeonGreen,
+                                  foregroundColor: Colors.black,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                ),
+                                onPressed: () {
+                                  if (linkedAnime != null) _handleWatchNow(linkedAnime);
+                                },
+                                icon: const Icon(Icons.play_arrow, size: 18),
+                                label: const Text("Play", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                              ),
+                            ),
+                            const SizedBox(width: 12), 
+                            GestureDetector(
+                              onTap: () {
+                                if (linkedAnime != null) _handleMyList(linkedAnime);
+                              },
+                              child: Container(
+                                height: 38,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: const [
+                                    Icon(Icons.add, color: Colors.white, size: 18),
+                                    SizedBox(width: 6),
+                                    Text("My List", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -1241,7 +1147,7 @@ class HomeScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AspectRatio(
-          aspectRatio: 1.6,
+          aspectRatio: 16 / 9,
           child: const SkeletonLoader(width: double.infinity, height: double.infinity, borderRadius: 0),
         ),
         const SizedBox(height: 20),
@@ -1256,7 +1162,6 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor;
     
-    // Count new episodes to show in Notification Badge
     int newNotificationCount = 0;
     List<LatestEpisodeItem> latestList = [];
     for (var anime in animeListNotifier.value) {
@@ -1334,7 +1239,7 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 10), 
                     _buildPortraitSection(context, "Recently Added", null, null, allAnime), 
                     if (trendingList.isNotEmpty) _buildPortraitSection(context, "Trending Now", null, null, trendingList),
-                    if (popularList.isNotEmpty) _buildPopularSection(context, "Popular Anime", null, null, popularList),
+                    if (popularList.isNotEmpty) _buildPortraitSection(context, "Popular Anime", null, null, popularList),
                     if (latestList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", primColor, latestList),
                     if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
                     if (romanceList.isNotEmpty) _buildPortraitSection(context, "Romance", null, null, romanceList),
@@ -1394,109 +1299,6 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children:[
               Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) ...[const SizedBox(width: 6), Icon(icon, color: iconColor, size: 20)]]), 
-              GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
-            ]
-          ),
-        ),
-        SizedBox(
-          height: 240, 
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
-            itemBuilder: (context, index) { 
-              Anime anime = list[index];
-              String epCount = "EP ${getTotalEpisodes(anime)}";
-              
-              String dubStat = anime.dubStatus.toUpperCase();
-              String tagLang = dubStat.contains("SUB") ? "SUB" : "A-DUB";
-              
-              String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-              String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
-
-              return GestureDetector(
-                onTap: () {
-                  int sIdx = getFirstValidSeason(anime);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
-                },
-                child: Container(
-                  width: 125, margin: const EdgeInsets.only(right: 14), 
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, 
-                    children:[
-                      AspectRatio(
-                        aspectRatio: 2 / 3,
-                        child: Container(
-                          decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white70, width: 1.0)),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(9),
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.network(anime.image, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
-                                Positioned(
-                                  bottom: 0, left: 0, right: 0, 
-                                  child: Container(
-                                    height: 50, 
-                                    decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.9), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.topCenter))
-                                  )
-                                ),
-                                Positioned(
-                                  bottom: 6, left: 6, 
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2), 
-                                    decoration: BoxDecoration(color: const Color(0xFFE50914), borderRadius: BorderRadius.circular(4)), 
-                                    child: Text(tagLang, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.2))
-                                  )
-                                ),
-                                Positioned(
-                                  bottom: 6, right: 6, 
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2), 
-                                    decoration: BoxDecoration(color: primColor, borderRadius: BorderRadius.circular(4)), 
-                                    child: Text(epCount, style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.2))
-                                  )
-                                )
-                              ],
-                            )
-                          ),
-                        ),
-                      ), 
-                      const SizedBox(height: 8),
-                      Text(anime.title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis), 
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(seasonText, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            child: Icon(Icons.circle, color: Colors.white24, size: 4),
-                          ),
-                          const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 12),
-                          const SizedBox(width: 3),
-                          Text(views, style: TextStyle(color: getSubText(context), fontSize: 11, fontWeight: FontWeight.bold)),
-                        ],
-                      )
-                    ]
-                  ),
-                )
-              ); 
-            }
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPopularSection(BuildContext context, String title, IconData? icon, Color? iconColor, List<Anime> list) {
-    Color primColor = Theme.of(context).primaryColor;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children:[
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-            children: [
-              Row(children:[Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))), if (icon != null) const SizedBox(width: 6), if (icon != null) Icon(icon, color: iconColor, size: 20)]), 
               GestureDetector(onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SeeAllCategoryPage(title: title, animeList: list))), child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13)))
             ]
           ),
@@ -2351,7 +2153,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 }
 
-// Custom Animated Progress Bar
 class AnimatedPlanProgressBar extends StatelessWidget {
   final double progress; 
   const AnimatedPlanProgressBar({super.key, required this.progress});
@@ -2470,7 +2271,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if(mounted) setState(() => _isLoadingPlan = false);
   }
 
-  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, required Color iconColor, String? trailingText, required VoidCallback onTap}) {
+  Widget _buildGroupedItem(BuildContext context, {required String title, String? trailingText, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -2479,13 +2280,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Icon(icon, color: iconColor, size: 24),
-                const SizedBox(width: 16),
-                Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
-              ],
-            ),
+            Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
             Row(
               children: [
                 if (trailingText != null) ...[
@@ -2521,7 +2316,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, 
             children: [
-              // User Header
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
@@ -2650,20 +2444,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
                 child: const Text("ACCOUNT", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
-              // Flat Edge-to-Edge List Structure
-              _buildGroupedItem(context, title: "My Profile", icon: Icons.person_outline, iconColor: Colors.blueAccent, onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())).then((_) => setState((){}));
-              }),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              // My List is now here inside Account Page
-              _buildGroupedItem(context, title: "My List", icon: Icons.bookmark_border_outlined, iconColor: Colors.purpleAccent, onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const MyListScreen()));
-              }),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Subscription", icon: Icons.workspace_premium_outlined, iconColor: Colors.amber, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Order History", icon: Icons.history, iconColor: Colors.greenAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.zero),
+                child: Column(children: [
+                  _buildGroupedItem(context, title: "My Profile", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen())).then((_) => setState((){}));
+                  }),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                  _buildGroupedItem(context, title: "My List", onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const MyListScreen()));
+                  }),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                  _buildGroupedItem(context, title: "Subscription", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()))),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                  _buildGroupedItem(context, title: "Order History", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const OrderHistoryPage())).then((_) => _fetchActivePlan())),
+                ]),
+              ),
               
               const SizedBox(height: 20),
 
@@ -2671,21 +2468,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 5),
                 child: const Text("SUPPORT & INFO", style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ),
-              _buildGroupedItem(context, title: "Support", icon: Icons.headset_mic_outlined, iconColor: Colors.tealAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Privacy Policy", icon: Icons.privacy_tip_outlined, iconColor: Colors.indigoAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, iconColor: Colors.orangeAccent, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage()))),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, iconColor: Colors.pinkAccent, trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              // Log Out added at the bottom of the list
-              _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, iconColor: Colors.redAccent, onTap: () async {
-                await Supabase.instance.client.auth.signOut(); 
-                if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
-              }),
-              const Divider(color: Colors.white10, height: 1, thickness: 1),
-              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.zero),
+                child: Column(children: [
+                  _buildGroupedItem(context, title: "Support", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()))),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                  _buildGroupedItem(context, title: "Privacy Policy", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()))),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                  _buildGroupedItem(context, title: "Terms & Conditions", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TermsConditionsPage()))),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                  _buildGroupedItem(context, title: "About Axion DUB", trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                  _buildGroupedItem(context, title: "Log Out", onTap: () async {
+                    await Supabase.instance.client.auth.signOut(); 
+                    if(context.mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AuthGate())); 
+                  }),
+                  const Divider(color: Colors.white10, height: 1, thickness: 1),
+                ]),
+              ),
             ],
           ),
         ),
@@ -3178,7 +2979,6 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 }
 
-// REDESIGNED SUPPORT PAGE
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
   
@@ -3306,7 +3106,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   VideoPlayerController? _controller; 
   bool _showControls = true; 
   bool _isFullScreen = false; 
-  bool _isPlaying = false; // Video is paused initially
+  bool _isPlaying = false; 
   double _playbackSpeed = 1.0;
   
   late int _currentSeasonIndex;
@@ -3326,14 +3126,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       return; 
     }
     
-    // Check if likes are already globally loaded to prevent delay
     if (globalAnimeLikesNotifier.value.containsKey(widget.anime.id)) {
       var data = globalAnimeLikesNotifier.value[widget.anime.id]!;
       _likeCount = data['likes'] ?? 0;
       _dislikeCount = data['dislikes'] ?? 0;
       _userLikeStatus = data['user_status'] ?? 0;
     } else {
-      _fetchLikes(); // Fallback if global fetch failed
+      _fetchLikes(); 
     }
 
     _incrementAndFetchViews(); 
@@ -3401,7 +3200,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       } 
       setState(() {}); 
       _controller?.setPlaybackSpeed(_playbackSpeed);
-      // Removed auto-play: _controller.play(); 
     }); 
   }
 
@@ -3514,9 +3312,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         if (_controller != null && _controller!.value.isInitialized) 
            Center(child: AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: VideoPlayer(_controller!)))
         else 
-           Center(child: CircularProgressIndicator(color: primColor)),
+           Center(child: CircularProgressIndicator(color: animeNeonGreen)),
 
-        // EPISODE THUMBNAIL OVERLAY (Shows until video plays)
         if (_controller != null && _controller!.value.isInitialized && !_isPlaying && _controller!.value.position == Duration.zero)
           Positioned.fill(
             child: Stack(
@@ -3531,8 +3328,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     },
                     child: Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: primColor.withOpacity(0.8), shape: BoxShape.circle),
-                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 50),
+                      decoration: BoxDecoration(color: animeNeonGreen.withOpacity(0.8), shape: BoxShape.circle),
+                      child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 50),
                     ),
                   ),
                 )
@@ -3571,7 +3368,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                     children:[
                       IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 30), onPressed: _skipBackward), 
-                      IconButton(icon: Icon(_controller!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 45), onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }), 
+                      IconButton(icon: Icon(_controller!.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: animeNeonGreen, size: 45), onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }), 
                       IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 30), onPressed: _skipForward)
                     ]
                   ), 
@@ -3580,7 +3377,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                     child: Row(
                       children:[
                         ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 12)); }), 
-                        Expanded(child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return SliderTheme(data: SliderTheme.of(context).copyWith(trackHeight: 3.0, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0)), child: Slider(activeColor: primColor, inactiveColor: Colors.white24, min: 0.0, max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), onChangeStart: (val) { _controller!.pause(); }, onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, onChangeEnd: (val) { _controller!.play(); _isPlaying = true; })); })), 
+                        Expanded(child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return SliderTheme(data: SliderTheme.of(context).copyWith(trackHeight: 3.0, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0)), child: Slider(activeColor: animeNeonGreen, inactiveColor: Colors.white24, min: 0.0, max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), onChangeStart: (val) { _controller!.pause(); }, onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, onChangeEnd: (val) { _controller!.play(); _isPlaying = true; })); })), 
                         ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.duration), style: const TextStyle(color: Colors.white, fontSize: 12)); })
                       ]
                     )
@@ -3623,7 +3420,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                             builder: (context, savedList, child) {
                               bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
                               return IconButton(
-                                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: primColor, size: 28),
+                                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: animeNeonGreen, size: 28),
                                 onPressed: _toggleSaveAnime,
                                 constraints: const BoxConstraints(),
                                 padding: EdgeInsets.zero,
@@ -3657,7 +3454,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                 onTap: () => _toggleLike(true),
                                 child: Row(
                                   children: [
-                                    Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _userLikeStatus == 1 ? primColor : Colors.white70, size: 20),
+                                    Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _userLikeStatus == 1 ? animeNeonGreen : Colors.white70, size: 20),
                                     const SizedBox(width: 4),
                                     Text("$_likeCount", style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold))
                                   ],
@@ -3728,14 +3525,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                               child: Container(
                                 width: 55, height: 55,
                                 decoration: BoxDecoration(
-                                  color: isActive ? Colors.redAccent : getCard(context),
+                                  color: isActive ? animeNeonGreen : getCard(context),
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: isActive ? Colors.redAccent : Colors.white12)
+                                  border: Border.all(color: isActive ? animeNeonGreen : Colors.white12)
                                 ),
                                 child: Center(
                                   child: Text(
                                     "${index + 1}", 
-                                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
+                                    style: TextStyle(color: isActive ? Colors.black : Colors.white, fontSize: 16, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
                                   )
                                 ),
                               ),
@@ -3745,7 +3542,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       ),
                     ),
                     const SizedBox(height: 40),
-                    // Removed Recommended Anime section completely for cleaner UI
+
                   ],
                 ),
               ),
