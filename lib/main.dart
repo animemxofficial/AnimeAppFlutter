@@ -57,7 +57,7 @@ final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 final ValueNotifier<Map<String, int>> globalEpisodeViewsNotifier = ValueNotifier({});
 
-// THEME COLORS
+// THEME COLORS (Bright Vivid Purple for Glows)
 const Color animeMxPurple = Color(0xFF9333EA); 
 const Color animeMxBlue = Color(0xFF2563EB);
 
@@ -3329,7 +3329,7 @@ class DescriptionPage extends StatelessWidget {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// VIDEO PLAYER PAGE (Redesigned matching image & logic requests)
+// VIDEO PLAYER PAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -3360,6 +3360,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   double _averageRating = 0.0;
   int _totalRatings = 0;
   bool _isDescExpanded = false;
+
+  final GlobalKey _ratingKey = GlobalKey();
 
   @override 
   void initState() { 
@@ -3424,6 +3426,107 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       }, onConflict: 'anime_id, user_id');
       _fetchRatings();
     } catch(e) {}
+  }
+
+  void _showRatingBottomSheet() async {
+    int userPreviousRating = 5;
+    try {
+      final userRes = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
+      if(userRes != null) userPreviousRating = userRes['rating'] as int;
+    } catch(e) {}
+
+    if(!mounted) return;
+
+    int tempRating = userPreviousRating;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: getCard(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (context, setModalState) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Rate this Anime", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      icon: Icon(index < tempRating ? Icons.star : Icons.star_border, color: Colors.amber, size: 45),
+                      onPressed: () => setModalState(() => tempRating = index + 1),
+                    );
+                  })
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _submitRating(tempRating);
+                      _playParticleAnimation();
+                    },
+                    child: const Text("Submit", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                )
+              ]
+            )
+          );
+        });
+      }
+    );
+  }
+
+  void _playParticleAnimation() {
+    final RenderBox? renderBox = _ratingKey.currentContext?.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final targetPosition = renderBox.localToGlobal(Offset.zero);
+
+    late OverlayEntry overlayEntry;
+    overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          left: 0, right: 0, bottom: 0, top: 0,
+          child: IgnorePointer(
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0, end: 1),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeOutExpo,
+              builder: (context, value, child) {
+                double startY = MediaQuery.of(context).size.height;
+                double startX = MediaQuery.of(context).size.width / 2;
+                double currentY = startY + (targetPosition.dy - startY + 15) * value;
+                double currentX = startX + (targetPosition.dx - startX + 15) * value;
+
+                return Stack(
+                  children: [
+                    Positioned(
+                      left: currentX,
+                      top: currentY,
+                      child: Transform.scale(
+                        scale: 1.0 - (value * 0.5), 
+                        child: Opacity(
+                          opacity: 1.0 - (value * 0.2), 
+                          child: const Icon(Icons.star, color: Colors.amber, size: 50),
+                        ),
+                      ),
+                    )
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+      }
+    );
+    Overlay.of(context).insert(overlayEntry);
+    Future.delayed(const Duration(milliseconds: 800), () => overlayEntry.remove());
   }
   
   Future<void> _toggleLike(bool isLikeAction) async {
@@ -3588,32 +3691,39 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     String desc = widget.anime.description.trim();
     if (desc.isEmpty) return const SizedBox.shrink();
 
+    bool isLong = desc.length > 65;
+
     if (_isDescExpanded) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(desc, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
-          const SizedBox(height: 4),
-          GestureDetector(
-            onTap: () => setState(() => _isDescExpanded = false),
-            child: const Text("Close", style: TextStyle(color: animeMxPurple, fontWeight: FontWeight.bold, fontSize: 13)),
-          )
-        ],
+      return RichText(
+        text: TextSpan(
+          style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          children: [
+            TextSpan(text: "$desc "),
+            WidgetSpan(
+              child: GestureDetector(
+                onTap: () => setState(() => _isDescExpanded = false),
+                child: const Text("See Less", style: TextStyle(color: animeMxPurple, fontWeight: FontWeight.bold, fontSize: 13)),
+              )
+            )
+          ]
+        )
       );
     } else {
-      String shortDesc = desc.length > 60 ? "${desc.substring(0, 60)}..." : desc;
-      return GestureDetector(
-        onTap: () { if (desc.length > 60) setState(() => _isDescExpanded = true); },
-        child: RichText(
-          text: TextSpan(
-            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-            children: [
-              TextSpan(text: shortDesc),
-              if (desc.length > 60)
-                const TextSpan(text: " Read more", style: TextStyle(color: animeMxPurple, fontWeight: FontWeight.bold)),
-            ]
-          )
-        ),
+      String shortDesc = isLong ? "${desc.substring(0, 65)}... " : desc;
+      return RichText(
+        text: TextSpan(
+          style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+          children: [
+            TextSpan(text: shortDesc),
+            if (isLong)
+              WidgetSpan(
+                child: GestureDetector(
+                  onTap: () => setState(() => _isDescExpanded = true),
+                  child: const Text("See More", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14)), 
+                )
+              )
+          ]
+        )
       );
     }
   }
@@ -3712,7 +3822,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       children:[
                         IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward), 
                         Container(
-                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2.5)),
+                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white38, width: 2), color: Colors.black45),
+                          padding: const EdgeInsets.all(8),
                           child: IconButton(
                             icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 45), 
                             onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
@@ -3831,34 +3942,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Interactive Rating Section
-                          Row(
-                            children: [
-                              Row(
-                                children: List.generate(5, (index) {
-                                  double ratingValue = index + 1;
-                                  bool isFullStar = _averageRating >= ratingValue;
-                                  bool isHalfStar = _averageRating >= ratingValue - 0.5 && _averageRating < ratingValue;
-
-                                  return GestureDetector(
-                                    onTap: () => _submitRating(index + 1),
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 2),
-                                      child: Icon(
-                                        isFullStar ? Icons.star : (isHalfStar ? Icons.star_half : Icons.star_border),
-                                        color: Colors.amber,
-                                        size: 28, // BIGGER STARS
-                                      ),
-                                    ),
-                                  );
-                                }),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "No Ratings", 
-                                style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)
-                              )
-                            ],
+                          // Interactive Single Rating Star System
+                          GestureDetector(
+                            onTap: _showRatingBottomSheet,
+                            child: Row(
+                              key: _ratingKey,
+                              children: [
+                                const Icon(Icons.star, color: Colors.amber, size: 28),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "Rate", 
+                                  style: const TextStyle(color: Colors.white70, fontSize: 15, fontWeight: FontWeight.bold)
+                                )
+                              ],
+                            ),
                           ),
                           
                           // Like Dislike per Episode
@@ -3902,12 +3999,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                           
                           if (widget.anime.seasonsList.isNotEmpty)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              height: 35,
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
                               decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
                               child: DropdownButtonHideUnderline(
                                 child: DropdownButton<int>(
                                   dropdownColor: getCard(context),
                                   value: _currentSeasonIndex,
+                                  isDense: true,
                                   icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 20),
                                   items: List.generate(widget.anime.seasonsList.length, (index) {
                                     return DropdownMenuItem(
