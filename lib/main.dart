@@ -305,14 +305,16 @@ class MyListService {
 }
 
 class CWItem {
-  final Anime anime; int seasonIndex; int episodeIndex; Duration position; Duration totalDuration;
-  CWItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.position, required this.totalDuration});
-  Map<String, dynamic> toJson() => {'animeTitle': anime.title, 'seasonIndex': seasonIndex, 'episodeIndex': episodeIndex, 'positionInSeconds': position.inSeconds, 'totalDurationInSeconds': totalDuration.inSeconds};
+  final Anime anime; int seasonIndex; int episodeIndex; Duration position; Duration totalDuration; DateTime lastWatched;
+  CWItem({required this.anime, required this.seasonIndex, required this.episodeIndex, required this.position, required this.totalDuration, required this.lastWatched});
+  Map<String, dynamic> toJson() => {'animeTitle': anime.title, 'seasonIndex': seasonIndex, 'episodeIndex': episodeIndex, 'positionInSeconds': position.inSeconds, 'totalDurationInSeconds': totalDuration.inSeconds, 'lastWatched': lastWatched.toIso8601String()};
   static CWItem fromJson(Map<String, dynamic> json, List<Anime> allAnime) {
     try {
       final animeMatch = allAnime.firstWhere((anime) => anime.title == json['animeTitle']);
-      return CWItem(anime: animeMatch, seasonIndex: json['seasonIndex'], episodeIndex: json['episodeIndex'], position: Duration(seconds: json['positionInSeconds']), totalDuration: Duration(seconds: json['totalDurationInSeconds']));
-    } catch (e) { return CWItem(anime: allAnime.isNotEmpty ? allAnime[0] : _getDummyAnime(), seasonIndex: 0, episodeIndex: 0, position: const Duration(), totalDuration: const Duration()); }
+      DateTime lw = DateTime.now();
+      if(json['lastWatched'] != null) lw = DateTime.parse(json['lastWatched']);
+      return CWItem(anime: animeMatch, seasonIndex: json['seasonIndex'], episodeIndex: json['episodeIndex'], position: Duration(seconds: json['positionInSeconds']), totalDuration: Duration(seconds: json['totalDurationInSeconds']), lastWatched: lw);
+    } catch (e) { return CWItem(anime: allAnime.isNotEmpty ? allAnime[0] : _getDummyAnime(), seasonIndex: 0, episodeIndex: 0, position: const Duration(), totalDuration: const Duration(), lastWatched: DateTime.now()); }
   }
 }
 
@@ -710,6 +712,8 @@ class MainScreen extends StatefulWidget {
 }
 class _MainScreenState extends State<MainScreen> {
   int _index = 0; bool _isDataLoading = true; RealtimeChannel? _presenceChannel; RealtimeChannel? _dbChannel;
+  String _profileKey = "profile";
+
   @override void initState() { super.initState(); _loadEverything(); _initPresence(); _initRealtimeSync(); }
   
   void _initPresence() { 
@@ -890,9 +894,24 @@ class _MainScreenState extends State<MainScreen> {
   void _goToSearch() => setState(() => _index = 1);
   void _goToHistory() => setState(() => _index = 3);
 
+  void _onNavTapped(int i) {
+    setState(() {
+      _index = i;
+      if (i == 4) {
+        _profileKey = DateTime.now().toString(); // Force reload Profile screen
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [HomeScreen(onSearchTap: _goToSearch, onHistoryTap: _goToHistory, isDataLoading: _isDataLoading), const BrowseScreen(), const ExploreScreen(), const HistoryScreen(), const ProfileScreen()];
+    final List<Widget> pages = [
+      HomeScreen(onSearchTap: _goToSearch, onHistoryTap: _goToHistory, isDataLoading: _isDataLoading), 
+      const BrowseScreen(), 
+      const ExploreScreen(), 
+      const HistoryScreen(), 
+      ProfileScreen(key: ValueKey(_profileKey))
+    ];
     
     return Scaffold(
       extendBody: true, 
@@ -902,7 +921,7 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.black, type: BottomNavigationBarType.fixed, selectedItemColor: Theme.of(context).primaryColor, unselectedItemColor: Colors.grey[500], selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
-        currentIndex: _index, onTap: (i) => setState(() => _index = i),
+        currentIndex: _index, onTap: _onNavTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: "Search"),
@@ -916,12 +935,44 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HISTORY SCREEN
+// HISTORY SCREEN (Grouped with Loading Animation)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+  @override State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if(mounted) setState(() => _isLoading = false);
+    });
+  }
+
+  String _getDateString(DateTime date) {
+    final now = DateTime.now();
+    if (now.year == date.year && now.month == date.month && now.day == date.day) return "Today";
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (yesterday.year == date.year && yesterday.month == date.month && yesterday.day == date.day) return "Yesterday";
+    return "${date.day} ${_getMonthStr(date.month)} ${date.year}";
+  }
+
+  String _getMonthStr(int m) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return months[m-1]; }
+
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: getBg(context),
+        appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+        body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
+      );
+    }
+
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
@@ -929,19 +980,58 @@ class HistoryScreen extends StatelessWidget {
         valueListenable: continueWatchingNotifier,
         builder: (context, cwList, child) {
           if (cwList.isEmpty) return const Center(child: Text("No watch history yet.", style: TextStyle(color: Colors.white54)));
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: 100),
-            itemCount: cwList.length,
-            itemBuilder: (ctx, i) {
-              final item = cwList[i];
-              return ListTile(
-                leading: Container(width: 140, height: 80, decoration: BoxDecoration(borderRadius: BorderRadius.circular(6), image: DecorationImage(image: NetworkImage(item.anime.image), fit: BoxFit.cover))),
-                title: Text(item.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
-                trailing: const Icon(Icons.play_circle_fill, color: Colors.white54),
-                onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
-              );
+          
+          List<Widget> listWidgets = [];
+          String currentDateStr = "";
+
+          for (var item in cwList) {
+            String itemDateStr = _getDateString(item.lastWatched);
+            if (itemDateStr != currentDateStr) {
+              currentDateStr = itemDateStr;
+              listWidgets.add(Padding(
+                padding: const EdgeInsets.only(left: 16, top: 20, bottom: 8),
+                child: Text(currentDateStr, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              ));
             }
+
+            listWidgets.add(
+              BouncingCard(
+                onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 140, height: 78,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)), 
+                          image: DecorationImage(image: NetworkImage(item.anime.image), fit: BoxFit.cover)
+                        )
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(item.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 4),
+                            Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.play_circle_fill, color: Colors.white54))
+                    ],
+                  ),
+                ),
+              )
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.only(bottom: 100),
+            children: listWidgets,
           );
         }
       ),
@@ -2893,7 +2983,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.black, 
+                                color: Colors.black, // True Black for cards
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1),
                               ),
@@ -3211,9 +3301,6 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SUPPORT PAGE (Redesigned with Brand Colors & Cards)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
 
@@ -3224,20 +3311,20 @@ class SupportPage extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: const Color(0xFF13131A),
-          borderRadius: BorderRadius.circular(12),
-          border: Border(left: BorderSide(color: brandColor, width: 4)),
-          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4, offset: const Offset(0, 2))],
+          borderRadius: BorderRadius.circular(8),
+          border: Border(left: BorderSide(color: brandColor, width: 3)),
         ),
         child: ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           leading: Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: brandColor.withOpacity(0.15), shape: BoxShape.circle),
-            child: Icon(icon, color: brandColor, size: 24),
+            child: Icon(icon, color: brandColor, size: 20),
           ),
-          title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-          subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 14),
+          title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+          subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 12),
         ),
       ),
     );
@@ -3273,16 +3360,16 @@ class SupportPage extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             
-            const Text("CONTACT US", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-            const SizedBox(height: 16),
+            const Text("CONTACT US", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+            const SizedBox(height: 12),
             
             _buildBrandCard(context, title: "Email Support", subtitle: "Response within 24 hours", icon: Icons.email, brandColor: const Color(0xFFD44638), onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
             _buildBrandCard(context, title: "Telegram Support", subtitle: "Chat with admins", icon: Icons.send, brandColor: const Color(0xFF0088cc), onTap: () => launchInBrowser(globalTelegramLink)),
             _buildBrandCard(context, title: "Instagram Support", subtitle: "DM us for quick help", icon: Icons.camera_alt, brandColor: const Color(0xFFE1306C), onTap: () => launchInBrowser(globalInstagramLink)),
 
             const SizedBox(height: 30),
-            const Text("OUR COMMUNITY", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-            const SizedBox(height: 16),
+            const Text("OUR COMMUNITY", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+            const SizedBox(height: 12),
             
             _buildBrandCard(context, title: "WhatsApp Group", subtitle: "Connect with fans", icon: Icons.chat, brandColor: const Color(0xFF25D366), onTap: () => launchInBrowser(globalWhatsappLink)),
             _buildBrandCard(context, title: "Telegram Channel", subtitle: "Instant Anime News", icon: Icons.send, brandColor: const Color(0xFF0088cc), onTap: () => launchInBrowser(globalTelegramLink)),
@@ -3340,10 +3427,17 @@ class DescriptionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 16))),
+      appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: const Text("About Anime", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Text(anime.description, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(anime.title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 16),
+            Text(anime.description, style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.6)),
+          ],
+        ),
       ),
     );
   }
@@ -3380,12 +3474,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   double _averageRating = 0.0;
   int _totalRatings = 0;
-  bool _isDescExpanded = false;
 
   // Star Rating Animation Variables
-  int _userRating = 0;
-  late List<AnimationController> _starAnimControllers;
-  late List<Animation<double>> _starScaleAnimations;
+  late AnimationController _starAnimController;
+  late Animation<double> _starScaleAnimation;
 
   @override 
   void initState() { 
@@ -3395,9 +3487,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     
     if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) return; 
 
-    // Initialize Interactive Rating Animations
-    _starAnimControllers = List.generate(5, (index) => AnimationController(vsync: this, duration: const Duration(milliseconds: 150)));
-    _starScaleAnimations = _starAnimControllers.map((ctrl) => Tween<double>(begin: 1.0, end: 1.4).animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOut))).toList();
+    _starAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 150));
+    _starScaleAnimation = Tween<double>(begin: 1.0, end: 1.4).animate(CurvedAnimation(parent: _starAnimController, curve: Curves.easeOut));
     
     _fetchEpisodeLikes();
     _fetchRatings();
@@ -3436,35 +3527,76 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       }
       int sum = 0;
       for (var r in res) { sum += (r['rating'] as int); }
-      
-      final userRes = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
-      int uRating = userRes != null ? userRes['rating'] as int : 0;
 
       if (mounted) setState(() {
         _totalRatings = res.length;
         _averageRating = sum / res.length;
-        _userRating = uRating;
       });
     } catch(e) {}
   }
 
-  Future<void> _submitRating(int rating) async {
-    HapticFeedback.mediumImpact();
-    for (int i = 0; i <= rating - 1; i++) {
-      _starAnimControllers[i].forward().then((_) => _starAnimControllers[i].reverse());
-      await Future.delayed(const Duration(milliseconds: 30));
-    }
-
-    setState(() => _userRating = rating);
-
+  void _showRatingBottomSheet() async {
+    int tempRating = 5;
     try {
-      await Supabase.instance.client.from('axion_anime_ratings').upsert({
-        'anime_id': widget.anime.id,
-        'user_id': currentUserId,
-        'rating': rating
-      }, onConflict: 'anime_id, user_id');
-      _fetchRatings(); 
+      final userRes = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
+      if(userRes != null) tempRating = userRes['rating'] as int;
     } catch(e) {}
+
+    if(!mounted) return;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: getCard(context),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (context, setModalState) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Rate this Anime", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return IconButton(
+                      icon: Icon(index < tempRating ? Icons.star : Icons.star_border, color: Colors.amber, size: 45),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        setModalState(() => tempRating = index + 1);
+                      }
+                    );
+                  })
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      _starAnimController.forward().then((_) => _starAnimController.reverse());
+                      HapticFeedback.mediumImpact();
+                      try {
+                        await Supabase.instance.client.from('axion_anime_ratings').upsert({
+                          'anime_id': widget.anime.id,
+                          'user_id': currentUserId,
+                          'rating': tempRating
+                        }, onConflict: 'anime_id, user_id');
+                        _fetchRatings();
+                      } catch(e) {}
+                    },
+                    child: const Text("Submit", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                )
+              ]
+            )
+          );
+        });
+      }
+    );
   }
   
   Future<void> _toggleLike(bool isLikeAction) async {
@@ -3554,7 +3686,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   @override 
   void dispose() { 
-    for (var ctrl in _starAnimControllers) { ctrl.dispose(); }
+    _starAnimController.dispose(); 
     if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
       _updateContinueWatching(); 
       _controller?.dispose(); 
@@ -3590,9 +3722,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       final list = List<CWItem>.from(continueWatchingNotifier.value); 
       final existingIdx = list.indexWhere((item) => item.anime.title == widget.anime.title && item.seasonIndex == _currentSeasonIndex && item.episodeIndex == _currentEpisodeIndex); 
       if (existingIdx != -1) { 
-        list[existingIdx].position = pos; list[existingIdx].totalDuration = dur; 
+        list[existingIdx].position = pos; list[existingIdx].totalDuration = dur; list[existingIdx].lastWatched = DateTime.now();
         final item = list.removeAt(existingIdx); list.insert(0, item); 
-      } else { list.insert(0, CWItem(anime: widget.anime, seasonIndex: _currentSeasonIndex, episodeIndex: _currentEpisodeIndex, position: pos, totalDuration: dur)); } 
+      } else { list.insert(0, CWItem(anime: widget.anime, seasonIndex: _currentSeasonIndex, episodeIndex: _currentEpisodeIndex, position: pos, totalDuration: dur, lastWatched: DateTime.now())); } 
       continueWatchingNotifier.value = list; 
       CWService().saveCWList(currentUserId, list);
     } 
@@ -3632,46 +3764,22 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     String desc = widget.anime.description.trim();
     if (desc.isEmpty) return const SizedBox.shrink();
 
-    bool isLong = desc.length > 50;
-
-    if (_isDescExpanded) {
-      return RichText(
-        text: TextSpan(
-          style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-          children: [
-            TextSpan(text: "$desc  "),
-            WidgetSpan(
-              child: GestureDetector(
-                onTap: () => setState(() => _isDescExpanded = false),
-                child: const Text("See Less", style: TextStyle(color: animeMxPurple, fontWeight: FontWeight.bold, fontSize: 13)),
-              )
-            )
-          ]
-        )
-      );
-    } else {
-      String shortDesc = isLong ? "${desc.substring(0, 50)}... " : desc;
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Text(shortDesc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-          ),
-          if (isLong)
-            GestureDetector(
-              onTap: () => setState(() => _isDescExpanded = true),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  SizedBox(width: 4),
-                  Text("See More", style: TextStyle(color: animeMxPurple, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.2)),
-                  Icon(Icons.chevron_right, color: animeMxPurple, size: 16)
-                ],
-              ),
-            )
-        ],
-      );
-    }
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Text(desc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        ),
+        if (desc.length > 40)
+          GestureDetector(
+            onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
+            child: const Padding(
+              padding: EdgeInsets.only(left: 4),
+              child: Text("See More >", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.2)),
+            ),
+          )
+      ],
+    );
   }
 
   @override
@@ -3783,9 +3891,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       ),
                     ),
 
-                    // Bottom Bar
+                    // Bottom Bar (Pushed down to the edge)
                     Positioned(
-                      bottom: 16, left: 16, right: 16,
+                      bottom: 8, left: 16, right: 16,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -3882,6 +3990,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     ),
                     const SizedBox(height: 12),
                     
+                    // Single Line Description + See More
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: _buildDescription(),
@@ -3894,40 +4003,47 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Interactive Psychological Rating Star
-                          GestureDetector(
-                            onTap: () {
-                              int newRating = _userRating == 0 ? 5 : _userRating;
-                              _submitRating(newRating);
-                            },
-                            child: Row(
-                              children: [
-                                Row(
-                                  children: List.generate(5, (index) {
-                                    double ratingValue = index + 1;
-                                    bool isFilled = _userRating > 0 ? _userRating >= ratingValue : _averageRating >= ratingValue;
-                                    bool isHalfStar = _userRating == 0 && _averageRating >= ratingValue - 0.5 && _averageRating < ratingValue;
-
-                                    return ScaleTransition(
-                                      scale: _starScaleAnimations[index],
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(right: 2),
-                                        child: Icon(
-                                          isFilled ? Icons.star : (isHalfStar ? Icons.star_half : Icons.star_border),
-                                          color: Colors.amber,
-                                          size: 26, 
-                                        ),
+                          // Custom Modern Rating Pill & Share
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: _showRatingBottomSheet,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
+                                  child: Row(
+                                    children: [
+                                      ScaleTransition(
+                                        scale: _starScaleAnimation,
+                                        child: const Icon(Icons.star, color: Colors.amber, size: 18),
                                       ),
-                                    );
-                                  }),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "Rate", 
+                                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)
+                                      )
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "0.0 (0)", 
-                                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)
-                                )
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Link copied to clipboard!")));
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.share, color: Colors.white, size: 16),
+                                      SizedBox(width: 6),
+                                      Text("Share", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
+                                    ],
+                                  ),
+                                ),
+                              )
+                            ],
                           ),
                           
                           // Like Dislike per Episode
@@ -3970,40 +4086,44 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                           const Text("Episode Lists", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                           
                           if (widget.anime.seasonsList.isNotEmpty)
-                            Container(
-                              height: 38,
-                              width: 140, // Perfect fixed width matching the screenshot
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<int>(
-                                  isExpanded: true,
-                                  dropdownColor: const Color(0xFF1E1E2A),
-                                  value: _currentSeasonIndex,
-                                  icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 20),
-                                  items: widget.anime.seasonsList.asMap().entries.map((e) {
-                                    bool isSel = e.key == _currentSeasonIndex;
-                                    return DropdownMenuItem<int>(
-                                      value: e.key,
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(e.value.name.isEmpty ? "Season ${e.key+1}" : e.value.name, style: TextStyle(color: isSel ? Colors.white : Colors.white70, fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
-                                          if (isSel) const Icon(Icons.check, color: animeMxPurple, size: 18),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    if (val != null && val != _currentSeasonIndex) { _changeSeason(val); }
-                                  },
-                                )
+                            Theme(
+                              data: Theme.of(context).copyWith(
+                                splashColor: Colors.transparent,
+                                highlightColor: Colors.transparent,
+                              ),
+                              child: PopupMenuButton<int>(
+                                color: const Color(0xFF1E1E2A), 
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                position: PopupMenuPosition.under,
+                                constraints: const BoxConstraints(minWidth: 150, maxWidth: 150),
+                                onSelected: _changeSeason,
+                                itemBuilder: (context) => widget.anime.seasonsList.asMap().entries.map((e) {
+                                  bool isSel = e.key == _currentSeasonIndex;
+                                  return PopupMenuItem(
+                                    value: e.key,
+                                    height: 40,
+                                    child: Text(e.value.name.isEmpty ? "Season ${e.key+1}" : e.value.name, style: TextStyle(color: isSel ? animeMxPurple : Colors.white70, fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+                                  );
+                                }).toList(),
+                                child: Container(
+                                  height: 38,
+                                  width: 150, 
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(widget.anime.seasonsList[_currentSeasonIndex].name.isEmpty ? "Season ${_currentSeasonIndex+1}" : widget.anime.seasonsList[_currentSeasonIndex].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                      const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 20)
+                                    ],
+                                  ),
+                                ),
                               ),
                             )
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
