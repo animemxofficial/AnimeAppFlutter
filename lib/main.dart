@@ -12,7 +12,7 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'package:share_plus/share_plus.dart'; // ADDED FOR SHARE FUNCTIONALITY
+import 'package:share_plus/share_plus.dart'; 
 
 const String CURRENT_APP_VERSION = "1.0.1"; 
 
@@ -38,7 +38,7 @@ String globalTermsConditions = "Terms and Conditions will be updated soon.";
 
 // UPDATE SYSTEM VARIABLES
 String globalLatestAppVersion = "1.0.1";
-String globalAppApkUrl = "https://google.com"; // Your App Download Link
+String globalAppApkUrl = "https://google.com"; 
 List<String> globalUpdateFeatures = [
   "Faster Home loading",
   "Modern video player",
@@ -124,6 +124,52 @@ class SmoothPageRoute extends PageRouteBuilder {
           },
           transitionDuration: const Duration(milliseconds: 300),
         );
+}
+
+// SMOOTH BOTTOM NAV FADE TRANSITION
+class FadeIndexedStack extends StatefulWidget {
+  final int index;
+  final List<Widget> children;
+  const FadeIndexedStack({super.key, required this.index, required this.children});
+
+  @override
+  State<FadeIndexedStack> createState() => _FadeIndexedStackState();
+}
+
+class _FadeIndexedStackState extends State<FadeIndexedStack> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(FadeIndexedStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.index != oldWidget.index) {
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: IndexedStack(
+        index: widget.index,
+        children: widget.children,
+      ),
+    );
+  }
 }
 
 // CUSTOM BOUNCING CARD ANIMATION
@@ -720,7 +766,7 @@ class MainScreen extends StatefulWidget {
 }
 class _MainScreenState extends State<MainScreen> {
   int _index = 0; bool _isDataLoading = true; RealtimeChannel? _presenceChannel; RealtimeChannel? _dbChannel;
-  String _profileKey = "profile";
+  final ScrollController _profileScrollController = ScrollController();
 
   @override void initState() { super.initState(); _loadEverything(); _initPresence(); _initRealtimeSync(); }
   
@@ -782,7 +828,7 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  @override void dispose() { _presenceChannel?.unsubscribe(); _dbChannel?.unsubscribe(); super.dispose(); }
+  @override void dispose() { _presenceChannel?.unsubscribe(); _dbChannel?.unsubscribe(); _profileScrollController.dispose(); super.dispose(); }
   
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
@@ -903,11 +949,13 @@ class _MainScreenState extends State<MainScreen> {
   void _goToHistory() => setState(() => _index = 3);
 
   void _onNavTapped(int i) {
+    if (_index == 4 && i != 4) {
+      if (_profileScrollController.hasClients) {
+        _profileScrollController.jumpTo(0.0);
+      }
+    }
     setState(() {
       _index = i;
-      if (i == 4) {
-        _profileKey = DateTime.now().toString(); 
-      }
     });
   }
 
@@ -918,12 +966,12 @@ class _MainScreenState extends State<MainScreen> {
       const BrowseScreen(), 
       const ExploreScreen(), 
       const HistoryScreen(), 
-      ProfileScreen(key: ValueKey(_profileKey))
+      ProfileScreen(scrollController: _profileScrollController)
     ];
     
     return Scaffold(
       extendBody: true, 
-      body: IndexedStack(
+      body: FadeIndexedStack(
         index: _index,
         children: pages,
       ),
@@ -943,106 +991,17 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HISTORY SCREEN (Grouped with Loading Animation)
+// HISTORY SCREEN (Infinite Loading as Requested)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class HistoryScreen extends StatefulWidget {
+class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
-  @override State<HistoryScreen> createState() => _HistoryScreenState();
-}
-
-class _HistoryScreenState extends State<HistoryScreen> {
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if(mounted) setState(() => _isLoading = false);
-    });
-  }
-
-  String _getDateString(DateTime date) {
-    final now = DateTime.now();
-    if (now.year == date.year && now.month == date.month && now.day == date.day) return "Today";
-    final yesterday = now.subtract(const Duration(days: 1));
-    if (yesterday.year == date.year && yesterday.month == date.month && yesterday.day == date.day) return "Yesterday";
-    return "${date.day} ${_getMonthStr(date.month)} ${date.year}";
-  }
-
-  String _getMonthStr(int m) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return months[m-1]; }
-
+  
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: getBg(context),
-        appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()),
-        body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
-      );
-    }
-
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()),
-      body: ValueListenableBuilder<List<CWItem>>(
-        valueListenable: continueWatchingNotifier,
-        builder: (context, cwList, child) {
-          if (cwList.isEmpty) return const Center(child: Text("No watch history yet.", style: TextStyle(color: Colors.white54)));
-          
-          List<Widget> listWidgets = [];
-          String currentDateStr = "";
-
-          for (var item in cwList) {
-            String itemDateStr = _getDateString(item.lastWatched);
-            if (itemDateStr != currentDateStr) {
-              currentDateStr = itemDateStr;
-              listWidgets.add(Padding(
-                padding: const EdgeInsets.only(left: 16, top: 20, bottom: 8),
-                child: Text(currentDateStr, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              ));
-            }
-
-            listWidgets.add(
-              BouncingCard(
-                onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 140, height: 78,
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)), 
-                          image: DecorationImage(image: NetworkImage(item.anime.image), fit: BoxFit.cover)
-                        )
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(item.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 4),
-                            Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.play_circle_fill, color: Colors.white54))
-                    ],
-                  ),
-                ),
-              )
-            );
-          }
-
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 100),
-            children: listWidgets,
-          );
-        }
-      ),
+      body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
     );
   }
 }
@@ -1386,7 +1345,7 @@ class HomeScreen extends StatelessWidget {
                               children: [
                                 Image.network(item.anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
                                 Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))),
-                                Center(child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28))),
+                                Center(child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28))),
                                 Positioned(
                                   bottom: 0, left: 0, right: 0,
                                   child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white24, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 4)
@@ -1434,7 +1393,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(
-        backgroundColor: getBg(context), elevation: 0,
+        backgroundColor: getBg(context), elevation: 0, bottom: appbarBottomLine(),
         title: RichText(text: TextSpan(children: [
           const TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5)), 
           TextSpan(text: "DUB", style: TextStyle(color: primColor, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5))
@@ -1955,6 +1914,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: getBg(context),
+      appBar: AppBar(title: const Text("Search", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: getBg(context), bottom: appbarBottomLine()),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
@@ -2372,7 +2332,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key}); 
+  final ScrollController scrollController;
+  const ProfileScreen({super.key, required this.scrollController}); 
   @override State<ProfileScreen> createState() => _ProfileScreenState();
 }
 class _ProfileScreenState extends State<ProfileScreen> {
@@ -2467,6 +2428,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: getBg(context),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: widget.scrollController,
           padding: const EdgeInsets.only(bottom: 100), 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start, 
