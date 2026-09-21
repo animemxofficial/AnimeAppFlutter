@@ -48,6 +48,7 @@ dependencies:
   path_provider: any
   device_info_plus: any
   open_filex: any
+  share_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
