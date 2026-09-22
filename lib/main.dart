@@ -3510,6 +3510,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   bool _isPremiumBlocked = false;
   String _premiumMessage = "";
 
+  // Skip Animation Trackers
+  bool _showForwardSkip = false;
+  bool _showBackwardSkip = false;
+
   @override 
   void initState() { 
     super.initState(); 
@@ -3695,7 +3699,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     
     final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
     
-    // FETCH LATEST PLAN 
     String currentPlan = "Free";
     try {
       final res = await Supabase.instance.client.from('payment_requests').select().eq('user_id', currentUserId).eq('status', 'Approved').order('created_at', ascending: false).limit(1).maybeSingle();
@@ -3707,9 +3710,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       }
     } catch(e) {}
     
-    globalCurrentPlan = currentPlan; // Update global state
+    globalCurrentPlan = currentPlan; 
     
-    // Check Early Access
     bool isNewEpisode = DateTime.now().difference(ep.createdAt).inHours < 24;
     if (isNewEpisode) {
       if (globalCurrentPlan == "Free" || globalCurrentPlan.toLowerCase().contains("bronze") || globalCurrentPlan.contains("49")) {
@@ -3730,7 +3732,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       setState(() {}); 
     }); 
 
-    // Listen for Free Trial (3 Mins Limit)
     _controller!.addListener(() {
       if (!mounted) return;
       if (globalCurrentPlan == "Free") {
@@ -3800,7 +3801,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     try {
       final userView = await Supabase.instance.client.from('user_views').select().eq('user_id', currentUserId).eq('episode_id', episodeId).maybeSingle();
       if (userView == null) {
-        await Supabase.instance.client.from('user_views').insert({'user_id': currentUserId, 'episode_id': episodeId});
+        await Supabase.instance.client.from('user_views').insert({'user_id', currentUserId, 'episode_id': episodeId});
         final response = await Supabase.instance.client.from('episode_views').select('view_count').eq('episode_id', episodeId).maybeSingle();
         int currentViews = response?['view_count'] ?? 0;
         await Supabase.instance.client.from('episode_views').upsert({'episode_id': episodeId, 'view_count': currentViews + 1});
@@ -3842,10 +3843,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   void _skipForward() { 
     _controller?.seekTo(_controller!.value.position + const Duration(seconds: 10)); 
+    setState(() => _showForwardSkip = true);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if(mounted) setState(() => _showForwardSkip = false);
+    });
   }
 
   void _skipBackward() { 
     _controller?.seekTo(_controller!.value.position - const Duration(seconds: 10)); 
+    setState(() => _showBackwardSkip = true);
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if(mounted) setState(() => _showBackwardSkip = false);
+    });
   }
 
   String _formatDuration(Duration duration) { 
@@ -3863,22 +3872,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     String desc = widget.anime.description.trim();
     if (desc.isEmpty) return const SizedBox.shrink();
 
-    bool isLong = desc.length > 50;
-    String shortDesc = isLong ? "${desc.substring(0, 50)}... " : desc;
-    
     return GestureDetector(
       onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: Text(shortDesc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            child: Text(desc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
           ),
-          if (isLong)
-            const Padding(
-              padding: EdgeInsets.only(left: 4),
-              child: Icon(Icons.chevron_right, color: Colors.white54, size: 18)
-            )
+          const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Icon(Icons.chevron_right, color: Colors.white54, size: 18)
+          )
         ],
       ),
     );
@@ -3916,7 +3921,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                   children: [
                     const Icon(Icons.lock_outline, color: Colors.redAccent, size: 60),
                     const SizedBox(height: 16),
-                    Text("Premium Locked", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    const Text("Premium Locked", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Text(_premiumMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
                     const SizedBox(height: 24),
@@ -3949,9 +3954,72 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
+        // YOUTUBE STYLE DOUBLE TAP TO SKIP
+        if (!_isPremiumBlocked && _controller != null && _controller!.value.isInitialized)
+          Positioned.fill(
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onDoubleTap: _skipBackward,
+                    onTap: _toggleControls,
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+                Expanded(
+                  child: GestureDetector(
+                    onDoubleTap: _skipForward,
+                    onTap: _toggleControls,
+                    child: Container(color: Colors.transparent),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // FORWARD SKIP ANIMATION
+        if (_showForwardSkip)
+          Positioned(
+            right: 40, top: 0, bottom: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(30)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.fast_forward, color: Colors.white, size: 30),
+                    SizedBox(height: 4),
+                    Text("10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                  ],
+                ),
+              ),
+            ),
+          ),
+          
+        // BACKWARD SKIP ANIMATION
+        if (_showBackwardSkip)
+          Positioned(
+            left: 40, top: 0, bottom: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(30)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.fast_rewind, color: Colors.white, size: 30),
+                    SizedBox(height: 4),
+                    Text("10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                  ],
+                ),
+              ),
+            ),
+          ),
+
         if (!_isPremiumBlocked && _showControls && (_controller != null && _controller!.value.isInitialized)) 
-          GestureDetector(
-            onTap: _toggleControls,
+          IgnorePointer(
+            ignoring: false,
             child: Container(
               color: Colors.black.withOpacity(0.5), 
               child: SafeArea(
@@ -3978,16 +4046,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                         children:[
-                          IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward), 
+                          IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 36), onPressed: _skipBackward), 
                           Container(
                             padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
+                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
                             child: IconButton(
-                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 48), 
+                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 40), 
                               onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
                             ),
                           ),
-                          IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: _skipForward)
+                          IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 36), onPressed: _skipForward)
                         ]
                       ),
                     ),
@@ -4034,8 +4102,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
               ),
             ),
           ) 
-        else if (!_isPremiumBlocked && (_isPlaying || _controller?.value.position != Duration.zero))
-          GestureDetector(onTap: _toggleControls, child: Container(color: Colors.transparent)),
       ],
     );
 
@@ -4059,28 +4125,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                          ),
-                          ValueListenableBuilder<List<SavedEpisode>>(
-                            valueListenable: myListNotifier,
-                            builder: (context, savedList, child) {
-                              bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
-                              return IconButton(
-                                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: animeMxPurple, size: 30),
-                                onPressed: _toggleSaveAnime,
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                              );
-                            }
-                          )
-                        ],
-                      ),
+                      child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     
                     // Single Line Description + Arrow
                     Padding(
@@ -4095,76 +4142,80 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Custom Modern Rating Pill (Golden when rated)
-                          GestureDetector(
-                            onTap: _showRatingBottomSheet,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.08), 
-                                borderRadius: BorderRadius.circular(20), 
-                                border: Border.all(color: _hasUserRated ? Colors.amber : Colors.white12, width: _hasUserRated ? 1.5 : 1.0)
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(_hasUserRated ? Icons.star : Icons.star_border, color: Colors.amber, size: 18),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "Rate", 
-                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)
-                                  )
-                                ],
-                              ),
+                          // Custom Like/Dislike Pill
+                          Container(
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E2A),
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => _toggleLike(true),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    decoration: BoxDecoration(
+                                      color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
+                                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(22), right: Radius.circular(8)),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      children: [
+                                        Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 22),
+                                        const SizedBox(width: 8),
+                                        Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                Container(width: 1, height: 26, color: Colors.white12),
+                                GestureDetector(
+                                  onTap: () => _toggleLike(false),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                                    decoration: BoxDecoration(
+                                      color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
+                                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(22), left: Radius.circular(8)),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 22),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           
                           Row(
                             children: [
-                              // Custom Like/Dislike Pill
-                              Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1E1E2A),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => _toggleLike(true),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        decoration: BoxDecoration(
-                                          color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
-                                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(20), right: Radius.circular(8)),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Row(
-                                          children: [
-                                            Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 20),
-                                            const SizedBox(width: 8),
-                                            Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    Container(width: 1, height: 24, color: Colors.white12),
-                                    GestureDetector(
-                                      onTap: () => _toggleLike(false),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        decoration: BoxDecoration(
-                                          color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
-                                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(20), left: Radius.circular(8)),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 20),
-                                      ),
-                                    ),
-                                  ],
+                              ValueListenableBuilder<List<SavedEpisode>>(
+                                valueListenable: myListNotifier,
+                                builder: (context, savedList, child) {
+                                  bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
+                                  return IconButton(
+                                    icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: isSaved ? animeMxPurple : Colors.white70, size: 28),
+                                    onPressed: _toggleSaveAnime,
+                                  );
+                                }
+                              ),
+                              
+                              GestureDetector(
+                                onTap: _showRatingBottomSheet,
+                                child: Container(
+                                  padding: _hasUserRated ? const EdgeInsets.all(4) : EdgeInsets.zero,
+                                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: _hasUserRated 
+                                    ? BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.amber, width: 2))
+                                    : null,
+                                  child: Icon(
+                                    _hasUserRated ? Icons.star : Icons.stars_outlined, 
+                                    color: _hasUserRated ? Colors.amber : Colors.white70, 
+                                    size: _hasUserRated ? 20 : 28
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 16),
+                              
                               IconButton(
                                 icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
                                 onPressed: () {
