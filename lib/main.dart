@@ -227,6 +227,7 @@ class _BouncingCardState extends State<BouncingCard> with SingleTickerProviderSt
   }
 }
 
+// HORIZONTAL LINE FOR APPBARS
 PreferredSizeWidget appbarBottomLine() {
   return PreferredSize(
     preferredSize: const Size.fromHeight(1.0),
@@ -767,7 +768,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _index = 0; bool _isDataLoading = true; RealtimeChannel? _presenceChannel; RealtimeChannel? _dbChannel;
   final ScrollController _profileScrollController = ScrollController();
-  String _profileKey = "profile";
 
   @override void initState() { super.initState(); _loadEverything(); _initPresence(); _initRealtimeSync(); }
   
@@ -957,9 +957,6 @@ class _MainScreenState extends State<MainScreen> {
     }
     setState(() {
       _index = i;
-      if (i == 4) {
-        _profileKey = DateTime.now().toString(); 
-      }
     });
   }
 
@@ -970,7 +967,7 @@ class _MainScreenState extends State<MainScreen> {
       const BrowseScreen(), 
       const ExploreScreen(), 
       const HistoryScreen(), 
-      ProfileScreen(key: ValueKey(_profileKey), scrollController: _profileScrollController)
+      ProfileScreen(scrollController: _profileScrollController)
     ];
     
     return Scaffold(
@@ -995,106 +992,17 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// HISTORY SCREEN (Grouped with Loading Animation)
+// HISTORY SCREEN (Infinite Loading as Requested)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-class HistoryScreen extends StatefulWidget {
+class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
-  @override State<HistoryScreen> createState() => _HistoryScreenState();
-}
-
-class _HistoryScreenState extends State<HistoryScreen> {
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if(mounted) setState(() => _isLoading = false);
-    });
-  }
-
-  String _getDateString(DateTime date) {
-    final now = DateTime.now();
-    if (now.year == date.year && now.month == date.month && now.day == date.day) return "Today";
-    final yesterday = now.subtract(const Duration(days: 1));
-    if (yesterday.year == date.year && yesterday.month == date.month && yesterday.day == date.day) return "Yesterday";
-    return "${date.day} ${_getMonthStr(date.month)} ${date.year}";
-  }
-
-  String _getMonthStr(int m) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return months[m-1]; }
-
+  
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: getBg(context),
-        appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()),
-        body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
-      );
-    }
-
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()),
-      body: ValueListenableBuilder<List<CWItem>>(
-        valueListenable: continueWatchingNotifier,
-        builder: (context, cwList, child) {
-          if (cwList.isEmpty) return const Center(child: Text("No watch history yet.", style: TextStyle(color: Colors.white54)));
-          
-          List<Widget> listWidgets = [];
-          String currentDateStr = "";
-
-          for (var item in cwList) {
-            String itemDateStr = _getDateString(item.lastWatched);
-            if (itemDateStr != currentDateStr) {
-              currentDateStr = itemDateStr;
-              listWidgets.add(Padding(
-                padding: const EdgeInsets.only(left: 16, top: 20, bottom: 8),
-                child: Text(currentDateStr, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              ));
-            }
-
-            listWidgets.add(
-              BouncingCard(
-                onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 140, height: 78,
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)), 
-                          image: DecorationImage(image: NetworkImage(item.anime.image), fit: BoxFit.cover)
-                        )
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(item.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 4),
-                            Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.play_circle_fill, color: Colors.white54))
-                    ],
-                  ),
-                ),
-              )
-            );
-          }
-
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 100),
-            children: listWidgets,
-          );
-        }
-      ),
+      body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
     );
   }
 }
@@ -2007,9 +1915,10 @@ class _BrowseScreenState extends State<BrowseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: getBg(context),
+      appBar: AppBar(backgroundColor: getBg(context), elevation: 0, bottom: appbarBottomLine()),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.only(top: 24.0, left: 16.0, right: 16.0, bottom: 100),
+          padding: const EdgeInsets.all(16.0).copyWith(bottom: 100),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children:[
@@ -2266,7 +2175,7 @@ class _MyListScreenState extends State<MyListScreen> {
                   child: Row(
                     children: [
                       SizedBox(
-                        width: 85, height: 120,
+                        width: 80, height: 120,
                         child: ClipRRect(
                           borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)), 
                           child: Stack(
@@ -2792,10 +2701,11 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
   ];
 
-  @override void initState() {
+  @override
+  void initState() {
     super.initState();
     Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) setState(() => _isLoading = false);
+      if(mounted) setState(() => _isLoading = false);
     });
   }
 
@@ -2819,12 +2729,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       return Scaffold(
         backgroundColor: getBg(context),
         appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Subscription", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()), 
-        body: Center(child: CircularProgressIndicator(color: animeMxPurple))
+        body: const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
       );
     }
 
     return Scaffold(
-      backgroundColor: getBg(context), 
+      backgroundColor: getBg(context),
       appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Subscription", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()), 
       body: Column(
         children: [
@@ -2953,8 +2863,8 @@ class UpgradePlanPage extends StatefulWidget {
 }
 class _UpgradePlanPageState extends State<UpgradePlanPage> {
   int _selectedPlanIndex = 0; 
-  bool _isLoading = true;
   List<Map<String, dynamic>> _upgradePlans = [];
+  bool _isLoading = true;
 
   final List<Map<String, dynamic>> _allPlans = [
     {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
@@ -2977,7 +2887,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
     _upgradePlans = _allPlans.where((p) => _getPlanWeight(p['name']) > currentWeight).toList();
 
     Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) setState(() => _isLoading = false);
+      if(mounted) setState(() => _isLoading = false);
     });
   }
 
@@ -2998,9 +2908,10 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
     Color btnColor = const Color(0xFF3B82F6); 
 
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.blueAccent))
+        appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: const Text("Upgrade Plan", style: TextStyle(color: Colors.white)), bottom: appbarBottomLine()),
+        body: const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
       );
     }
 
@@ -3075,7 +2986,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.black, // True Black for cards
+                                color: Colors.black, 
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1),
                               ),
@@ -3565,12 +3476,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   double _averageRating = 0.0;
   int _totalRatings = 0;
-  bool _isDropdownOpen = false;
+
+  bool _isSeasonMenuOpen = false;
 
   // Star Rating Animation Variables
   late AnimationController _starAnimController;
   late Animation<double> _starScaleAnimation;
-  int _userRating = 0;
 
   @override 
   void initState() { 
@@ -3622,75 +3533,87 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       for (var r in res) { sum += (r['rating'] as int); }
       
       final userRes = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
-      int uRating = userRes != null ? userRes['rating'] as int : 0;
 
       if (mounted) setState(() {
         _totalRatings = res.length;
         _averageRating = sum / res.length;
-        _userRating = uRating;
       });
     } catch(e) {}
   }
 
   void _showRatingBottomSheet() async {
-    int tempRating = _userRating > 0 ? _userRating : 5;
-    bool isSubmitting = false;
+    int tempRating = 5;
+    try {
+      final userRes = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
+      if(userRes != null) tempRating = userRes['rating'] as int;
+    } catch(e) {}
 
     if(!mounted) return;
     
     showModalBottomSheet(
       context: context,
-      backgroundColor: getCard(context),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: const Color(0xFF13131A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) {
+        bool isSubmitting = false;
         return StatefulBuilder(builder: (context, setModalState) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 40),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("Rate this Anime", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 30),
+                const Text("Rate this Anime", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Text("Tell us what you think about this episode.", style: TextStyle(color: Colors.white54, fontSize: 14)),
+                const SizedBox(height: 32),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(5, (index) {
-                    return IconButton(
-                      icon: Icon(index < tempRating ? Icons.star : Icons.star_border, color: Colors.amber, size: 45),
-                      onPressed: () {
+                    return GestureDetector(
+                      onTap: () {
                         HapticFeedback.lightImpact();
                         setModalState(() => tempRating = index + 1);
-                      }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(index < tempRating ? Icons.star : Icons.star_border, color: Colors.amber, size: 48),
+                      )
                     );
                   })
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 40),
                 SizedBox(
                   width: double.infinity,
-                  height: 50,
+                  height: 55,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: animeMxPurple, 
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0
+                    ),
                     onPressed: isSubmitting ? null : () async {
                       setModalState(() => isSubmitting = true);
-                      
-                      _starAnimController.forward().then((_) => _starAnimController.reverse());
                       HapticFeedback.mediumImpact();
-                      setState(() => _userRating = tempRating);
-
+                      
                       try {
                         await Supabase.instance.client.from('axion_anime_ratings').upsert({
                           'anime_id': widget.anime.id,
                           'user_id': currentUserId,
                           'rating': tempRating
                         }, onConflict: 'anime_id, user_id');
-                        _fetchRatings();
                       } catch(e) {}
-
-                      await Future.delayed(const Duration(milliseconds: 300));
-                      if (mounted) Navigator.pop(ctx);
+                      
+                      await Future.delayed(const Duration(milliseconds: 600)); // Smooth loading illusion
+                      
+                      if (mounted) {
+                        Navigator.pop(ctx);
+                        _fetchRatings();
+                        _starAnimController.forward().then((_) => _starAnimController.reverse());
+                      }
                     },
                     child: isSubmitting 
-                        ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                        : const Text("Submit Rating", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      : const Text("Submit Rating", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 )
               ]
@@ -3865,26 +3788,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     String desc = widget.anime.description.trim();
     if (desc.isEmpty) return const SizedBox.shrink();
 
-    bool isLong = desc.length > 50;
-
-    String shortDesc = isLong ? "${desc.substring(0, 50)}... " : desc;
     return GestureDetector(
       onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: Text(shortDesc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            child: Text(desc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
           ),
-          if (isLong)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                SizedBox(width: 4),
-                Text("See More", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.2)),
-                Icon(Icons.chevron_right, color: Colors.grey, size: 16)
-              ],
-            )
+          const Padding(
+            padding: EdgeInsets.only(left: 8),
+            child: Icon(Icons.chevron_right, color: Colors.white54, size: 18)
+          )
         ],
       ),
     );
@@ -3907,7 +3822,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     final ep = displayedEpisodes[_currentEpisodeIndex];
     String thumbnailImage = ep.image.isNotEmpty ? ep.image : widget.anime.image;
     
-    // Episode Name is Main Title, Anime Name is subtitle
     String episodeTitle = (ep.title.isNotEmpty && ep.title != "Episode") ? ep.title : "Episode ${_currentEpisodeIndex + 1}";
 
     Widget videoContent = Stack(
@@ -3937,7 +3851,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 bottom: false,
                 child: Stack(
                   children: [
-                    // Top Bar (Pushed to very top edges)
+                    // Top Bar 
                     Positioned(
                       top: 0, left: 0, right: 0,
                       child: Padding(
@@ -3957,59 +3871,54 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                         children:[
-                          IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 36), onPressed: _skipBackward), 
+                          IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward), 
                           Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
                             child: IconButton(
-                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 40), 
+                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 48), 
                               onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
                             ),
                           ),
-                          IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 36), onPressed: _skipForward)
+                          IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: _skipForward)
                         ]
                       ),
                     ),
 
-                    // Bottom Bar (Pushed down to the edge)
+                    // Bottom Progress Bar
                     Positioned(
                       bottom: 0, left: 0, right: 0,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              children:[
-                                ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 13)); }), 
-                                Expanded(child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                                  return SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 4.0, 
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
-                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
-                                      activeTrackColor: animeMxPurple,
-                                      inactiveTrackColor: Colors.white24,
-                                      thumbColor: animeMxPurple,
-                                    ), 
-                                    child: Slider(
-                                      min: 0.0, 
-                                      max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
-                                      value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
-                                      onChangeStart: (val) { _controller!.pause(); }, 
-                                      onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
-                                    )
-                                  ); 
-                                })), 
-                                ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                                  Duration rem = value.duration - value.position;
-                                  String remainingText = rem.inSeconds > 0 ? "-${_formatDuration(rem)}" : "00:00";
-                                  return Text(remainingText, style: const TextStyle(color: Colors.white, fontSize: 13)); 
-                                })
-                              ]
-                            )
-                          ],
+                        child: Row(
+                          children:[
+                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 13)); }), 
+                            Expanded(child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                              return SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 4.0, 
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                                  activeTrackColor: animeMxPurple,
+                                  inactiveTrackColor: Colors.white24,
+                                  thumbColor: animeMxPurple,
+                                ), 
+                                child: Slider(
+                                  min: 0.0, 
+                                  max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
+                                  value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
+                                  onChangeStart: (val) { _controller!.pause(); }, 
+                                  onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
+                                  onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
+                                )
+                              ); 
+                            })), 
+                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                              Duration rem = value.duration - value.position;
+                              String remainingText = rem.inSeconds > 0 ? "-${_formatDuration(rem)}" : "00:00";
+                              return Text(remainingText, style: const TextStyle(color: Colors.white, fontSize: 13)); 
+                            })
+                          ]
                         ),
                       ),
                     )
@@ -4043,31 +3952,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                              ],
-                            )
-                          ),
-                          ValueListenableBuilder<List<SavedEpisode>>(
-                            valueListenable: myListNotifier,
-                            builder: (context, savedList, child) {
-                              bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
-                              return IconButton(
-                                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: animeMxPurple, size: 30),
-                                onPressed: _toggleSaveAnime,
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                              );
-                            }
-                          )
-                        ],
-                      ),
+                      child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                    ),
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(widget.anime.title, style: const TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
                     const SizedBox(height: 12),
                     
@@ -4084,80 +3974,69 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Modern Premium Rating Pill
-                          GestureDetector(
-                            onTap: _showRatingBottomSheet,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                              child: Row(
-                                children: [
-                                  ScaleTransition(
-                                    scale: _starScaleAnimation,
-                                    child: Icon(_userRating > 0 ? Icons.star : Icons.star_border, color: Colors.amber, size: 18),
+                          // Custom Like/Dislike Pill
+                          Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E2A),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => _toggleLike(true),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
+                                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(20), right: Radius.circular(8)),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      children: [
+                                        Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 20),
+                                        const SizedBox(width: 8),
+                                        Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "Rate", 
-                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)
-                                  )
-                                ],
-                              ),
+                                ),
+                                Container(width: 1, height: 24, color: Colors.white12),
+                                GestureDetector(
+                                  onTap: () => _toggleLike(false),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
+                                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(20), left: Radius.circular(8)),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 20),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           
                           Row(
                             children: [
-                              // Custom Like/Dislike Pill
-                              Container(
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1E1E2A),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    GestureDetector(
-                                      onTap: () => _toggleLike(true),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        decoration: BoxDecoration(
-                                          color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
-                                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(20), right: Radius.circular(8)),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Row(
-                                          children: [
-                                            Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 18),
-                                            const SizedBox(width: 6),
-                                            Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12))
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    Container(width: 1, height: 20, color: Colors.white12),
-                                    GestureDetector(
-                                      onTap: () => _toggleLike(false),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        decoration: BoxDecoration(
-                                          color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
-                                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(20), left: Radius.circular(8)),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 18),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              ValueListenableBuilder<List<SavedEpisode>>(
+                                valueListenable: myListNotifier,
+                                builder: (context, savedList, child) {
+                                  bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
+                                  return IconButton(
+                                    icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: isSaved ? animeMxPurple : Colors.white70, size: 28),
+                                    onPressed: _toggleSaveAnime,
+                                  );
+                                }
                               ),
-                              const SizedBox(width: 12),
-                              // Download Icon Button
                               IconButton(
-                                icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 26),
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.stars_outlined, color: Colors.white70, size: 28),
+                                onPressed: _showRatingBottomSheet,
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
                                 onPressed: () {
                                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                                     content: Text("Video download failed. This episode cannot be downloaded right now.", style: TextStyle(color: Colors.white)), 
@@ -4192,20 +4071,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 position: PopupMenuPosition.under, 
                                 constraints: const BoxConstraints(minWidth: 120, maxWidth: 120),
-                                onOpened: () => setState(() => _isDropdownOpen = true),
-                                onCanceled: () => setState(() => _isDropdownOpen = false),
+                                onOpened: () => setState(() => _isSeasonMenuOpen = true),
+                                onCanceled: () => setState(() => _isSeasonMenuOpen = false),
                                 onSelected: (val) {
-                                  setState(() => _isDropdownOpen = false);
+                                  setState(() => _isSeasonMenuOpen = false);
                                   _changeSeason(val);
                                 },
                                 itemBuilder: (context) => widget.anime.seasonsList.asMap().entries.map((e) {
-                                  bool isSel = e.key == _currentSeasonIndex;
                                   return PopupMenuItem(
                                     value: e.key,
                                     height: 40,
                                     child: SizedBox(
                                       width: 100, 
-                                      child: Text(e.value.name.isEmpty ? "Season ${e.key+1}" : e.value.name, style: TextStyle(color: isSel ? animeMxPurple : Colors.white70, fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+                                      child: Text(e.value.name.isEmpty ? "Season ${e.key+1}" : e.value.name, style: TextStyle(color: e.key == _currentSeasonIndex ? animeMxPurple : Colors.white70, fontSize: 13, fontWeight: e.key == _currentSeasonIndex ? FontWeight.bold : FontWeight.normal)),
                                     ),
                                   );
                                 }).toList(),
@@ -4218,7 +4096,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(widget.anime.seasonsList[_currentSeasonIndex].name.isEmpty ? "Season ${_currentSeasonIndex+1}" : widget.anime.seasonsList[_currentSeasonIndex].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                      Icon(_isDropdownOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white, size: 20)
+                                      Icon(_isSeasonMenuOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white, size: 20)
                                     ],
                                   ),
                                 ),
@@ -4263,9 +4141,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.remove_red_eye, color: Colors.white54, size: 12),
+                                      const Icon(Icons.remove_red_eye, color: Colors.white54, size: 10),
                                       const SizedBox(width: 4),
-                                      Text(formattedViews, style: const TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      Text(formattedViews, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
                                     ],
                                   )
                                 ],
