@@ -74,7 +74,7 @@ Color getCard(BuildContext context) => const Color(0xFF13131A);
 Color getText(BuildContext context) => Colors.white;
 Color getSubText(BuildContext context) => Colors.white54;
 
-final List<Color> avatarColors = [Colors.redAccent, blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
+final List<Color> avatarColors = [Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
 
 Color getAvatarColor(String input) => input.isEmpty ? Colors.grey : avatarColors[input.codeUnitAt(0) % avatarColors.length];
 String getAvatarLetter(String input) => input.isEmpty ? "?" : input[0].toUpperCase();
@@ -3497,6 +3497,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   double _averageRating = 0.0;
   int _totalRatings = 0;
+  bool _hasUserRated = false;
 
   bool _isSeasonMenuOpen = false;
 
@@ -3553,7 +3554,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     try {
       final res = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id);
       if (res.isEmpty) {
-        if (mounted) setState(() { _averageRating = 0.0; _totalRatings = 0; });
+        if (mounted) setState(() { _averageRating = 0.0; _totalRatings = 0; _hasUserRated = false; });
         return;
       }
       int sum = 0;
@@ -3566,18 +3567,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         _totalRatings = res.length;
         _averageRating = sum / res.length;
         _userRating = uRating;
+        _hasUserRated = userRes != null;
       });
     } catch(e) {}
   }
 
-  Future<void> _submitRating(int rating) async {
+  Future<void> _submitRating(int rating, Function updateModalState) async {
+    updateModalState(() => _userRating = rating);
     HapticFeedback.mediumImpact();
-    for (int i = 0; i <= rating - 1; i++) {
-      _starAnimControllers[i].forward().then((_) => _starAnimControllers[i].reverse());
-      await Future.delayed(const Duration(milliseconds: 30));
-    }
-
-    setState(() => _userRating = rating);
 
     try {
       await Supabase.instance.client.from('axion_anime_ratings').upsert({
@@ -3585,8 +3582,77 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         'user_id': currentUserId,
         'rating': rating
       }, onConflict: 'anime_id, user_id');
-      _fetchRatings(); 
+      
+      if (mounted) {
+        setState(() { _hasUserRated = true; });
+        _fetchRatings(); 
+      }
     } catch(e) {}
+  }
+
+  void _showRatingBottomSheet() async {
+    int tempRating = _userRating > 0 ? _userRating : 5;
+    bool isSubmitting = false;
+
+    if(!mounted) return;
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF13131A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        return StatefulBuilder(builder: (context, setModalState) {
+          return Padding(
+            padding: const EdgeInsets.only(left: 24, right: 24, top: 32, bottom: 40),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("Rate this Anime", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                const Text("Tell us what you think about this anime.", style: TextStyle(color: Colors.white54, fontSize: 14)),
+                const SizedBox(height: 32),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        setModalState(() => tempRating = index + 1);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(index < tempRating ? Icons.star : Icons.star_border, color: Colors.amber, size: 48),
+                      )
+                    );
+                  })
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: animeMxPurple, 
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0
+                    ),
+                    onPressed: isSubmitting ? null : () async {
+                      setModalState(() => isSubmitting = true);
+                      await _submitRating(tempRating, setModalState);
+                      await Future.delayed(const Duration(milliseconds: 500)); 
+                      if (mounted) Navigator.pop(ctx);
+                    },
+                    child: isSubmitting 
+                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                      : const Text("Submit Rating", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
+                )
+              ]
+            )
+          );
+        });
+      }
+    );
   }
   
   Future<void> _toggleLike(bool isLikeAction) async {
@@ -3835,7 +3901,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     final ep = displayedEpisodes[_currentEpisodeIndex];
     String thumbnailImage = ep.image.isNotEmpty ? ep.image : widget.anime.image;
     
-    // Episode Name is Main Title
     String episodeTitle = (ep.title.isNotEmpty && ep.title != "Episode") ? ep.title : "Episode ${_currentEpisodeIndex + 1}";
 
     Widget videoContent = Stack(
@@ -3994,9 +4059,28 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                          ),
+                          ValueListenableBuilder<List<SavedEpisode>>(
+                            valueListenable: myListNotifier,
+                            builder: (context, savedList, child) {
+                              bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
+                              return IconButton(
+                                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: animeMxPurple, size: 30),
+                                onPressed: _toggleSaveAnime,
+                                constraints: const BoxConstraints(),
+                                padding: EdgeInsets.zero,
+                              );
+                            }
+                          )
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     
                     // Single Line Description + Arrow
                     Padding(
@@ -4011,80 +4095,76 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Custom Like/Dislike Pill
-                          Container(
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E1E2A),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                GestureDetector(
-                                  onTap: () => _toggleLike(true),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
-                                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(20), right: Radius.circular(8)),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      children: [
-                                        Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 20),
-                                        const SizedBox(width: 8),
-                                        Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Container(width: 1, height: 24, color: Colors.white12),
-                                GestureDetector(
-                                  onTap: () => _toggleLike(false),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                                    decoration: BoxDecoration(
-                                      color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
-                                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(20), left: Radius.circular(8)),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 20),
-                                  ),
-                                ),
-                              ],
+                          // Custom Modern Rating Pill (Golden when rated)
+                          GestureDetector(
+                            onTap: _showRatingBottomSheet,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.08), 
+                                borderRadius: BorderRadius.circular(20), 
+                                border: Border.all(color: _hasUserRated ? Colors.amber : Colors.white12, width: _hasUserRated ? 1.5 : 1.0)
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(_hasUserRated ? Icons.star : Icons.star_border, color: Colors.amber, size: 18),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "Rate", 
+                                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)
+                                  )
+                                ],
+                              ),
                             ),
                           ),
                           
                           Row(
                             children: [
-                              ValueListenableBuilder<List<SavedEpisode>>(
-                                valueListenable: myListNotifier,
-                                builder: (context, savedList, child) {
-                                  bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
-                                  return IconButton(
-                                    icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: isSaved ? animeMxPurple : Colors.white70, size: 28),
-                                    onPressed: _toggleSaveAnime,
-                                  );
-                                }
-                              ),
-                              
-                              GestureDetector(
-                                onTap: _showRatingBottomSheet,
-                                child: Container(
-                                  padding: _userRating > 0 ? const EdgeInsets.all(4) : EdgeInsets.zero,
-                                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                                  decoration: _userRating > 0 
-                                    ? BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.amber, width: 2))
-                                    : null,
-                                  child: Icon(
-                                    _userRating > 0 ? Icons.star : Icons.stars_outlined, 
-                                    color: _userRating > 0 ? Colors.amber : Colors.white70, 
-                                    size: _userRating > 0 ? 16 : 28
-                                  ),
+                              // Custom Like/Dislike Pill
+                              Container(
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1E2A),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () => _toggleLike(true),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                                        decoration: BoxDecoration(
+                                          color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
+                                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(20), right: Radius.circular(8)),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Row(
+                                          children: [
+                                            Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    Container(width: 1, height: 24, color: Colors.white12),
+                                    GestureDetector(
+                                      onTap: () => _toggleLike(false),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                                        decoration: BoxDecoration(
+                                          color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
+                                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(20), left: Radius.circular(8)),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 20),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              
+                              const SizedBox(width: 16),
                               IconButton(
                                 icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
                                 onPressed: () {
