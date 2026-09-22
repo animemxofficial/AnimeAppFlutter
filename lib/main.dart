@@ -24,6 +24,10 @@ String currentDeviceName = "Unknown Device";
 String currentUserName = "User"; 
 String localProfileImagePath = ""; 
 
+// GLOBAL SUBSCRIPTION SYSTEM
+String globalCurrentPlan = "Free";
+DateTime? globalPlanExpiry;
+
 // ADMIN PANEL SETTINGS
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
@@ -70,7 +74,7 @@ Color getCard(BuildContext context) => const Color(0xFF13131A);
 Color getText(BuildContext context) => Colors.white;
 Color getSubText(BuildContext context) => Colors.white54;
 
-final List<Color> avatarColors = [Colors.redAccent, Colors.blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
+final List<Color> avatarColors = [Colors.redAccent, blueAccent, Colors.green, Colors.purpleAccent, Colors.teal, Colors.orange, Colors.pinkAccent, Colors.indigo];
 
 Color getAvatarColor(String input) => input.isEmpty ? Colors.grey : avatarColors[input.codeUnitAt(0) % avatarColors.length];
 String getAvatarLetter(String input) => input.isEmpty ? "?" : input[0].toUpperCase();
@@ -106,9 +110,9 @@ int getFirstValidSeason(Anime anime) {
 
 DateTime? getPlanExpiryDate(String createdAt, String planName) {
   DateTime start = DateTime.parse(createdAt).toLocal();
-  if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze")) return start.add(const Duration(days: 7));
-  if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("basic")) return start.add(const Duration(days: 30));
-  if (planName.toLowerCase().contains("3 month") || planName.toLowerCase().contains("gold") || planName.toLowerCase().contains("standard")) return start.add(const Duration(days: 90));
+  if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze") || planName.contains("49")) return start.add(const Duration(days: 7));
+  if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("basic") || planName.contains("99")) return start.add(const Duration(days: 30));
+  if (planName.toLowerCase().contains("3 month") || planName.toLowerCase().contains("gold") || planName.toLowerCase().contains("standard") || planName.contains("299")) return start.add(const Duration(days: 90));
   if (planName.toLowerCase().contains("6 month") || planName.toLowerCase().contains("premium")) return start.add(const Duration(days: 180));
   return start.add(const Duration(days: 30)); 
 }
@@ -831,6 +835,23 @@ class _MainScreenState extends State<MainScreen> {
 
   @override void dispose() { _presenceChannel?.unsubscribe(); _dbChannel?.unsubscribe(); _profileScrollController.dispose(); super.dispose(); }
   
+  Future<void> _fetchGlobalPlan() async {
+    try {
+      final res = await Supabase.instance.client.from('payment_requests').select().eq('user_id', currentUserId).eq('status', 'Approved').order('created_at', ascending: false).limit(1).maybeSingle();
+      if(res != null) {
+        DateTime? expiry = getPlanExpiryDate(res['created_at'], res['plan']);
+        if(expiry != null && expiry.isAfter(DateTime.now())) {
+          globalCurrentPlan = res['plan'];
+          globalPlanExpiry = expiry;
+        } else {
+          globalCurrentPlan = "Free";
+        }
+      } else {
+        globalCurrentPlan = "Free";
+      }
+    } catch(e) { }
+  }
+
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
     
@@ -841,6 +862,7 @@ class _MainScreenState extends State<MainScreen> {
       }
     }
 
+    await _fetchGlobalPlan();
     await fetchGlobalAnimeViews(); 
     await _fetchDatabaseCatalog(); 
     await _fetchUserPreferences(); 
@@ -2169,12 +2191,12 @@ class _MyListScreenState extends State<MyListScreen> {
                   Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0)));
                 },
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 12), height: 120, 
+                  margin: const EdgeInsets.only(bottom: 12), height: 130, 
                   decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
                   child: Row(
                     children: [
                       SizedBox(
-                        width: 85, height: 120,
+                        width: 85, height: 130,
                         child: ClipRRect(
                           borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)), 
                           child: Stack(
@@ -3483,6 +3505,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   late List<AnimationController> _starAnimControllers;
   late List<Animation<double>> _starScaleAnimations;
 
+  // Premium Constraints
+  bool _isPremiumBlocked = false;
+  String _premiumMessage = "";
+
   @override 
   void initState() { 
     super.initState(); 
@@ -3598,16 +3624,60 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     }
   }
 
-  void _initPlayer() {
+  void _initPlayer() async {
     if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) return;
     
     final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
+    
+    // FETCH LATEST PLAN 
+    String currentPlan = "Free";
+    try {
+      final res = await Supabase.instance.client.from('payment_requests').select().eq('user_id', currentUserId).eq('status', 'Approved').order('created_at', ascending: false).limit(1).maybeSingle();
+      if(res != null) {
+        DateTime? expiry = getPlanExpiryDate(res['created_at'], res['plan']);
+        if(expiry != null && expiry.isAfter(DateTime.now())) {
+          currentPlan = res['plan'];
+        }
+      }
+    } catch(e) {}
+    
+    globalCurrentPlan = currentPlan; // Update global state
+    
+    // Check Early Access
+    bool isNewEpisode = DateTime.now().difference(ep.createdAt).inHours < 24;
+    if (isNewEpisode) {
+      if (globalCurrentPlan == "Free" || globalCurrentPlan.toLowerCase().contains("bronze") || globalCurrentPlan.contains("49")) {
+        setState(() {
+          _isPremiumBlocked = true;
+          _premiumMessage = "Early Access is available for Silver & Gold plans only.\nBronze plan members can watch this episode tomorrow.";
+        });
+        return; 
+      }
+    }
+    
+    setState(() { _isPremiumBlocked = false; });
+
     _controller = VideoPlayerController.networkUrl(Uri.parse(ep.videoUrl), videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true))..initialize().then((_) { 
       if (widget.startPosition != null && _currentEpisodeIndex == widget.episodeIndex) { 
         _controller?.seekTo(widget.startPosition!); 
       } 
       setState(() {}); 
     }); 
+
+    // Listen for Free Trial (3 Mins Limit)
+    _controller!.addListener(() {
+      if (!mounted) return;
+      if (globalCurrentPlan == "Free") {
+        if (_controller!.value.position.inSeconds >= 180 && !_isPremiumBlocked) {
+          _controller!.pause();
+          setState(() {
+            _isPremiumBlocked = true;
+            _premiumMessage = "Your 3-minute free trial has ended.\nPlease subscribe to watch full episodes.";
+            _isPlaying = false;
+          });
+        }
+      }
+    });
   }
 
   void _changeEpisode(int newIndex) {
@@ -3728,8 +3798,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     if (desc.isEmpty) return const SizedBox.shrink();
 
     bool isLong = desc.length > 50;
-
     String shortDesc = isLong ? "${desc.substring(0, 50)}... " : desc;
+    
     return GestureDetector(
       onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
       child: Row(
@@ -3770,12 +3840,40 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     Widget videoContent = Stack(
       children:[
-        if (_controller != null && _controller!.value.isInitialized) 
+        if (_isPremiumBlocked)
+          Container(
+            color: Colors.black87,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.lock_outline, color: Colors.redAccent, size: 60),
+                    const SizedBox(height: 16),
+                    Text("Premium Locked", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text(_premiumMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      height: 45, width: 200,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage())),
+                        child: const Text("Subscribe Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+          )
+        else if (_controller != null && _controller!.value.isInitialized) 
            Center(child: AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: VideoPlayer(_controller!)))
         else 
            Center(child: CircularProgressIndicator(color: primColor)),
 
-        if (_controller != null && _controller!.value.isInitialized && !_isPlaying && _controller!.value.position == Duration.zero)
+        if (!_isPremiumBlocked && _controller != null && _controller!.value.isInitialized && !_isPlaying && _controller!.value.position == Duration.zero)
           Positioned.fill(
             child: Stack(
               fit: StackFit.expand,
@@ -3786,7 +3884,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
-        if (_showControls && (_controller != null && _controller!.value.isInitialized)) 
+        if (!_isPremiumBlocked && _showControls && (_controller != null && _controller!.value.isInitialized)) 
           GestureDetector(
             onTap: _toggleControls,
             child: Container(
@@ -3871,7 +3969,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
               ),
             ),
           ) 
-        else if (_isPlaying || _controller?.value.position != Duration.zero)
+        else if (!_isPremiumBlocked && (_isPlaying || _controller?.value.position != Duration.zero))
           GestureDetector(onTap: _toggleControls, child: Container(color: Colors.transparent)),
       ],
     );
@@ -3896,28 +3994,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                          ),
-                          ValueListenableBuilder<List<SavedEpisode>>(
-                            valueListenable: myListNotifier,
-                            builder: (context, savedList, child) {
-                              bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
-                              return IconButton(
-                                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: animeMxPurple, size: 30),
-                                onPressed: _toggleSaveAnime,
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                              );
-                            }
-                          )
-                        ],
-                      ),
+                      child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     
                     // Single Line Description + Arrow
                     Padding(
@@ -3989,16 +4068,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                   );
                                 }
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  _userRating > 0 ? Icons.star : Icons.stars_outlined, 
-                                  color: _userRating > 0 ? Colors.amber : Colors.white70, 
-                                  size: 28
+                              
+                              GestureDetector(
+                                onTap: _showRatingBottomSheet,
+                                child: Container(
+                                  padding: _userRating > 0 ? const EdgeInsets.all(4) : EdgeInsets.zero,
+                                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: _userRating > 0 
+                                    ? BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.amber, width: 2))
+                                    : null,
+                                  child: Icon(
+                                    _userRating > 0 ? Icons.star : Icons.stars_outlined, 
+                                    color: _userRating > 0 ? Colors.amber : Colors.white70, 
+                                    size: _userRating > 0 ? 16 : 28
+                                  ),
                                 ),
-                                onPressed: () {
-                                  // Bottom sheet logic handled gracefully by UI now but this keeps it clean.
-                                },
                               ),
+                              
                               IconButton(
                                 icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
                                 onPressed: () {
@@ -4106,7 +4192,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Icon(Icons.remove_red_eye, color: Colors.white54, size: 10),
-                                      const SizedBox(width: 3),
+                                      const SizedBox(width: 4),
                                       Text(formattedViews, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
                                     ],
                                   )
