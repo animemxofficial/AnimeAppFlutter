@@ -12,7 +12,6 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'package:share_plus/share_plus.dart'; 
 
 const String CURRENT_APP_VERSION = "1.0.1"; 
 
@@ -227,6 +226,7 @@ class _BouncingCardState extends State<BouncingCard> with SingleTickerProviderSt
   }
 }
 
+// HORIZONTAL LINE FOR APPBARS
 PreferredSizeWidget appbarBottomLine() {
   return PreferredSize(
     preferredSize: const Size.fromHeight(1.0),
@@ -1345,7 +1345,7 @@ class HomeScreen extends StatelessWidget {
                               children: [
                                 Image.network(item.anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
                                 Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))),
-                                Center(child: Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28))),
+                                Center(child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28))),
                                 Positioned(
                                   bottom: 0, left: 0, right: 0,
                                   child: LinearProgressIndicator(value: progress, backgroundColor: Colors.white24, valueColor: AlwaysStoppedAnimation<Color>(primColor), minHeight: 4)
@@ -3434,7 +3434,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   bool _showControls = true; 
   bool _isFullScreen = false; 
   bool _isPlaying = false; 
-  double _playbackSpeed = 1.0;
   
   late int _currentSeasonIndex;
   late int _currentEpisodeIndex; 
@@ -3614,7 +3613,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         _controller?.seekTo(widget.startPosition!); 
       } 
       setState(() {}); 
-      _controller?.setPlaybackSpeed(_playbackSpeed);
     }); 
   }
 
@@ -3731,35 +3729,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     myListNotifier.value = list; MyListService().saveMyList(currentUserId, list);
   }
 
-  Widget _buildDescription() {
-    String desc = widget.anime.description.trim();
-    if (desc.isEmpty) return const SizedBox.shrink();
-
-    bool isLong = desc.length > 50;
-
-    String shortDesc = isLong ? "${desc.substring(0, 50)}... " : desc;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Text(shortDesc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-        ),
-        if (isLong)
-          GestureDetector(
-            onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                SizedBox(width: 4),
-                Text("See More", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.2)),
-                Icon(Icons.chevron_right, color: Colors.grey, size: 16)
-              ],
-            ),
-          )
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     Color primColor = Theme.of(context).primaryColor; 
@@ -3777,7 +3746,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     final ep = displayedEpisodes[_currentEpisodeIndex];
     String thumbnailImage = ep.image.isNotEmpty ? ep.image : widget.anime.image;
     
-    // Episode Name is Main Title, Anime Name is subtitle
     String episodeTitle = (ep.title.isNotEmpty && ep.title != "Episode") ? ep.title : "Episode ${_currentEpisodeIndex + 1}";
 
     Widget videoContent = Stack(
@@ -3807,98 +3775,74 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 bottom: false,
                 child: Stack(
                   children: [
-                    // Top Bar (Pushed to very top)
+                    // Top Bar (Perfectly matched to image)
                     Positioned(
                       top: 0, left: 0, right: 0,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)),
-                                  child: PopupMenuButton<double>(
-                                    initialValue: _playbackSpeed,
-                                    onSelected: (speed) {
-                                      setState(() => _playbackSpeed = speed);
-                                      _controller!.setPlaybackSpeed(speed);
-                                    },
-                                    itemBuilder: (context) => [0.5, 1.0, 1.25, 1.5, 2.0].map((s) => PopupMenuItem(value: s, child: Text("${s}x", style: const TextStyle(color: Colors.white)))).toList(),
-                                    color: getCard(context),
-                                    child: Text("${_playbackSpeed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                IconButton(icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 24), onPressed: _toggleFullScreen)
-                              ],
-                            )
+                            IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
+                            IconButton(icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 28), onPressed: _toggleFullScreen)
                           ],
                         ),
                       ),
                     ),
 
-                    // Center Controls
+                    // Center Controls (Perfectly matched to image)
                     Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
                         children:[
-                          IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 36), onPressed: _skipBackward), 
+                          IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward), 
                           Container(
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.2)),
                             child: IconButton(
-                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 40), 
+                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 48), 
                               onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
                             ),
                           ),
-                          IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 36), onPressed: _skipForward)
+                          IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: _skipForward)
                         ]
                       ),
                     ),
 
-                    // Bottom Bar (Pushed down to the edge)
+                    // Bottom Progress Bar (Perfectly matched to image)
                     Positioned(
                       bottom: 0, left: 0, right: 0,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              children:[
-                                ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 13)); }), 
-                                Expanded(child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                                  return SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 4.0, 
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
-                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
-                                      activeTrackColor: animeMxPurple,
-                                      inactiveTrackColor: Colors.white24,
-                                      thumbColor: animeMxPurple,
-                                    ), 
-                                    child: Slider(
-                                      min: 0.0, 
-                                      max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
-                                      value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
-                                      onChangeStart: (val) { _controller!.pause(); }, 
-                                      onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
-                                    )
-                                  ); 
-                                })), 
-                                ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                                  Duration rem = value.duration - value.position;
-                                  String remainingText = rem.inSeconds > 0 ? "-${_formatDuration(rem)}" : "00:00";
-                                  return Text(remainingText, style: const TextStyle(color: Colors.white, fontSize: 13)); 
-                                })
-                              ]
-                            )
-                          ],
+                        child: Row(
+                          children:[
+                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 13)); }), 
+                            Expanded(child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                              return SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 4.0, 
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                                  activeTrackColor: animeMxPurple,
+                                  inactiveTrackColor: Colors.white24,
+                                  thumbColor: animeMxPurple,
+                                ), 
+                                child: Slider(
+                                  min: 0.0, 
+                                  max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
+                                  value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
+                                  onChangeStart: (val) { _controller!.pause(); }, 
+                                  onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
+                                  onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
+                                )
+                              ); 
+                            })), 
+                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                              Duration rem = value.duration - value.position;
+                              String remainingText = rem.inSeconds > 0 ? "-${_formatDuration(rem)}" : "00:00";
+                              return Text(remainingText, style: const TextStyle(color: Colors.white, fontSize: 13)); 
+                            })
+                          ]
                         ),
                       ),
                     )
@@ -3932,40 +3876,26 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                const SizedBox(height: 4),
-                                Text(widget.anime.title, style: const TextStyle(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.w500), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              ],
-                            )
-                          ),
-                          ValueListenableBuilder<List<SavedEpisode>>(
-                            valueListenable: myListNotifier,
-                            builder: (context, savedList, child) {
-                              bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
-                              return IconButton(
-                                icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: animeMxPurple, size: 30),
-                                onPressed: _toggleSaveAnime,
-                                constraints: const BoxConstraints(),
-                                padding: EdgeInsets.zero,
-                              );
-                            }
-                          )
-                        ],
-                      ),
+                      child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
                     ),
                     const SizedBox(height: 12),
                     
-                    // Single Line Description + See More
+                    // Single Line Description + Right Arrow
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildDescription(),
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Text(widget.anime.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                            ),
+                            const SizedBox(width: 12),
+                            const Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 14)
+                          ],
+                        ),
+                      ),
                     ),
                     
                     const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Divider(color: Colors.white10, height: 30, thickness: 1)),
@@ -3975,80 +3905,77 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Modern Premium Rating & Share Pill
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: _showRatingBottomSheet,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                                  child: Row(
-                                    children: [
-                                      ScaleTransition(
-                                        scale: _starScaleAnimation,
-                                        child: const Icon(Icons.star, color: Colors.amber, size: 18),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        _totalRatings > 0 ? "${_averageRating.toStringAsFixed(1)} ($_totalRatings)" : "Rate", 
-                                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)
-                                      )
-                                    ],
+                          // Custom Like/Dislike Pill
+                          Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E2A),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                GestureDetector(
+                                  onTap: () => _toggleLike(true),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
+                                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(20), right: Radius.circular(8)),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Row(
+                                      children: [
+                                        Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 20),
+                                        const SizedBox(width: 8),
+                                        Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              GestureDetector(
-                                onTap: () async {
-                                  try {
-                                    await Share.share("🎬 Watch *${widget.anime.title}* for FREE on Axion DUB!\n\nDownload the app now: $globalAppApkUrl");
-                                    await Supabase.instance.client.from('anime_shares').insert({
-                                      'user_id': currentUserId,
-                                      'anime_id': widget.anime.id,
-                                      'anime_title': widget.anime.title
-                                    });
-                                  } catch (e) {}
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white12)),
-                                  child: Row(
-                                    children: const [
-                                      Icon(Icons.share, color: Colors.white, size: 16),
-                                      SizedBox(width: 6),
-                                      Text("Share", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
-                                    ],
+                                Container(width: 1, height: 24, color: Colors.white12),
+                                GestureDetector(
+                                  onTap: () => _toggleLike(false),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    decoration: BoxDecoration(
+                                      color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
+                                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(20), left: Radius.circular(8)),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 20),
                                   ),
                                 ),
-                              )
-                            ],
+                              ],
+                            ),
                           ),
                           
-                          // Like Dislike per Episode
                           Row(
                             children: [
-                              GestureDetector(
-                                onTap: () => _toggleLike(true),
-                                child: Row(
-                                  children: [
-                                    Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: _userLikeStatus == 1 ? animeMxPurple : Colors.white70, size: 22),
-                                    const SizedBox(width: 6),
-                                    Text("$_likeCount", style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold))
-                                  ],
-                                ),
+                              ValueListenableBuilder<List<SavedEpisode>>(
+                                valueListenable: myListNotifier,
+                                builder: (context, savedList, child) {
+                                  bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
+                                  return IconButton(
+                                    icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: isSaved ? animeMxPurple : Colors.white70, size: 28),
+                                    onPressed: _toggleSaveAnime,
+                                  );
+                                }
                               ),
-                              const SizedBox(width: 20),
-                              GestureDetector(
-                                onTap: () => _toggleLike(false),
-                                child: Row(
-                                  children: [
-                                    Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: _userLikeStatus == -1 ? Colors.redAccent : Colors.white70, size: 22),
-                                    const SizedBox(width: 6),
-                                    Text("$_dislikeCount", style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold))
-                                  ],
-                                ),
-                              )
+                              IconButton(
+                                icon: const Icon(Icons.stars_outlined, color: Colors.white70, size: 28),
+                                onPressed: _showRatingBottomSheet,
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                    content: Text("Video download failed. This episode cannot be downloaded right now.", style: TextStyle(color: Colors.white)), 
+                                    backgroundColor: Colors.redAccent,
+                                    duration: Duration(seconds: 3),
+                                  ));
+                                },
+                              ),
                             ],
                           )
                         ],
@@ -4073,7 +4000,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                               child: PopupMenuButton<int>(
                                 color: const Color(0xFF1E1E2A), 
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                position: PopupMenuPosition.under, // OPENS EXACTLY BELOW BUTTON
+                                position: PopupMenuPosition.under, 
+                                constraints: const BoxConstraints(minWidth: 120, maxWidth: 120),
                                 onSelected: _changeSeason,
                                 itemBuilder: (context) => widget.anime.seasonsList.asMap().entries.map((e) {
                                   bool isSel = e.key == _currentSeasonIndex;
@@ -4081,14 +4009,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                     value: e.key,
                                     height: 40,
                                     child: SizedBox(
-                                      width: 100, // Matching the button width
+                                      width: 100, 
                                       child: Text(e.value.name.isEmpty ? "Season ${e.key+1}" : e.value.name, style: TextStyle(color: isSel ? animeMxPurple : Colors.white70, fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
                                     ),
                                   );
                                 }).toList(),
                                 child: Container(
                                   height: 38,
-                                  width: 140, // Perfect fixed width matching the screenshot
+                                  width: 120, 
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
                                   child: Row(
