@@ -3801,7 +3801,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     try {
       final userView = await Supabase.instance.client.from('user_views').select().eq('user_id', currentUserId).eq('episode_id', episodeId).maybeSingle();
       if (userView == null) {
-        await Supabase.instance.client.from('user_views').insert({'user_id', currentUserId, 'episode_id': episodeId});
+        await Supabase.instance.client.from('user_views').insert({'user_id': currentUserId, 'episode_id': episodeId});
         final response = await Supabase.instance.client.from('episode_views').select('view_count').eq('episode_id', episodeId).maybeSingle();
         int currentViews = response?['view_count'] ?? 0;
         await Supabase.instance.client.from('episode_views').upsert({'episode_id': episodeId, 'view_count': currentViews + 1});
