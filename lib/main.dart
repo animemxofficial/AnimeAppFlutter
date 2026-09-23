@@ -4087,101 +4087,111 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 bottom: false,
                 child: Stack(
                   children: [
-                    // Top Bar (Down Arrow, Lock, Settings)
+                    // Top Bar (Down Arrow, Lock, Settings) - AT THE VERY TOP, SMALLER
                     Positioned(
-                      top: 16, left: 16, right: 16,
+                      top: 8, left: 16, right: 16,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 36), 
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28), 
                             onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }
                           ),
                           Row(
                             children: [
-                              IconButton(icon: const Icon(Icons.lock_outline, color: Colors.white, size: 28), onPressed: () {}),
-                              const SizedBox(width: 12),
-                              IconButton(icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 28), onPressed: () {}),
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.lock_outline, color: Colors.white, size: 22), 
+                                onPressed: () {}
+                              ),
+                              const SizedBox(width: 16),
+                              IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 22), 
+                                onPressed: () {}
+                              ),
                             ],
                           )
                         ],
                       ),
                     ),
 
-                    // Center Controls (Rewind, Play/Pause, Forward)
+                    // Center Controls (Rewind, Play/Pause, Forward) - SMALLER SIZE
                     Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center, 
                         children:[
                           Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                            child: IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward),
+                            child: IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 28), onPressed: _skipBackward),
                           ),
-                          const SizedBox(width: 32),
+                          const SizedBox(width: 40),
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
                             child: IconButton(
-                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 50), 
+                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 36), 
                               onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
                             ),
                           ),
-                          const SizedBox(width: 32),
+                          const SizedBox(width: 40),
                           Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: const EdgeInsets.all(8),
                             decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                            child: IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: _skipForward),
+                            child: IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 28), onPressed: _skipForward),
                           ),
                         ]
                       ),
                     ),
 
-                    // Bottom Progress Bar (Time, Slider, Fullscreen)
+                    // Bottom Progress Bar (Time on left, Slider, Fullscreen on right) - AT THE VERY BOTTOM
                     Positioned(
-                      bottom: 16, left: 24, right: 16,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      bottom: 4, left: 16, right: 16,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
                             return Text(
                               "${_formatDuration(value.position)} / ${_formatDuration(value.duration)}", 
-                              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)
+                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)
                             ); 
                           }),
-                          const SizedBox(height: 4),
-                          Row(
-                            children:[
-                              Expanded(
-                                child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                                  return SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 3.0, 
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
-                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
-                                      activeTrackColor: const Color(0xFFE50914),
-                                      inactiveTrackColor: Colors.white54,
-                                      thumbColor: const Color(0xFFE50914),
-                                      trackShape: const RectangularSliderTrackShape(),
-                                    ), 
-                                    child: Slider(
-                                      min: 0.0, 
-                                      max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
-                                      value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
-                                      onChangeStart: (val) { _controller!.pause(); }, 
-                                      onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
-                                    )
-                                  ); 
-                                })
-                              ), 
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 28), 
-                                onPressed: _toggleFullScreen
-                              )
-                            ]
-                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                              return SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 3.0, 
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0), 
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 10.0),
+                                  activeTrackColor: const Color(0xFFE50914),
+                                  inactiveTrackColor: Colors.white54,
+                                  thumbColor: const Color(0xFFE50914),
+                                  trackShape: const RectangularSliderTrackShape(),
+                                ), 
+                                child: Slider(
+                                  min: 0.0, 
+                                  max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
+                                  value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
+                                  onChangeStart: (val) { _controller!.pause(); }, 
+                                  onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
+                                  onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
+                                )
+                              ); 
+                            })
+                          ), 
+                          const SizedBox(width: 8),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 22), 
+                            onPressed: _toggleFullScreen
+                          )
                         ],
                       ),
                     )
