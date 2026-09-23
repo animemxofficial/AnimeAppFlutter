@@ -3484,7 +3484,7 @@ class DescriptionPage extends StatelessWidget {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// CUSTOM RATING STAR (Matching the detailed description exactly)
+// CUSTOM RATING STAR 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class CustomRatingStar extends StatelessWidget {
   final bool isRated;
@@ -3507,7 +3507,7 @@ class CustomRatingStar extends StatelessWidget {
           alignment: Alignment.center,
           children: const [
             Icon(Icons.star, color: Colors.amber, size: 20),
-            Icon(Icons.star, color: Colors.black, size: 9), // Creates the cutout effect
+            Icon(Icons.star, color: Colors.black, size: 9), 
           ],
         ),
       ),
@@ -3516,7 +3516,7 @@ class CustomRatingStar extends StatelessWidget {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// VIDEO PLAYER PAGE
+// VIDEO PLAYER PAGE (RE-DESIGNED CONTROLS)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class VideoPlayerPage extends StatefulWidget {
   final Anime anime; 
@@ -3535,7 +3535,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   bool _showControls = true; 
   bool _isFullScreen = false; 
   bool _isPlaying = false; 
-  bool _hasStartedPlaying = false; // Thumbanil cover toggle
+  bool _hasStartedPlaying = false; 
   
   late int _currentSeasonIndex;
   late int _currentEpisodeIndex; 
@@ -4009,7 +4009,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 ),
                 Positioned(
                   top: 16, left: 16,
-                  child: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
+                  child: IconButton(icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 36), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
                 )
               ],
             ),
@@ -4087,75 +4087,102 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 bottom: false,
                 child: Stack(
                   children: [
-                    // Top Bar 
+                    // Top Bar (Down Arrow, Lock, Settings)
                     Positioned(
-                      top: 0, left: 0, right: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
-                            IconButton(icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 28), onPressed: _toggleFullScreen)
-                          ],
-                        ),
+                      top: 16, left: 16, right: 16,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 36), 
+                            onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }
+                          ),
+                          Row(
+                            children: [
+                              IconButton(icon: const Icon(Icons.lock_outline, color: Colors.white, size: 28), onPressed: () {}),
+                              const SizedBox(width: 12),
+                              IconButton(icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 28), onPressed: () {}),
+                            ],
+                          )
+                        ],
                       ),
                     ),
 
-                    // Center Controls
+                    // Center Controls (Rewind, Play/Pause, Forward)
                     Center(
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
+                        mainAxisAlignment: MainAxisAlignment.center, 
                         children:[
-                          IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 36), onPressed: _skipBackward), 
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
+                            child: IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 40), onPressed: _skipBackward),
+                          ),
+                          const SizedBox(width: 32),
+                          Container(
+                            padding: const EdgeInsets.all(12),
                             decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
                             child: IconButton(
-                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 40), 
+                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 50), 
                               onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
                             ),
                           ),
-                          IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 36), onPressed: _skipForward)
+                          const SizedBox(width: 32),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
+                            child: IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 40), onPressed: _skipForward),
+                          ),
                         ]
                       ),
                     ),
 
-                    // Bottom Progress Bar
+                    // Bottom Progress Bar (Time, Slider, Fullscreen)
                     Positioned(
-                      bottom: 0, left: 0, right: 0,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Row(
-                          children:[
-                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { return Text(_formatDuration(value.position), style: const TextStyle(color: Colors.white, fontSize: 13)); }), 
-                            Expanded(child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                              return SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  trackHeight: 4.0, 
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
-                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
-                                  activeTrackColor: animeMxPurple,
-                                  inactiveTrackColor: Colors.white24,
-                                  thumbColor: animeMxPurple,
-                                ), 
-                                child: Slider(
-                                  min: 0.0, 
-                                  max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
-                                  value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
-                                  onChangeStart: (val) { _controller!.pause(); }, 
-                                  onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                  onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
-                                )
-                              ); 
-                            })), 
-                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                              Duration rem = value.duration - value.position;
-                              String remainingText = rem.inSeconds > 0 ? "-${_formatDuration(rem)}" : "00:00";
-                              return Text(remainingText, style: const TextStyle(color: Colors.white, fontSize: 13)); 
-                            })
-                          ]
-                        ),
+                      bottom: 16, left: 24, right: 16,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                            return Text(
+                              "${_formatDuration(value.position)} / ${_formatDuration(value.duration)}", 
+                              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)
+                            ); 
+                          }),
+                          const SizedBox(height: 4),
+                          Row(
+                            children:[
+                              Expanded(
+                                child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                                  return SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                      trackHeight: 3.0, 
+                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
+                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
+                                      activeTrackColor: const Color(0xFFE50914),
+                                      inactiveTrackColor: Colors.white54,
+                                      thumbColor: const Color(0xFFE50914),
+                                      trackShape: const RectangularSliderTrackShape(),
+                                    ), 
+                                    child: Slider(
+                                      min: 0.0, 
+                                      max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
+                                      value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
+                                      onChangeStart: (val) { _controller!.pause(); }, 
+                                      onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
+                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
+                                    )
+                                  ); 
+                                })
+                              ), 
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 28), 
+                                onPressed: _toggleFullScreen
+                              )
+                            ]
+                          ),
+                        ],
                       ),
                     )
                   ],
