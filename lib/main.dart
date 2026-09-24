@@ -964,11 +964,13 @@ class HistoryScreen extends StatefulWidget {
   @override State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin {
   bool _isLoading = true;
   int _displayCount = 10;
   bool _isFetchingMore = false;
   final ScrollController _scrollController = ScrollController();
+
+  @override bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -1017,6 +1019,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_isLoading) {
       return Scaffold(
         backgroundColor: getBg(context),
@@ -1089,14 +1092,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
 
-          if (_isFetchingMore) {
-            listWidgets.add(
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: CircularProgressIndicator(color: animeMxPurple)),
-              )
-            );
-          }
+          // Infinite loading effect always shows at bottom
+          listWidgets.add(
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator(color: animeMxPurple)),
+            )
+          );
 
           return ListView(
             controller: _scrollController,
@@ -1323,11 +1325,16 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final VoidCallback onSearchTap;
   final VoidCallback onHistoryTap;
   final bool isDataLoading;
   const HomeScreen({super.key, required this.onSearchTap, required this.onHistoryTap, required this.isDataLoading});
+  @override State<HomeScreen> createState() => _HomeScreenState();
+}
+class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
+
+  @override bool get wantKeepAlive => true;
 
   void _showNotifications(BuildContext context, List<LatestEpisodeItem> recentEps) {
     showModalBottomSheet(
@@ -1343,15 +1350,15 @@ class HomeScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Notifications", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                  GestureDetector(onTap: () => Navigator.pop(ctx), child: Icon(Icons.close, color: Colors.white54)),
+                  const Text("Notifications", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  GestureDetector(onTap: () => Navigator.pop(ctx), child: const Icon(Icons.close, color: Colors.white54)),
                 ],
               ),
             ),
             const Divider(color: Colors.white10, height: 1),
             Expanded(
               child: recentEps.isEmpty 
-                ? Center(child: Text("No new notifications", style: TextStyle(color: Colors.white54)))
+                ? const Center(child: Text("No new notifications", style: TextStyle(color: Colors.white54)))
                 : ListView.builder(
                   itemCount: recentEps.length > 10 ? 10 : recentEps.length,
                   itemBuilder: (ctx, i) {
@@ -1362,7 +1369,7 @@ class HomeScreen extends StatelessWidget {
                         width: 90, height: 50,
                         decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), image: DecorationImage(image: NetworkImage(item.episode.image.isNotEmpty ? item.episode.image : item.anime.image), fit: BoxFit.cover))
                       ),
-                      title: Text("New Episode: ${item.anime.title}", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      title: Text("New Episode: ${item.anime.title}", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
                       subtitle: Text("Episode ${item.episodeIndex + 1} is now available!", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
                       onTap: () {
                         Navigator.pop(ctx);
@@ -1391,7 +1398,7 @@ class HomeScreen extends StatelessWidget {
             children: [
               Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: getText(context))),
               GestureDetector(
-                onTap: onHistoryTap,
+                onTap: widget.onHistoryTap,
                 child: Text("See All", style: TextStyle(color: primColor, fontWeight: FontWeight.bold, fontSize: 13))
               )
             ],
@@ -1466,6 +1473,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     Color primColor = Theme.of(context).primaryColor;
     
     int newNotificationCount = 0;
@@ -1502,10 +1510,10 @@ class HomeScreen extends StatelessWidget {
               : Icon(Icons.notifications_none, color: getText(context), size: 24),
             onPressed: () => _showNotifications(context, latestList)
           ),
-          IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: onSearchTap)
+          IconButton(icon: Icon(Icons.search, color: getText(context), size: 24), onPressed: widget.onSearchTap)
         ],
       ),
-      body: isDataLoading 
+      body: widget.isDataLoading 
       ? const Center(child: CircularProgressIndicator(color: animeMxPurple))
       : SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 100),
@@ -1940,11 +1948,13 @@ class BrowseScreen extends StatefulWidget {
   State<BrowseScreen> createState() => _BrowseScreenState();
 }
 
-class _BrowseScreenState extends State<BrowseScreen> {
+class _BrowseScreenState extends State<BrowseScreen> with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController(); 
   List<Anime> _searchResults = [];
   bool _isLoadingSearches = true;
   bool _isSearching = false;
+
+  @override bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -2005,6 +2015,7 @@ class _BrowseScreenState extends State<BrowseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: getBg(context),
       body: SafeArea(
@@ -2016,7 +2027,9 @@ class _BrowseScreenState extends State<BrowseScreen> {
               Container(
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
                 child: TextField(
-                  controller: _searchController, onChanged: _performSearch, onSubmitted: _submitSearch, style: TextStyle(color: getText(context), fontSize: 15), 
+                  controller: _searchController, 
+                  onSubmitted: _submitSearch, 
+                  style: TextStyle(color: getText(context), fontSize: 15), 
                   decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _performSearch(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
                 )
               ),
@@ -2077,11 +2090,16 @@ class _BrowseScreenState extends State<BrowseScreen> {
   }
 }
 
-class ExploreScreen extends StatelessWidget {
+class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
-  
+  @override State<ExploreScreen> createState() => _ExploreScreenState();
+}
+class _ExploreScreenState extends State<ExploreScreen> with AutomaticKeepAliveClientMixin {
+  @override bool get wantKeepAlive => true;
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(title: const Text("Explore", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: getBg(context), bottom: appbarBottomLine()),
@@ -3719,6 +3737,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       if (mounted) {
         setState(() { _hasUserRated = true; });
         _fetchRatings(); 
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Thanks for rating $rating stars!", style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ));
       }
     } catch(e) {}
   }
@@ -4043,6 +4066,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     final list = List<SavedEpisode>.from(myListNotifier.value); final isSaved = list.any((item) => item.anime.title == widget.anime.title);
     if (isSaved) { list.removeWhere((item) => item.anime.title == widget.anime.title); } else { list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); }
     myListNotifier.value = list; MyListService().saveMyList(currentUserId, list);
+    
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(isSaved ? "Removed from My List" : "Successfully added to My List", style: const TextStyle(color: Colors.white)),
+      backgroundColor: isSaved ? Colors.redAccent : Colors.green,
+      duration: const Duration(seconds: 2),
+    ));
   }
 
   @override
@@ -4066,6 +4095,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     
     String description = widget.anime.description.trim();
     String shortDesc = description.length > 50 ? "${description.substring(0, 50)}... " : description;
+
+    Widget playerWidget = _controller != null && _controller!.value.isInitialized 
+        ? AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: VideoPlayer(_controller!))
+        : const SizedBox();
+
+    if (_isFullScreen) {
+      playerWidget = InteractiveViewer(
+        minScale: 1.0,
+        maxScale: 4.0,
+        child: Center(child: playerWidget),
+      );
+    } else {
+      playerWidget = Center(child: playerWidget);
+    }
 
     Widget videoContent = Stack(
       children:[
@@ -4098,7 +4141,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           )
         else if (_controller != null && _controller!.value.isInitialized) 
-           Center(child: AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: VideoPlayer(_controller!)))
+           playerWidget
         else 
            Center(child: CircularProgressIndicator(color: primColor)),
 
@@ -4123,20 +4166,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.65), 
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white24, width: 1.5)
+                        color: animeMxPurple.withOpacity(0.9), 
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.5), blurRadius: 20)]
                       ),
-                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 50),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.play_arrow_rounded, color: Colors.white, size: 36),
+                          SizedBox(width: 8),
+                          Text("PLAY NOW", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5))
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                Positioned(
-                  top: 16, left: 16,
-                  child: IconButton(icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
-                )
               ],
             ),
           ),
@@ -4169,17 +4215,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
           Positioned(
             right: 40, top: 0, bottom: 0,
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(30)),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.fast_forward, color: Colors.white, size: 30),
-                    SizedBox(height: 4),
-                    Text("10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                  ],
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.fast_forward, color: Colors.white, size: 40, shadows: [Shadow(color: Colors.black54, blurRadius: 10)]),
+                  SizedBox(height: 4),
+                  Text("10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black54, blurRadius: 10)]))
+                ],
               ),
             ),
           ),
@@ -4189,141 +4231,141 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
           Positioned(
             left: 40, top: 0, bottom: 0,
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(30)),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: const [
-                    Icon(Icons.fast_rewind, color: Colors.white, size: 30),
-                    SizedBox(height: 4),
-                    Text("10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                  ],
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.fast_rewind, color: Colors.white, size: 40, shadows: [Shadow(color: Colors.black54, blurRadius: 10)]),
+                  SizedBox(height: 4),
+                  Text("10s", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black54, blurRadius: 10)]))
+                ],
               ),
             ),
           ),
 
-        if (!_isPremiumBlocked && _hasStartedPlaying && _showControls && (_controller != null && _controller!.value.isInitialized)) 
-          IgnorePointer(
-            ignoring: false,
-            child: Container(
-              color: Colors.black.withOpacity(0.5), 
-              child: SafeArea(
-                bottom: false,
-                child: Stack(
-                  children: [
-                    // Top Bar (Down Arrow, Lock, Settings)
-                    Positioned(
-                      top: 12, left: 16, right: 16,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          GestureDetector(
-                            onTap: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } },
-                            child: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28),
-                          ),
-                          Row(
-                            children: [
-                              GestureDetector(onTap: () {}, child: const Icon(Icons.lock_outline, color: Colors.white, size: 22)),
-                              const SizedBox(width: 16),
-                              GestureDetector(onTap: () {}, child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22)),
-                            ],
-                          )
-                        ],
+        if (!_isPremiumBlocked && _hasStartedPlaying && (_controller != null && _controller!.value.isInitialized)) 
+          AnimatedOpacity(
+            opacity: _showControls ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 300),
+            child: IgnorePointer(
+              ignoring: !_showControls,
+              child: Container(
+                color: Colors.black.withOpacity(0.5), 
+                child: SafeArea(
+                  bottom: false,
+                  child: Stack(
+                    children: [
+                      // Top Bar (Down Arrow, Lock, Settings)
+                      Positioned(
+                        top: 12, left: 16, right: 16,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            GestureDetector(
+                              onTap: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } },
+                              child: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28),
+                            ),
+                            Row(
+                              children: [
+                                GestureDetector(onTap: () {}, child: const Icon(Icons.lock_outline, color: Colors.white, size: 22)),
+                                const SizedBox(width: 16),
+                                GestureDetector(onTap: () {}, child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22)),
+                              ],
+                            )
+                          ],
+                        ),
                       ),
-                    ),
 
-                    // Center Controls (Rewind, Play/Pause, Forward)
-                    Center(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center, 
-                        children:[
-                          Container(
-                            width: 50, height: 50,
-                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.replay_10, color: Colors.white, size: 28), 
-                              onPressed: _skipBackward
+                      // Center Controls (Rewind, Play/Pause, Forward)
+                      Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center, 
+                          children:[
+                            Container(
+                              width: 50, height: 50,
+                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.replay_10, color: Colors.white, size: 28), 
+                                onPressed: _skipBackward
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 40),
-                          Container(
-                            width: 60, height: 60,
-                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 36), 
-                              onPressed: () { 
-                                setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); 
-                                _startHideTimer();
-                              }
+                            const SizedBox(width: 40),
+                            Container(
+                              width: 60, height: 60,
+                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 36), 
+                                onPressed: () { 
+                                  setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); 
+                                  _startHideTimer();
+                                }
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 40),
-                          Container(
-                            width: 50, height: 50,
-                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.forward_10, color: Colors.white, size: 28), 
-                              onPressed: _skipForward
+                            const SizedBox(width: 40),
+                            Container(
+                              width: 50, height: 50,
+                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.forward_10, color: Colors.white, size: 28), 
+                                onPressed: _skipForward
+                              ),
                             ),
-                          ),
-                        ]
+                          ]
+                        ),
                       ),
-                    ),
 
-                    // Bottom Progress Bar (Time, Slider, Fullscreen)
-                    Positioned(
-                      bottom: 4, left: 16, right: 16,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                            return Text(
-                              "${_formatDuration(value.position)} / ${_formatDuration(value.duration)}", 
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)
-                            ); 
-                          }),
-                          const SizedBox(height: 6),
-                          Row(
-                            children:[
-                              Expanded(
-                                child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                                  return SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 2.5, 
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
-                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-                                      activeTrackColor: animeMxPurple,
-                                      inactiveTrackColor: Colors.white38,
-                                      thumbColor: animeMxPurple,
-                                      trackShape: CustomTrackShape(),
-                                    ), 
-                                    child: Slider(
-                                      min: 0.0, 
-                                      max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
-                                      value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
-                                      onChangeStart: (val) { _hideTimer?.cancel(); _controller!.pause(); }, 
-                                      onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; _startHideTimer(); }
-                                    )
-                                  ); 
-                                })
-                              ), 
-                              const SizedBox(width: 12),
-                              GestureDetector(
-                                onTap: _toggleFullScreen,
-                                child: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 22)
-                              )
-                            ]
-                          ),
-                        ],
-                      ),
-                    )
-                  ],
+                      // Bottom Progress Bar (Time, Slider, Fullscreen)
+                      Positioned(
+                        bottom: 4, left: 16, right: 16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                              return Text(
+                                "${_formatDuration(value.position)} / ${_formatDuration(value.duration)}", 
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)
+                              ); 
+                            }),
+                            const SizedBox(height: 6),
+                            Row(
+                              children:[
+                                Expanded(
+                                  child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                                    return SliderTheme(
+                                      data: SliderTheme.of(context).copyWith(
+                                        trackHeight: 2.5, 
+                                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
+                                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+                                        activeTrackColor: animeMxPurple,
+                                        inactiveTrackColor: Colors.white38,
+                                        thumbColor: animeMxPurple,
+                                        trackShape: CustomTrackShape(),
+                                      ), 
+                                      child: Slider(
+                                        min: 0.0, 
+                                        max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
+                                        value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
+                                        onChangeStart: (val) { _hideTimer?.cancel(); }, 
+                                        onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
+                                        onChangeEnd: (val) { if (_isPlaying) _controller!.play(); _startHideTimer(); }
+                                      )
+                                    ); 
+                                  })
+                                ), 
+                                const SizedBox(width: 12),
+                                GestureDetector(
+                                  onTap: _toggleFullScreen,
+                                  child: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 22)
+                                )
+                              ]
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -4332,7 +4374,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     );
 
     if (_isFullScreen) {
-      return Scaffold(backgroundColor: Colors.black, body: Center(child: AspectRatio(aspectRatio: 16 / 9, child: videoContent)));
+      return Scaffold(backgroundColor: Colors.black, body: Center(child: videoContent));
     }
 
     return Scaffold(
@@ -4508,9 +4550,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(widget.anime.seasonsList[_currentSeasonIndex].name.isEmpty ? "Season ${_currentSeasonIndex+1}" : widget.anime.seasonsList[_currentSeasonIndex].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                      Icon(_isSeasonMenuOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white, size: 20)
                                     ],
                                   ),
                                 ),
