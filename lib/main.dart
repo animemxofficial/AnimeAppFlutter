@@ -966,13 +966,43 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   bool _isLoading = true;
+  int _displayCount = 10;
+  bool _isFetchingMore = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 50) {
+        _loadMore();
+      }
+    });
+
     Future.delayed(const Duration(milliseconds: 600), () {
       if(mounted) setState(() => _isLoading = false);
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMore() async {
+    if (_isFetchingMore) return;
+    final total = continueWatchingNotifier.value.length;
+    if (_displayCount >= total) return;
+
+    setState(() => _isFetchingMore = true);
+    await Future.delayed(const Duration(milliseconds: 1000));
+    if (mounted) {
+      setState(() {
+        _displayCount += 10;
+        _isFetchingMore = false;
+      });
+    }
   }
 
   String _getDateString(DateTime date) {
@@ -1006,7 +1036,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           List<Widget> listWidgets = [];
           String currentDateStr = "";
 
-          for (var item in cwList) {
+          var displayList = cwList.take(_displayCount).toList();
+
+          for (var item in displayList) {
             String itemDateStr = _getDateString(item.lastWatched);
             if (itemDateStr != currentDateStr) {
               currentDateStr = itemDateStr;
@@ -1015,6 +1047,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: Text(currentDateStr, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ));
             }
+
+            String cwImage = item.anime.image;
+            try {
+              String epImg = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex].image;
+              if (epImg.isNotEmpty) cwImage = epImg;
+            } catch (e) {}
 
             listWidgets.add(
               BouncingCard(
@@ -1028,7 +1066,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         width: 140, height: 78,
                         decoration: BoxDecoration(
                           borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)), 
-                          image: DecorationImage(image: NetworkImage(item.anime.image), fit: BoxFit.cover)
+                          image: DecorationImage(image: NetworkImage(cwImage), fit: BoxFit.cover)
                         )
                       ),
                       const SizedBox(width: 12),
@@ -1051,7 +1089,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
 
+          if (_isFetchingMore) {
+            listWidgets.add(
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(child: CircularProgressIndicator(color: animeMxPurple)),
+              )
+            );
+          }
+
           return ListView(
+            controller: _scrollController,
             padding: const EdgeInsets.only(bottom: 100),
             children: listWidgets,
           );
@@ -1359,6 +1407,12 @@ class HomeScreen extends StatelessWidget {
               if(item.totalDuration.inSeconds > 0) {
                 progress = item.position.inSeconds / item.totalDuration.inSeconds;
               }
+
+              String cwImage = item.anime.image;
+              try {
+                String epImg = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex].image;
+                if (epImg.isNotEmpty) cwImage = epImg;
+              } catch (e) {}
               
               return BouncingCard(
                 onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
@@ -1382,7 +1436,7 @@ class HomeScreen extends StatelessWidget {
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                Image.network(item.anime.image, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
+                                Image.network(cwImage, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.broken_image, color: Colors.white54)),
                                 Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.black.withOpacity(0.5), Colors.transparent], begin: Alignment.bottomCenter, end: Alignment.center))),
                                 Center(child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28))),
                                 Positioned(
@@ -3554,6 +3608,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   bool _isFullScreen = false; 
   bool _isPlaying = false; 
   bool _hasStartedPlaying = false; 
+  Timer? _hideTimer;
   
   late int _currentSeasonIndex;
   late int _currentEpisodeIndex; 
@@ -3573,6 +3628,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   String _premiumMessage = "";
   bool _isPlanVerified = false;
 
+  // 4 Minute Daily Limit (Free Users) Local Tracker
+  int _dailyWatchSeconds = 0;
+  Duration _lastRecordedPosition = Duration.zero;
+
   // Skip Animation Trackers
   bool _showForwardSkip = false;
   bool _showBackwardSkip = false;
@@ -3588,7 +3647,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _fetchEpisodeLikes();
     _fetchRatings();
     _incrementAndFetchViews(); 
+    _loadDailyWatchLimit();
     _verifyPlanAndInitPlayer();
+  }
+
+  Future<void> _loadDailyWatchLimit() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String today = DateTime.now().toIso8601String().substring(0, 10);
+    String savedDate = prefs.getString('daily_limit_date') ?? "";
+    if (savedDate == today) {
+      _dailyWatchSeconds = prefs.getInt('daily_limit_seconds') ?? 0;
+    } else {
+      _dailyWatchSeconds = 0;
+      await prefs.setString('daily_limit_date', today);
+      await prefs.setInt('daily_limit_seconds', 0);
+    }
   }
 
   Future<void> _fetchEpisodeLikes() async {
@@ -3803,15 +3876,30 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     _controller!.addListener(() {
       if (!mounted) return;
-      if (globalCurrentPlan == "Free") {
-        if (_controller!.value.position.inSeconds >= 180 && !_isPremiumBlocked) {
+      if (_isPlaying && globalCurrentPlan == "Free") {
+        Duration currentPos = _controller!.value.position;
+        if (currentPos > _lastRecordedPosition) {
+           int diff = (currentPos - _lastRecordedPosition).inSeconds;
+           if (diff > 0 && diff < 5) {
+             _dailyWatchSeconds += diff;
+             if (_dailyWatchSeconds % 5 == 0) {
+                SharedPreferences.getInstance().then((p) => p.setInt('daily_limit_seconds', _dailyWatchSeconds));
+             }
+           }
+        }
+        _lastRecordedPosition = currentPos;
+
+        if (_dailyWatchSeconds >= 240 && !_isPremiumBlocked) { // 4 Minutes Daily limit
           _controller!.pause();
           setState(() {
             _isPremiumBlocked = true;
-            _premiumMessage = "Your 3-minute free trial has ended.\nPlease subscribe to watch full episodes.";
+            _premiumMessage = "You have reached your 4-minute daily free limit.\nPlease upgrade your plan to watch unlimited videos.";
             _isPlaying = false;
+            _showControls = false;
           });
         }
+      } else {
+        _lastRecordedPosition = _controller?.value.position ?? Duration.zero;
       }
     });
   }
@@ -3830,6 +3918,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _dislikeCount = 0; 
       _userLikeStatus = 0; 
       _isPlanVerified = false;
+      _lastRecordedPosition = Duration.zero;
     });
     _fetchEpisodeLikes();
     _incrementAndFetchViews();
@@ -3851,6 +3940,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _dislikeCount = 0; 
       _userLikeStatus = 0; 
       _isPlanVerified = false;
+      _lastRecordedPosition = Duration.zero;
     });
     _fetchEpisodeLikes();
     _incrementAndFetchViews();
@@ -3859,6 +3949,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   @override 
   void dispose() { 
+    _hideTimer?.cancel();
     if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
       _updateContinueWatching(); 
       _controller?.dispose(); 
@@ -3902,7 +3993,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     } 
   }
 
-  void _toggleControls() { setState(() => _showControls = !_showControls); }
+  void _startHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted && _isPlaying) setState(() => _showControls = false);
+    });
+  }
+
+  void _toggleControls() { 
+    setState(() => _showControls = !_showControls); 
+    if (_showControls) _startHideTimer();
+  }
 
   void _toggleFullScreen() { 
     setState(() => _isFullScreen = !_isFullScreen); 
@@ -3917,6 +4018,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     if (_isPremiumBlocked) return;
     _controller?.seekTo(_controller!.value.position + const Duration(seconds: 10)); 
     setState(() => _showForwardSkip = true);
+    _startHideTimer();
     Future.delayed(const Duration(milliseconds: 500), () {
       if(mounted) setState(() => _showForwardSkip = false);
     });
@@ -3926,6 +4028,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     if (_isPremiumBlocked) return;
     _controller?.seekTo(_controller!.value.position - const Duration(seconds: 10)); 
     setState(() => _showBackwardSkip = true);
+    _startHideTimer();
     Future.delayed(const Duration(milliseconds: 500), () {
       if(mounted) setState(() => _showBackwardSkip = false);
     });
@@ -4015,13 +4118,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                           _isPlaying = true; 
                           _controller?.play(); 
                           _showControls = false; 
+                          _startHideTimer();
                         });
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.3), shape: BoxShape.circle),
-                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 60),
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.65), 
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.white24, width: 1.5)
+                      ),
+                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 50),
                     ),
                   ),
                 ),
@@ -4033,7 +4141,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
-        // YOUTUBE STYLE DOUBLE TAP TO SKIP
+        // TAP TO HIDE CONTROLS & DOUBLE TAP SKIP
         if (!_isPremiumBlocked && _hasStartedPlaying && _controller != null && _controller!.value.isInitialized)
           Positioned.fill(
             child: Row(
@@ -4147,7 +4255,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                             child: IconButton(
                               padding: EdgeInsets.zero,
                               icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 36), 
-                              onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
+                              onPressed: () { 
+                                setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); 
+                                _startHideTimer();
+                              }
                             ),
                           ),
                           const SizedBox(width: 40),
@@ -4166,7 +4277,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
                     // Bottom Progress Bar (Time, Slider, Fullscreen)
                     Positioned(
-                      bottom: 16, left: 16, right: 16,
+                      bottom: 4, left: 16, right: 16,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -4186,18 +4297,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                       trackHeight: 2.5, 
                                       thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
                                       overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-                                      activeTrackColor: const Color(0xFFE50914),
+                                      activeTrackColor: animeMxPurple,
                                       inactiveTrackColor: Colors.white38,
-                                      thumbColor: const Color(0xFFE50914),
+                                      thumbColor: animeMxPurple,
                                       trackShape: CustomTrackShape(),
                                     ), 
                                     child: Slider(
                                       min: 0.0, 
                                       max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
                                       value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
-                                      onChangeStart: (val) { _controller!.pause(); }, 
+                                      onChangeStart: (val) { _hideTimer?.cancel(); _controller!.pause(); }, 
                                       onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
+                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; _startHideTimer(); }
                                     )
                                   ); 
                                 })
@@ -4271,7 +4382,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Custom Like/Dislike Pill (Matching Image)
+                          // Custom Like/Dislike Pill 
                           Container(
                             height: 44,
                             decoration: BoxDecoration(
@@ -4286,7 +4397,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 20),
                                     decoration: BoxDecoration(
-                                      color: _userLikeStatus == 1 ? animeMxPurple : Colors.transparent,
+                                      color: _userLikeStatus == 1 ? Colors.white24 : Colors.transparent,
                                       borderRadius: const BorderRadius.horizontal(left: Radius.circular(22), right: Radius.circular(8)),
                                     ),
                                     alignment: Alignment.center,
@@ -4305,7 +4416,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 20),
                                     decoration: BoxDecoration(
-                                      color: _userLikeStatus == -1 ? Colors.redAccent.withOpacity(0.8) : Colors.transparent,
+                                      color: _userLikeStatus == -1 ? Colors.white24 : Colors.transparent,
                                       borderRadius: const BorderRadius.horizontal(right: Radius.circular(22), left: Radius.circular(8)),
                                     ),
                                     alignment: Alignment.center,
@@ -4397,10 +4508,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
                                   decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(widget.anime.seasonsList[_currentSeasonIndex].name.isEmpty ? "Season ${_currentSeasonIndex+1}" : widget.anime.seasonsList[_currentSeasonIndex].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                      Icon(_isSeasonMenuOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white, size: 20)
                                     ],
                                   ),
                                 ),
@@ -4430,7 +4540,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                   Container(
                                     width: 60, height: 60,
                                     decoration: BoxDecoration(
-                                      color: isActive ? const Color(0xFFFF4D4D) : getCard(context),
+                                      color: isActive ? animeMxPurple : getCard(context),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: isActive ? Colors.transparent : Colors.white12)
                                     ),
