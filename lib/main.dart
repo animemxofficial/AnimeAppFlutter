@@ -965,7 +965,6 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin {
-  bool _isLoading = true;
   int _displayCount = 10;
   bool _isFetchingMore = false;
   final ScrollController _scrollController = ScrollController();
@@ -979,10 +978,6 @@ class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCl
       if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 50) {
         _loadMore();
       }
-    });
-
-    Future.delayed(const Duration(milliseconds: 600), () {
-      if(mounted) setState(() => _isLoading = false);
     });
   }
 
@@ -1020,14 +1015,7 @@ class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCl
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: getBg(context),
-        appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()),
-        body: Center(child: CircularProgressIndicator(color: Theme.of(context).primaryColor)),
-      );
-    }
-
+    
     return Scaffold(
       backgroundColor: getBg(context),
       appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()),
@@ -1405,7 +1393,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           )
         ),
         SizedBox(
-          height: 140, 
+          height: 155, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: cwList.length, 
             itemBuilder: (context, index) { 
@@ -1424,7 +1412,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               return BouncingCard(
                 onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
                 child: Container(
-                  width: 160, margin: const EdgeInsets.only(right: 14),
+                  width: 180, margin: const EdgeInsets.only(right: 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1600,7 +1588,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           ),
         ),
         SizedBox(
-          height: 150, 
+          height: 170, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: latestList.length, 
             itemBuilder: (context, index) { 
@@ -1630,7 +1618,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
           ),
         ),
         SizedBox(
-          height: 240, 
+          height: 260, 
           child: ListView.builder(
             scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5), itemCount: list.length, 
             itemBuilder: (context, index) { 
@@ -1649,7 +1637,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                   Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: anime, seasonIndex: sIdx, episodeIndex: 0))); 
                 },
                 child: Container(
-                  width: 125, margin: const EdgeInsets.only(right: 14), 
+                  width: 140, margin: const EdgeInsets.only(right: 14), 
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start, 
                     children:[
@@ -1741,7 +1729,7 @@ class ThumbnailLatestCard extends StatelessWidget {
     return BouncingCard(
       onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex))),
       child: Container(
-        width: 140, margin: const EdgeInsets.only(right: 14), 
+        width: 160, margin: const EdgeInsets.only(right: 14), 
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start, 
           children:[
@@ -2112,7 +2100,7 @@ class _ExploreScreenState extends State<ExploreScreen> with AutomaticKeepAliveCl
             }
             return GridView.builder(
               padding: const EdgeInsets.only(left: 16, right: 16, bottom: 100, top: 16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.52, crossAxisSpacing: 10, mainAxisSpacing: 16),
               itemCount: animeList.length,
               itemBuilder: (context, index) => ExploreAnimeCard(anime: animeList[index])
             );
@@ -3416,27 +3404,40 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
 
-  Widget _buildBrandCard(BuildContext context, {required String title, required String subtitle, required IconData icon, required Color brandColor, required VoidCallback onTap}) {
+  Widget _buildSupportCard(BuildContext context, {required String title, required String subtitle, required IconData icon, required Color bgColor, required VoidCallback onTap}) {
     return BouncingCard(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
           color: const Color(0xFF13131A),
-          borderRadius: BorderRadius.circular(8),
-          border: Border(left: BorderSide(color: brandColor, width: 3)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+          boxShadow: [BoxShadow(color: bgColor.withOpacity(0.05), blurRadius: 10, spreadRadius: 1)]
         ),
-        child: ListTile(
-          dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: brandColor.withOpacity(0.15), shape: BoxShape.circle),
-            child: Icon(icon, color: brandColor, size: 20),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: bgColor.withOpacity(0.15), shape: BoxShape.circle),
+                child: Icon(icon, color: bgColor, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 4),
+                    Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 14),
+            ],
           ),
-          title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-          subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 12),
         ),
       ),
     );
@@ -3446,48 +3447,59 @@ class SupportPage extends StatelessWidget {
     Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context), 
-      appBar: AppBar(title: const Text("Support & Community", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: getBg(context), elevation: 0, bottom: appbarBottomLine()),
+      appBar: AppBar(title: const Text("Help & Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: getBg(context), elevation: 0, bottom: appbarBottomLine()),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [primColor.withOpacity(0.3), Colors.transparent], 
+                  begin: Alignment.topCenter, end: Alignment.bottomCenter
+                ),
+              ),
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(colors: [primColor.withOpacity(0.5), primColor.withOpacity(0.1)], begin: Alignment.topCenter, end: Alignment.bottomCenter)
-                    ),
-                    child: Icon(Icons.support_agent_rounded, color: primColor, size: 60),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(color: primColor.withOpacity(0.2), shape: BoxShape.circle),
+                    child: Icon(Icons.support_agent_rounded, color: primColor, size: 50),
                   ),
                   const SizedBox(height: 16),
-                  const Text("How can we help you?", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                  const Text("How can we help you?", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 8),
                   const Text("Get in touch with us or join our community.", style: TextStyle(color: Colors.white54, fontSize: 14)),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
             
-            const Text("CONTACT US", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-            const SizedBox(height: 12),
-            
-            _buildBrandCard(context, title: "Email Support", subtitle: "Response within 24 hours", icon: Icons.email, brandColor: const Color(0xFFD44638), onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
-            _buildBrandCard(context, title: "Telegram Support", subtitle: "Chat with admins", icon: Icons.send, brandColor: const Color(0xFF0088cc), onTap: () => launchInBrowser(globalTelegramLink)),
-            _buildBrandCard(context, title: "Instagram Support", subtitle: "DM us for quick help", icon: Icons.camera_alt, brandColor: const Color(0xFFE1306C), onTap: () => launchInBrowser(globalInstagramLink)),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("CONTACT SUPPORT", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  const SizedBox(height: 16),
+                  
+                  _buildSupportCard(context, title: "Email Support", subtitle: "anixplayer.official@gmail.com", icon: Icons.email_rounded, bgColor: Colors.redAccent, onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
+                  _buildSupportCard(context, title: "Telegram Chat", subtitle: "Instant reply from admins", icon: Icons.send_rounded, bgColor: Colors.blueAccent, onTap: () => launchInBrowser(globalTelegramLink)),
+                  _buildSupportCard(context, title: "Instagram DM", subtitle: "Message us for quick help", icon: Icons.camera_alt_rounded, bgColor: Colors.pinkAccent, onTap: () => launchInBrowser(globalInstagramLink)),
 
-            const SizedBox(height: 30),
-            const Text("OUR COMMUNITY", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-            const SizedBox(height: 12),
-            
-            _buildBrandCard(context, title: "WhatsApp Group", subtitle: "Connect with fans", icon: Icons.chat, brandColor: const Color(0xFF25D366), onTap: () => launchInBrowser(globalWhatsappLink)),
-            _buildBrandCard(context, title: "Telegram Channel", subtitle: "Instant Anime News", icon: Icons.send, brandColor: const Color(0xFF0088cc), onTap: () => launchInBrowser(globalTelegramLink)),
-            _buildBrandCard(context, title: "YouTube Channel", subtitle: "Watch our exclusive content", icon: Icons.play_circle_fill, brandColor: const Color(0xFFFF0000), onTap: () => launchInBrowser(globalYoutubeLink)),
-            
-            const SizedBox(height: 40),
+                  const SizedBox(height: 32),
+                  const Text("OUR COMMUNITY", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  const SizedBox(height: 16),
+                  
+                  _buildSupportCard(context, title: "WhatsApp Group", subtitle: "Connect with fans", icon: Icons.chat_rounded, bgColor: Colors.greenAccent, onTap: () => launchInBrowser(globalWhatsappLink)),
+                  _buildSupportCard(context, title: "Telegram Channel", subtitle: "Get latest anime news & updates", icon: Icons.campaign_rounded, bgColor: Colors.lightBlueAccent, onTap: () => launchInBrowser(globalTelegramLink)),
+                  _buildSupportCard(context, title: "YouTube Channel", subtitle: "Watch exclusive trailers & content", icon: Icons.play_circle_fill_rounded, bgColor: Colors.red, onTap: () => launchInBrowser(globalYoutubeLink)),
+                  
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -3515,7 +3527,7 @@ class SeeAllCategoryPage extends StatelessWidget {
   @override Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: getBg(context), appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: IconThemeData(color: getText(context)), bottom: appbarBottomLine()),
-      body: GridView.builder(padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.55, crossAxisSpacing: 10, mainAxisSpacing: 16), itemCount: animeList.length, itemBuilder: (context, index) => ExploreAnimeCard(anime: animeList[index]))
+      body: GridView.builder(padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.52, crossAxisSpacing: 10, mainAxisSpacing: 16), itemCount: animeList.length, itemBuilder: (context, index) => ExploreAnimeCard(anime: animeList[index]))
     );
   }
 }
@@ -4166,20 +4178,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: animeMxPurple.withOpacity(0.9), 
-                        borderRadius: BorderRadius.circular(30),
+                        shape: BoxShape.circle,
                         boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.5), blurRadius: 20)]
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.play_arrow_rounded, color: Colors.white, size: 36),
-                          SizedBox(width: 8),
-                          Text("PLAY NOW", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5))
-                        ],
-                      ),
+                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 45),
                     ),
                   ),
                 ),
@@ -4194,6 +4199,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
               children: [
                 Expanded(
                   child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onDoubleTap: _skipBackward,
                     onTap: _toggleControls,
                     child: Container(color: Colors.transparent),
@@ -4201,6 +4207,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 ),
                 Expanded(
                   child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onDoubleTap: _skipForward,
                     onTap: _toggleControls,
                     child: Container(color: Colors.transparent),
@@ -4245,7 +4252,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         if (!_isPremiumBlocked && _hasStartedPlaying && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 150),
             child: IgnorePointer(
               ignoring: !_showControls,
               child: Container(
