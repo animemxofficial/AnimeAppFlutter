@@ -3515,6 +3515,24 @@ class CustomRatingStar extends StatelessWidget {
   }
 }
 
+// Custom Track Shape For Zero Padding in Slider
+class CustomTrackShape extends RoundedRectSliderTrackShape {
+  @override
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    final double trackHeight = sliderTheme.trackHeight ?? 2.0;
+    final double trackLeft = offset.dx;
+    final double trackTop = offset.dy + (parentBox.size.height - trackHeight) / 2;
+    final double trackWidth = parentBox.size.width;
+    return Rect.fromLTWH(trackLeft, trackTop, trackWidth, trackHeight);
+  }
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VIDEO PLAYER PAGE (RE-DESIGNED CONTROLS)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -4009,7 +4027,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 ),
                 Positioned(
                   top: 16, left: 16,
-                  child: IconButton(icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 36), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
+                  child: IconButton(icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
                 )
               ],
             ),
@@ -4087,73 +4105,70 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 bottom: false,
                 child: Stack(
                   children: [
-                    // Top Bar (Down Arrow, Lock, Settings) - AT THE VERY TOP, SMALLER
+                    // Top Bar (Down Arrow, Lock, Settings)
                     Positioned(
-                      top: 8, left: 16, right: 16,
+                      top: 12, left: 16, right: 16,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28), 
-                            onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }
+                          GestureDetector(
+                            onTap: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } },
+                            child: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28),
                           ),
                           Row(
                             children: [
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.lock_outline, color: Colors.white, size: 22), 
-                                onPressed: () {}
-                              ),
+                              GestureDetector(onTap: () {}, child: const Icon(Icons.lock_outline, color: Colors.white, size: 22)),
                               const SizedBox(width: 16),
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 22), 
-                                onPressed: () {}
-                              ),
+                              GestureDetector(onTap: () {}, child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22)),
                             ],
                           )
                         ],
                       ),
                     ),
 
-                    // Center Controls (Rewind, Play/Pause, Forward) - SMALLER SIZE
+                    // Center Controls (Rewind, Play/Pause, Forward)
                     Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center, 
                         children:[
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            width: 50, height: 50,
                             decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                            child: IconButton(icon: const Icon(Icons.replay_10, color: Colors.white, size: 28), onPressed: _skipBackward),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.replay_10, color: Colors.white, size: 28), 
+                              onPressed: _skipBackward
+                            ),
                           ),
                           const SizedBox(width: 40),
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            width: 60, height: 60,
                             decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
                             child: IconButton(
+                              padding: EdgeInsets.zero,
                               icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 36), 
                               onPressed: () { setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); }
                             ),
                           ),
                           const SizedBox(width: 40),
                           Container(
-                            padding: const EdgeInsets.all(8),
+                            width: 50, height: 50,
                             decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                            child: IconButton(icon: const Icon(Icons.forward_10, color: Colors.white, size: 28), onPressed: _skipForward),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.forward_10, color: Colors.white, size: 28), 
+                              onPressed: _skipForward
+                            ),
                           ),
                         ]
                       ),
                     ),
 
-                    // Bottom Progress Bar (Time on left, Slider, Fullscreen on right) - AT THE VERY BOTTOM
+                    // Bottom Progress Bar (Time, Slider, Fullscreen)
                     Positioned(
-                      bottom: 4, left: 16, right: 16,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      bottom: 16, left: 16, right: 16,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
                             return Text(
@@ -4161,37 +4176,39 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                               style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)
                             ); 
                           }),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
-                              return SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  trackHeight: 3.0, 
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5.0), 
-                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 10.0),
-                                  activeTrackColor: const Color(0xFFE50914),
-                                  inactiveTrackColor: Colors.white54,
-                                  thumbColor: const Color(0xFFE50914),
-                                  trackShape: const RectangularSliderTrackShape(),
-                                ), 
-                                child: Slider(
-                                  min: 0.0, 
-                                  max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
-                                  value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
-                                  onChangeStart: (val) { _controller!.pause(); }, 
-                                  onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                  onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
-                                )
-                              ); 
-                            })
-                          ), 
-                          const SizedBox(width: 8),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            icon: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 22), 
-                            onPressed: _toggleFullScreen
-                          )
+                          const SizedBox(height: 6),
+                          Row(
+                            children:[
+                              Expanded(
+                                child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                                  return SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                      trackHeight: 2.5, 
+                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
+                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+                                      activeTrackColor: const Color(0xFFE50914),
+                                      inactiveTrackColor: Colors.white38,
+                                      thumbColor: const Color(0xFFE50914),
+                                      trackShape: CustomTrackShape(),
+                                    ), 
+                                    child: Slider(
+                                      min: 0.0, 
+                                      max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
+                                      value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
+                                      onChangeStart: (val) { _controller!.pause(); }, 
+                                      onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
+                                      onChangeEnd: (val) { _controller!.play(); _isPlaying = true; }
+                                    )
+                                  ); 
+                                })
+                              ), 
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: _toggleFullScreen,
+                                child: Icon(_isFullScreen ? Icons.fullscreen_exit : Icons.fullscreen, color: Colors.white, size: 22)
+                              )
+                            ]
+                          ),
                         ],
                       ),
                     )
