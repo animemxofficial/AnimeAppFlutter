@@ -110,9 +110,8 @@ int getFirstValidSeason(Anime anime) {
 
 DateTime? getPlanExpiryDate(String createdAt, String planName) {
   DateTime start = DateTime.parse(createdAt).toLocal();
-  if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze") || planName.contains("49")) return start.add(const Duration(days: 7));
-  if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("basic") || planName.contains("99")) return start.add(const Duration(days: 30));
-  if (planName.toLowerCase().contains("3 month") || planName.toLowerCase().contains("gold") || planName.toLowerCase().contains("standard") || planName.contains("299")) return start.add(const Duration(days: 90));
+  if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze") || planName.contains("14")) return start.add(const Duration(days: 7));
+  if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("gold") || planName.contains("40") || planName.contains("99")) return start.add(const Duration(days: 30));
   if (planName.toLowerCase().contains("6 month") || planName.toLowerCase().contains("premium")) return start.add(const Duration(days: 180));
   return start.add(const Duration(days: 30)); 
 }
@@ -716,6 +715,8 @@ class _MainScreenState extends State<MainScreen> {
   int _index = 0; bool _isDataLoading = true; RealtimeChannel? _presenceChannel; RealtimeChannel? _dbChannel;
   final ScrollController _profileScrollController = ScrollController();
 
+  static bool hasViewedNotifications = false;
+
   @override void initState() { super.initState(); _loadEverything(); _initPresence(); _initRealtimeSync(); }
   
   void _initPresence() { 
@@ -1022,7 +1023,7 @@ class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCl
       body: ValueListenableBuilder<List<CWItem>>(
         valueListenable: continueWatchingNotifier,
         builder: (context, cwList, child) {
-          if (cwList.isEmpty) return const Center(child: Text("No watch history yet.", style: TextStyle(color: Colors.white54)));
+          if (cwList.isEmpty) return const Center(child: CircularProgressIndicator(color: animeMxPurple));
           
           List<Widget> listWidgets = [];
           String currentDateStr = "";
@@ -1323,8 +1324,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
 
   @override bool get wantKeepAlive => true;
+  static bool hasViewedNotifications = false;
 
   void _showNotifications(BuildContext context, List<LatestEpisodeItem> recentEps) {
+    setState(() => hasViewedNotifications = true);
     showModalBottomSheet(
       context: context,
       backgroundColor: getCard(context),
@@ -1478,6 +1481,8 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       }
     }
     latestList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
+
+    if (hasViewedNotifications) newNotificationCount = 0;
 
     return Scaffold(
       backgroundColor: getBg(context),
@@ -2793,9 +2798,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   bool _isLoading = true;
 
   final List<Map<String, dynamic>> _plans = [
-    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
-    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
-    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
+    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹14", "duration": "week", "features": ["Daily 30 minutes watch time", "Stream in high-quality", "Free from ads"]},
+    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹40", "duration": "month", "features": ["Daily 3 hours watch time", "Stream in high-quality", "Free from ads"]},
+    {"name": "Gold", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Daily 5 hours watch time", "Stream in high-quality", "Free from ads"]},
   ];
 
   @override
@@ -2964,9 +2969,9 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
   bool _isLoading = true;
 
   final List<Map<String, dynamic>> _allPlans = [
-    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
-    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
-    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
+    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹14", "duration": "week", "features": ["Daily 30 minutes watch time", "Stream in high-quality", "Free from ads"]},
+    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹40", "duration": "month", "features": ["Daily 3 hours watch time", "Stream in high-quality", "Free from ads"]},
+    {"name": "Gold", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Daily 5 hours watch time", "Stream in high-quality", "Free from ads"]},
   ];
 
   int _getPlanWeight(String name) {
@@ -3658,7 +3663,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   String _premiumMessage = "";
   bool _isPlanVerified = false;
 
-  // 4 Minute Daily Limit (Free Users) Local Tracker
+  // Trackers
   int _dailyWatchSeconds = 0;
   Duration _lastRecordedPosition = Duration.zero;
 
@@ -3679,6 +3684,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _incrementAndFetchViews(); 
     _loadDailyWatchLimit();
     _verifyPlanAndInitPlayer();
+  }
+
+  int _getPlanLimitSeconds(String plan) {
+    String p = plan.toLowerCase();
+    if (p.contains("bronze") || p.contains("14")) return 1800; // 30 mins
+    if (p.contains("silver") || p.contains("40")) return 10800; // 3 hours
+    if (p.contains("gold") || p.contains("99")) return 18000; // 5 hours
+    return 240; // Free = 4 mins
   }
 
   Future<void> _loadDailyWatchLimit() async {
@@ -3879,7 +3892,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
      final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
      bool isNewEpisode = DateTime.now().difference(ep.createdAt).inHours < 24;
      
-     if (isNewEpisode && (currentPlan == "Free" || currentPlan.toLowerCase().contains("bronze") || currentPlan.contains("49"))) {
+     if (isNewEpisode && (currentPlan == "Free" || currentPlan.toLowerCase().contains("bronze") || currentPlan.contains("14"))) {
         if (mounted) {
           setState(() {
             _isPremiumBlocked = true;
@@ -3911,7 +3924,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     _controller!.addListener(() {
       if (!mounted) return;
-      if (_isPlaying && globalCurrentPlan == "Free") {
+      if (_isPlaying) {
         Duration currentPos = _controller!.value.position;
         if (currentPos > _lastRecordedPosition) {
            int diff = (currentPos - _lastRecordedPosition).inSeconds;
@@ -3923,12 +3936,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
            }
         }
         _lastRecordedPosition = currentPos;
+        
+        int maxLimit = _getPlanLimitSeconds(globalCurrentPlan);
 
-        if (_dailyWatchSeconds >= 240 && !_isPremiumBlocked) { // 4 Minutes Daily limit
+        if (_dailyWatchSeconds >= maxLimit && !_isPremiumBlocked) {
           _controller!.pause();
           setState(() {
             _isPremiumBlocked = true;
-            _premiumMessage = "You have reached your 4-minute daily free limit.\nPlease upgrade your plan to watch unlimited videos.";
+            _premiumMessage = "You have reached your daily watch limit for your current plan.\nPlease upgrade your plan to watch more.";
             _isPlaying = false;
             _showControls = false;
           });
@@ -4178,13 +4193,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: animeMxPurple.withOpacity(0.9), 
+                        color: Colors.black.withOpacity(0.65), 
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.5), blurRadius: 20)]
                       ),
-                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 45),
+                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 55),
                     ),
                   ),
                 ),
@@ -4192,28 +4206,30 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
-        // TAP TO HIDE CONTROLS & DOUBLE TAP SKIP
+        // TAP TO HIDE CONTROLS & DOUBLE TAP SKIP LAYER
         if (!_isPremiumBlocked && _hasStartedPlaying && _controller != null && _controller!.value.isInitialized)
           Positioned.fill(
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onDoubleTap: _skipBackward,
-                    onTap: _toggleControls,
-                    child: Container(color: Colors.transparent),
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggleControls,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onDoubleTap: _skipBackward,
+                      child: Container(color: Colors.transparent),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onDoubleTap: _skipForward,
-                    onTap: _toggleControls,
-                    child: Container(color: Colors.transparent),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onDoubleTap: _skipForward,
+                      child: Container(color: Colors.transparent),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -4249,6 +4265,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
+        // ACTUAL VIDEO CONTROLS UI
         if (!_isPremiumBlocked && _hasStartedPlaying && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
