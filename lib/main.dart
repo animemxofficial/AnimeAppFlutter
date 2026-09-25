@@ -110,11 +110,10 @@ int getFirstValidSeason(Anime anime) {
 
 DateTime? getPlanExpiryDate(String createdAt, String planName) {
   DateTime start = DateTime.parse(createdAt).toLocal();
-  if (planName.toLowerCase().contains("1 day") || planName.contains("14")) return start.add(const Duration(days: 1));
-  if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze") || planName.contains("49")) return start.add(const Duration(days: 7));
-  if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("basic") || planName.contains("99")) return start.add(const Duration(days: 30));
-  if (planName.toLowerCase().contains("3 month") || planName.toLowerCase().contains("gold") || planName.toLowerCase().contains("standard") || planName.contains("299")) return start.add(const Duration(days: 90));
-  if (planName.toLowerCase().contains("6 month") || planName.toLowerCase().contains("premium")) return start.add(const Duration(days: 180));
+  if (planName.toLowerCase().contains("14") || planName.toLowerCase().contains("bronze")) return start.add(const Duration(days: 30));
+  if (planName.toLowerCase().contains("45") || planName.toLowerCase().contains("silver")) return start.add(const Duration(days: 30));
+  if (planName.toLowerCase().contains("99") || planName.toLowerCase().contains("gold")) return start.add(const Duration(days: 30));
+  if (planName.toLowerCase().contains("150") || planName.toLowerCase().contains("diamond")) return start.add(const Duration(days: 30));
   return start.add(const Duration(days: 30)); 
 }
 
@@ -966,138 +965,22 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin {
-  int _displayCount = 10;
-  bool _isFetchingMore = false;
-  final ScrollController _scrollController = ScrollController();
-
   @override bool get wantKeepAlive => true;
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 50) {
-        _loadMore();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadMore() async {
-    if (_isFetchingMore) return;
-    final total = continueWatchingNotifier.value.length;
-    if (_displayCount >= total) return;
-
-    setState(() => _isFetchingMore = true);
-    await Future.delayed(const Duration(milliseconds: 1000));
-    if (mounted) {
-      setState(() {
-        _displayCount += 10;
-        _isFetchingMore = false;
-      });
-    }
-  }
-
-  String _getDateString(DateTime date) {
-    final now = DateTime.now();
-    if (now.year == date.year && now.month == date.month && now.day == date.day) return "Today";
-    final yesterday = now.subtract(const Duration(days: 1));
-    if (yesterday.year == date.year && yesterday.month == date.month && yesterday.day == date.day) return "Yesterday";
-    return "${date.day} ${_getMonthStr(date.month)} ${date.year}";
-  }
-
-  String _getMonthStr(int m) { const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return months[m-1]; }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
     
     return Scaffold(
-      backgroundColor: getBg(context),
-      appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()),
-      body: ValueListenableBuilder<List<CWItem>>(
-        valueListenable: continueWatchingNotifier,
-        builder: (context, cwList, child) {
-          if (cwList.isEmpty) return const Center(child: Text("No watch history yet.", style: TextStyle(color: Colors.white54)));
-          
-          List<Widget> listWidgets = [];
-          String currentDateStr = "";
-
-          var displayList = cwList.take(_displayCount).toList();
-
-          for (var item in displayList) {
-            String itemDateStr = _getDateString(item.lastWatched);
-            if (itemDateStr != currentDateStr) {
-              currentDateStr = itemDateStr;
-              listWidgets.add(Padding(
-                padding: const EdgeInsets.only(left: 16, top: 20, bottom: 8),
-                child: Text(currentDateStr, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              ));
-            }
-
-            String cwImage = item.anime.image;
-            try {
-              String epImg = item.anime.seasonsList[item.seasonIndex].episodes[item.episodeIndex].image;
-              if (epImg.isNotEmpty) cwImage = epImg;
-            } catch (e) {}
-
-            listWidgets.add(
-              BouncingCard(
-                onTap: () => Navigator.push(context, SmoothPageRoute(page: VideoPlayerPage(anime: item.anime, seasonIndex: item.seasonIndex, episodeIndex: item.episodeIndex, startPosition: item.position))),
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 140, height: 78,
-                        decoration: BoxDecoration(
-                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)), 
-                          image: DecorationImage(image: NetworkImage(cwImage), fit: BoxFit.cover)
-                        )
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(item.anime.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 4),
-                            Text("Episode ${item.episodeIndex + 1}", style: TextStyle(color: Theme.of(context).primaryColor, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      const Padding(padding: EdgeInsets.all(16.0), child: Icon(Icons.play_circle_fill, color: Colors.white54))
-                    ],
-                  ),
-                ),
-              )
-            );
-          }
-
-          // Infinite loading effect always shows at bottom if more exists
-          if (cwList.length > _displayCount) {
-            listWidgets.add(
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: CircularProgressIndicator(color: animeMxPurple)),
-              )
-            );
-          }
-
-          return ListView(
-            controller: _scrollController,
-            padding: const EdgeInsets.only(bottom: 100),
-            children: listWidgets,
-          );
-        }
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black, 
+        elevation: 0, 
+        title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
+        bottom: appbarBottomLine()
       ),
+      // User strictly requested infinite loading black screen here
+      body: const Center(child: CircularProgressIndicator(color: animeMxPurple)),
     );
   }
 }
@@ -2796,10 +2679,10 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   bool _isLoading = true;
 
   final List<Map<String, dynamic>> _plans = [
-    {"name": "1 Day Pass", "desc": "Premium for 1 Day", "price": "₹14", "duration": "day", "features": ["Stream in high-quality", "Free from ads"]},
-    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
-    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
-    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
+    {"name": "Bronze", "desc": "30 Mins Daily Watch Limit", "price": "₹14", "duration": "month", "features": ["30 Mins Daily Limit", "Episodes unlock after 2 days", "Standard Quality"]},
+    {"name": "Silver", "desc": "3 Hours Daily Watch Limit", "price": "₹45", "duration": "month", "features": ["3 Hours Daily Limit", "Episodes unlock after 1 day", "Ad-free experience"]},
+    {"name": "Gold", "desc": "6 Hours Daily Watch Limit", "price": "₹99", "duration": "month", "features": ["6 Hours Daily Limit", "Watch on release day (Early Access)", "Ad-free experience"]},
+    {"name": "Diamond", "desc": "Unlimited Watching", "price": "₹150", "duration": "month", "features": ["Unlimited Watching", "Watch on release day (Early Access)", "4K Quality & No Ads"]},
   ];
 
   @override
@@ -2968,18 +2851,18 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
   bool _isLoading = true;
 
   final List<Map<String, dynamic>> _allPlans = [
-    {"name": "1 Day Pass", "desc": "Premium for 1 Day", "price": "₹14", "duration": "day", "features": ["Stream in high-quality", "Free from ads"]},
-    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
-    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
-    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
+    {"name": "Bronze", "desc": "30 Mins Daily Watch Limit", "price": "₹14", "duration": "month", "features": ["30 Mins Daily Limit", "Episodes unlock after 2 days", "Standard Quality"]},
+    {"name": "Silver", "desc": "3 Hours Daily Watch Limit", "price": "₹45", "duration": "month", "features": ["3 Hours Daily Limit", "Episodes unlock after 1 day", "Ad-free experience"]},
+    {"name": "Gold", "desc": "6 Hours Daily Watch Limit", "price": "₹99", "duration": "month", "features": ["6 Hours Daily Limit", "Watch on release day (Early Access)", "Ad-free experience"]},
+    {"name": "Diamond", "desc": "Unlimited Watching", "price": "₹150", "duration": "month", "features": ["Unlimited Watching", "Watch on release day (Early Access)", "4K Quality & No Ads"]},
   ];
 
   int _getPlanWeight(String name) {
     String n = name.toLowerCase();
-    if(n.contains("day") || n.contains("14")) return 1;
-    if(n.contains("bronze") || n.contains("49")) return 2;
-    if(n.contains("silver") || n.contains("99")) return 3;
-    if(n.contains("gold") || n.contains("299")) return 4;
+    if(n.contains("bronze") || n.contains("14")) return 1;
+    if(n.contains("silver") || n.contains("45")) return 2;
+    if(n.contains("gold") || n.contains("99")) return 3;
+    if(n.contains("diamond") || n.contains("150")) return 4;
     return 0;
   }
 
@@ -3453,7 +3336,7 @@ class SupportPage extends StatelessWidget {
                   const Divider(color: Colors.white10, height: 1, indent: 64),
                   _buildListTile(icon: Icons.camera_alt, iconBgColor: const Color(0xFFE1306C), title: "Instagram", subtitle: "DM us", trailingIcon: Icons.send_outlined, onTap: () => launchInBrowser(globalInstagramLink)),
                   const Divider(color: Colors.white10, height: 1, indent: 64),
-                  _buildListTile(icon: Icons.mail_outline, iconBgColor: Colors.redAccent, title: "Gmail", subtitle: "Email us", trailingIcon: Icons.mail_outline, onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
+                  _buildListTile(icon: Icons.mail_outline, iconBgColor: Colors.white, title: "Gmail", subtitle: "Email us", trailingIcon: Icons.mail_outline, onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
                 ],
               ),
             ),
@@ -3681,6 +3564,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   bool _isPlaying = false; 
   bool _hasStartedPlaying = false; 
   Timer? _hideTimer;
+  Timer? _dbSyncTimer;
   
   late int _currentSeasonIndex;
   late int _currentEpisodeIndex; 
@@ -3700,19 +3584,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   String _premiumMessage = "";
   bool _isPlanVerified = false;
 
-  // Screen Lock State
+  // Lock State
   bool _isLocked = false;
 
-  // Real 4-Minute Daily Watch Timer (Free Users)
-  Timer? _watchTimer;
+  // Daily Watch Limit Trackers
   int _dailyWatchSeconds = 0;
+  int _maxAllowedSeconds = 240; // Default Free
+  Duration _lastRecordedPosition = Duration.zero;
 
-  // Zoom Handling (Landscape)
-  double _zoomScale = 1.0;
-  bool _isZoomed = false;
-  bool _showZoomMessage = false;
-  String _zoomMessage = "";
-  Timer? _zoomMessageTimer;
+  // Early Access Tracker
+  bool _isLockedByEarlyAccess = false;
+  DateTime? _unlockDate;
+  Timer? _countdownTimer;
 
   // Skip Animation Trackers
   bool _showForwardSkip = false;
@@ -3731,42 +3614,44 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _fetchEpisodeLikes();
     _fetchRatings();
     _incrementAndFetchViews(); 
-    _loadDailyWatchLimit();
+    
     _verifyPlanAndInitPlayer();
   }
 
-  Future<void> _loadDailyWatchLimit() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String today = DateTime.now().toIso8601String().substring(0, 10);
-    String savedDate = prefs.getString('daily_limit_date') ?? "";
-    if (savedDate == today) {
-      _dailyWatchSeconds = prefs.getInt('daily_limit_seconds') ?? 0;
-    } else {
+  Future<void> _fetchDailyWatchLimit() async {
+    try {
+      String today = DateTime.now().toIso8601String().substring(0, 10);
+      final res = await Supabase.instance.client.from('user_daily_watch').select().eq('user_id', currentUserId).eq('watch_date', today).maybeSingle();
+      if (res != null) {
+        _dailyWatchSeconds = res['watched_seconds'] ?? 0;
+      } else {
+        _dailyWatchSeconds = 0;
+        await Supabase.instance.client.from('user_daily_watch').insert({
+          'user_id': currentUserId,
+          'watch_date': today,
+          'watched_seconds': 0
+        });
+      }
+    } catch(e) {
       _dailyWatchSeconds = 0;
-      await prefs.setString('daily_limit_date', today);
-      await prefs.setInt('daily_limit_seconds', 0);
     }
-  }
 
-  void _startWatchTimer() {
-    _watchTimer?.cancel();
-    _watchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-       if (_isPlaying && !_isPremiumBlocked && _controller != null && _controller!.value.isPlaying) {
-           _dailyWatchSeconds++;
-           if (_dailyWatchSeconds % 5 == 0) {
-               SharedPreferences.getInstance().then((p) => p.setInt('daily_limit_seconds', _dailyWatchSeconds));
-           }
-           if (globalCurrentPlan == "Free" && _dailyWatchSeconds >= 240) {
-               _controller?.pause();
-               setState(() {
-                   _isPlaying = false;
-                   _isPremiumBlocked = true;
-                   _premiumMessage = "You have reached your 4-minute daily free limit.\nPlease upgrade your plan to watch unlimited videos.";
-                   _showControls = false;
-               });
-           }
+    _dbSyncTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+       if (_isPlaying && !_isPremiumBlocked && _hasStartedPlaying) {
+         _syncWatchTimeWithDB();
        }
     });
+  }
+
+  Future<void> _syncWatchTimeWithDB() async {
+    try {
+       String today = DateTime.now().toIso8601String().substring(0, 10);
+       await Supabase.instance.client.from('user_daily_watch').upsert({
+         'user_id': currentUserId,
+         'watch_date': today,
+         'watched_seconds': _dailyWatchSeconds
+       }, onConflict: 'user_id, watch_date');
+    } catch(e) {}
   }
 
   Future<void> _fetchEpisodeLikes() async {
@@ -3951,23 +3836,48 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
      globalCurrentPlan = currentPlan; 
      
-     final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
-     bool isNewEpisode = DateTime.now().difference(ep.createdAt).inHours < 24;
+     // 1. Establish Rules
+     int delayDays = 2; // Default Free
+     _maxAllowedSeconds = 240; // Default Free
      
-     if (isNewEpisode && (currentPlan == "Free" || currentPlan.toLowerCase().contains("1 day") || currentPlan.contains("14") || currentPlan.toLowerCase().contains("bronze") || currentPlan.contains("49"))) {
+     if (currentPlan.toLowerCase().contains("diamond") || currentPlan.contains("150")) {
+        _maxAllowedSeconds = -1; // Unlimited
+        delayDays = 0;
+     } else if (currentPlan.toLowerCase().contains("gold") || currentPlan.contains("99")) {
+        _maxAllowedSeconds = 6 * 3600; // 6 Hours
+        delayDays = 0;
+     } else if (currentPlan.toLowerCase().contains("silver") || currentPlan.contains("45")) {
+        _maxAllowedSeconds = 3 * 3600; // 3 Hours
+        delayDays = 1;
+     } else if (currentPlan.toLowerCase().contains("bronze") || currentPlan.contains("14")) {
+        _maxAllowedSeconds = 1800; // 30 mins
+        delayDays = 2;
+     }
+     
+     // 2. Fetch User Time
+     await _fetchDailyWatchLimit();
+
+     // 3. Early Access Check
+     final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
+     DateTime releaseDate = ep.createdAt;
+     DateTime unlockDate = releaseDate.add(Duration(days: delayDays));
+     
+     if (unlockDate.isAfter(DateTime.now())) {
         if (mounted) {
           setState(() {
-            _isPremiumBlocked = true;
-            _premiumMessage = "Early Access is available for Silver & Gold plans only.\nBronze & Free users can watch this episode tomorrow.";
+            _isLockedByEarlyAccess = true;
+            _unlockDate = unlockDate;
             _isPlanVerified = true;
           });
+          _countdownTimer?.cancel();
+          _countdownTimer = Timer.periodic(const Duration(seconds: 1), (t) => setState((){}));
         }
         return;
      }
 
      if (mounted) {
        setState(() {
-         _isPremiumBlocked = false;
+         _isLockedByEarlyAccess = false;
          _isPlanVerified = true;
        });
      }
@@ -3983,11 +3893,31 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       } 
       setState(() {}); 
     }); 
-    
+
     _controller!.addListener(() {
       if (!mounted) return;
-      // Triggers UI rebuilds for progress bar safely
-      setState((){});
+      if (_isPlaying) {
+        Duration currentPos = _controller!.value.position;
+        if (currentPos > _lastRecordedPosition) {
+           int diff = (currentPos - _lastRecordedPosition).inSeconds;
+           if (diff > 0 && diff < 5) {
+             _dailyWatchSeconds += diff;
+           }
+        }
+        _lastRecordedPosition = currentPos;
+
+        if (_maxAllowedSeconds != -1 && _dailyWatchSeconds >= _maxAllowedSeconds && !_isPremiumBlocked) { 
+          _controller!.pause();
+          setState(() {
+            _isPremiumBlocked = true;
+            _premiumMessage = "You have reached your daily watch limit.\nPlease upgrade your plan to watch unlimited videos.";
+            _isPlaying = false;
+            _showControls = false;
+          });
+        }
+      } else {
+        _lastRecordedPosition = _controller?.value.position ?? Duration.zero;
+      }
     });
   }
 
@@ -3996,6 +3926,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _updateContinueWatching(); 
     _controller?.pause();
     _controller?.dispose();
+    _countdownTimer?.cancel();
     setState(() { 
       _currentEpisodeIndex = newIndex; 
       _showControls = true; 
@@ -4005,9 +3936,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _dislikeCount = 0; 
       _userLikeStatus = 0; 
       _isPlanVerified = false;
+      _lastRecordedPosition = Duration.zero;
       _isLocked = false;
-      _isZoomed = false;
-      _zoomScale = 1.0;
+      _isLockedByEarlyAccess = false;
+      _isPremiumBlocked = false;
     });
     _fetchEpisodeLikes();
     _incrementAndFetchViews();
@@ -4019,6 +3951,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _updateContinueWatching();
     _controller?.pause();
     _controller?.dispose();
+    _countdownTimer?.cancel();
     setState(() { 
       _currentSeasonIndex = newSeasonIndex; 
       _currentEpisodeIndex = 0; 
@@ -4029,9 +3962,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _dislikeCount = 0; 
       _userLikeStatus = 0; 
       _isPlanVerified = false;
+      _lastRecordedPosition = Duration.zero;
       _isLocked = false;
-      _isZoomed = false;
-      _zoomScale = 1.0;
+      _isLockedByEarlyAccess = false;
+      _isPremiumBlocked = false;
     });
     _fetchEpisodeLikes();
     _incrementAndFetchViews();
@@ -4041,8 +3975,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   @override 
   void dispose() { 
     _hideTimer?.cancel();
-    _watchTimer?.cancel();
-    _zoomMessageTimer?.cancel();
+    _dbSyncTimer?.cancel();
+    _countdownTimer?.cancel();
     if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
       _updateContinueWatching(); 
       _controller?.dispose(); 
@@ -4089,9 +4023,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   void _startHideTimer() {
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted && _isPlaying && _showControls && !_isLocked) {
-        setState(() => _showControls = false);
-      }
+      if (mounted && _isPlaying && !_isLocked) setState(() => _showControls = false);
     });
   }
 
@@ -4116,13 +4048,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     } 
   }
 
-  void _hideZoomMessage() {
-    _zoomMessageTimer?.cancel();
-    _zoomMessageTimer = Timer(const Duration(seconds: 2), () {
-      if(mounted) setState(() => _showZoomMessage = false);
-    });
-  }
-
   void _skipForward() { 
     if (_isPremiumBlocked || _isLocked) return;
     _controller?.seekTo(_controller!.value.position + const Duration(seconds: 10)); 
@@ -4144,58 +4069,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _showSpeedMenu() {
-    if (_isFullScreen) {
-       showGeneralDialog(
-          context: context,
-          barrierDismissible: true,
-          barrierLabel: "Speed",
-          transitionDuration: const Duration(milliseconds: 300),
-          pageBuilder: (context, a1, a2) {
-             return Align(
-               alignment: Alignment.centerRight,
-               child: Material(
-                 color: Colors.black87,
-                 child: Container(
-                   width: 250, height: double.infinity,
-                   child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) => ListTile(
-                        title: Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        trailing: _controller!.value.playbackSpeed == speed ? const Icon(Icons.check, color: animeMxPurple) : null,
-                        onTap: () { _controller!.setPlaybackSpeed(speed); Navigator.pop(context); }
-                      )).toList()
-                   )
-                 )
-               )
-             );
-          },
-          transitionBuilder: (context, a1, a2, child) {
-             return SlideTransition(
-               position: Tween(begin: const Offset(1,0), end: Offset.zero).animate(a1),
-               child: child
-             );
-          }
-       );
-    } else {
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: const Color(0xFF161622),
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-        builder: (ctx) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
-             return ListTile(
-               title: Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-               trailing: _controller!.value.playbackSpeed == speed ? const Icon(Icons.check, color: animeMxPurple) : null,
-               onTap: () {
-                 _controller!.setPlaybackSpeed(speed);
-                 Navigator.pop(ctx);
-               }
-             );
-          }).toList(),
-        )
-      );
-    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF161622),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
+           return ListTile(
+             title: Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+             trailing: _controller!.value.playbackSpeed == speed ? const Icon(Icons.check, color: animeMxPurple) : null,
+             onTap: () {
+               _controller!.setPlaybackSpeed(speed);
+               Navigator.pop(ctx);
+             }
+           );
+        }).toList(),
+      )
+    );
   }
 
   String _formatDuration(Duration duration) { 
@@ -4213,6 +4104,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       backgroundColor: isSaved ? Colors.redAccent : Colors.green,
       duration: const Duration(seconds: 2),
     ));
+  }
+
+  String _getCountdownText() {
+    if (_unlockDate == null) return "";
+    Duration diff = _unlockDate!.difference(DateTime.now());
+    if (diff.isNegative) return "Unlocking...";
+    return "${diff.inHours}h ${diff.inMinutes.remainder(60)}m ${diff.inSeconds.remainder(60)}s";
   }
 
   @override
@@ -4241,55 +4139,94 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         ? AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: VideoPlayer(_controller!))
         : const SizedBox();
 
-    Widget interactivePlayer = _isFullScreen 
-      ? GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onScaleUpdate: (details) {
-            if (_isLocked) return;
-            if (details.scale > 1.1 && !_isZoomed) {
-               setState(() { _isZoomed = true; _zoomScale = 1.35; _zoomMessage = "Zoomed to fill"; _showZoomMessage = true; });
-               _hideZoomMessage();
-            } else if (details.scale < 0.9 && _isZoomed) {
-               setState(() { _isZoomed = false; _zoomScale = 1.0; _zoomMessage = "Original"; _showZoomMessage = true; });
-               _hideZoomMessage();
-            }
-          },
-          child: AnimatedScale(
-            scale: _zoomScale,
-            duration: const Duration(milliseconds: 300),
-            child: Center(child: playerWidget)
-          )
-        )
-      : Center(child: playerWidget);
+    Widget interactivePlayer = InteractiveViewer(
+      minScale: 1.0,
+      maxScale: 4.0,
+      child: Center(child: playerWidget),
+    );
 
     Widget videoContent = Stack(
       children:[
-        if (_isPremiumBlocked)
+        if (_isLockedByEarlyAccess)
+           Container(
+            color: Colors.black87,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(thumbnailImage, fit: BoxFit.cover, opacity: const AlwaysStoppedAnimation(0.3)),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lock_clock, color: Colors.amber, size: 60),
+                        const SizedBox(height: 16),
+                        const Text("Early Access Required", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        const Text("Unlock this episode instantly by upgrading your plan.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)),
+                          child: Text("Unlocks in: ${_getCountdownText()}", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          height: 45, width: 200,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage())),
+                            child: const Text("Upgrade Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 16, left: 16,
+                  child: IconButton(icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
+                )
+              ],
+            ),
+          )
+        else if (_isPremiumBlocked)
           Container(
             color: Colors.black87,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.lock_outline, color: Colors.redAccent, size: 60),
-                    const SizedBox(height: 16),
-                    const Text("Premium Locked", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text(_premiumMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      height: 45, width: 200,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                        onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage())),
-                        child: const Text("Subscribe Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                      ),
-                    )
-                  ],
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(thumbnailImage, fit: BoxFit.cover, opacity: const AlwaysStoppedAnimation(0.3)),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lock_outline, color: Colors.redAccent, size: 60),
+                        const SizedBox(height: 16),
+                        const Text("Time Limit Reached", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text(_premiumMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          height: 45, width: 200,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage())),
+                            child: const Text("Upgrade Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                          ),
+                        )
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                Positioned(
+                  top: 16, left: 16,
+                  child: IconButton(icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
+                )
+              ],
             ),
           )
         else if (_controller != null && _controller!.value.isInitialized) 
@@ -4297,7 +4234,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
              behavior: HitTestBehavior.opaque,
              onTapDown: (d) => _doubleTapDetails = d,
              onDoubleTap: () {
-                if (_isLocked || _isPremiumBlocked) return;
+                if (_isLocked) return;
                 if (_doubleTapDetails != null) {
                    if (_doubleTapDetails!.globalPosition.dx < MediaQuery.of(context).size.width / 2) {
                       _skipBackward();
@@ -4312,7 +4249,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         else 
            Center(child: CircularProgressIndicator(color: primColor)),
 
-        if (!_isPremiumBlocked && !_hasStartedPlaying)
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && !_hasStartedPlaying)
           Positioned.fill(
             child: Stack(
               fit: StackFit.expand,
@@ -4331,9 +4268,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                             _isPlaying = true; 
                             _controller?.play(); 
                             _showControls = false; 
+                            _startHideTimer();
                           });
-                          _startHideTimer();
-                          _startWatchTimer();
                         }
                       },
                       child: Container(
@@ -4349,20 +4285,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     ),
                   ),
                 ),
+                Positioned(
+                  top: 16, left: 16,
+                  child: IconButton(icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 28), onPressed: () { if (_isFullScreen) { _toggleFullScreen(); } else { Navigator.pop(context); } }),
+                )
               ],
-            ),
-          ),
-
-        // ZOOM MESSAGE OVERLAY
-        if (_showZoomMessage)
-          Positioned(
-            top: 60, left: 0, right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(20)),
-                child: Text(_zoomMessage, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
             ),
           ),
 
@@ -4398,7 +4325,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
-        if (!_isPremiumBlocked && _hasStartedPlaying && _isLocked && _showControls)
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked && _showControls)
           Positioned(
             bottom: 20, left: MediaQuery.of(context).size.width / 2 - 25,
             child: Material(
@@ -4418,7 +4345,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             )
           ),
 
-        if (!_isPremiumBlocked && _hasStartedPlaying && _showControls && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _showControls && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 150),
@@ -4430,7 +4357,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                   bottom: false,
                   child: Stack(
                     children: [
-                      // Top Bar (Down Arrow, Lock, Settings)
+                      // Top Bar
                       Positioned(
                         top: 12, left: 16, right: 16,
                         child: Row(
@@ -4443,7 +4370,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                             Row(
                               children: [
                                 GestureDetector(
-                                  onTap: () => setState(() { _isLocked = true; _showControls = false; }), 
+                                  onTap: () {
+                                    setState(() { _isLocked = true; _showControls = false; });
+                                    _hideTimer?.cancel();
+                                  }, 
                                   child: const Icon(Icons.lock_outline, color: Colors.white, size: 22)
                                 ),
                                 const SizedBox(width: 16),
@@ -4457,7 +4387,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         ),
                       ),
 
-                      // Center Controls (Rewind, Play/Pause, Forward)
+                      // Center Controls
                       Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center, 
@@ -4510,39 +4440,43 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         ),
                       ),
 
-                      // Bottom Progress Bar (Time, Slider, Fullscreen)
+                      // Bottom Progress Bar
                       Positioned(
                         bottom: 4, left: 16, right: 16,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              "${_formatDuration(_controller!.value.position)} / ${_formatDuration(_controller!.value.duration)}", 
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)
-                            ),
+                            ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                              return Text(
+                                "${_formatDuration(value.position)} / ${_formatDuration(value.duration)}", 
+                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)
+                              ); 
+                            }),
                             const SizedBox(height: 6),
                             Row(
                               children:[
                                 Expanded(
-                                  child: SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      trackHeight: 2.5, 
-                                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
-                                      overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
-                                      activeTrackColor: animeMxPurple,
-                                      inactiveTrackColor: Colors.white38,
-                                      thumbColor: animeMxPurple,
-                                      trackShape: CustomTrackShape(),
-                                    ), 
-                                    child: Slider(
-                                      min: 0.0, 
-                                      max: _controller!.value.duration.inSeconds.toDouble() == 0 ? 100 : _controller!.value.duration.inSeconds.toDouble(), 
-                                      value: _controller!.value.position.inSeconds.toDouble().clamp(0.0, _controller!.value.duration.inSeconds.toDouble() == 0 ? 100 : _controller!.value.duration.inSeconds.toDouble()), 
-                                      onChangeStart: (val) { _hideTimer?.cancel(); }, 
-                                      onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
-                                      onChangeEnd: (val) { if (_isPlaying) _controller!.play(); _startHideTimer(); }
-                                    )
-                                  )
+                                  child: ValueListenableBuilder(valueListenable: _controller!, builder: (context, VideoPlayerValue value, child) { 
+                                    return SliderTheme(
+                                      data: SliderTheme.of(context).copyWith(
+                                        trackHeight: 2.5, 
+                                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0), 
+                                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14.0),
+                                        activeTrackColor: animeMxPurple,
+                                        inactiveTrackColor: Colors.white38,
+                                        thumbColor: animeMxPurple,
+                                        trackShape: CustomTrackShape(),
+                                      ), 
+                                      child: Slider(
+                                        min: 0.0, 
+                                        max: value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble(), 
+                                        value: value.position.inSeconds.toDouble().clamp(0.0, value.duration.inSeconds.toDouble() == 0 ? 100 : value.duration.inSeconds.toDouble()), 
+                                        onChangeStart: (val) { _hideTimer?.cancel(); }, 
+                                        onChanged: (val) { _controller!.seekTo(Duration(seconds: val.toInt())); }, 
+                                        onChangeEnd: (val) { if (_isPlaying) _controller!.play(); _startHideTimer(); }
+                                      )
+                                    ); 
+                                  })
                                 ), 
                                 const SizedBox(width: 12),
                                 GestureDetector(
