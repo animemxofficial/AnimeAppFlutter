@@ -110,8 +110,9 @@ int getFirstValidSeason(Anime anime) {
 
 DateTime? getPlanExpiryDate(String createdAt, String planName) {
   DateTime start = DateTime.parse(createdAt).toLocal();
-  if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze") || planName.contains("14")) return start.add(const Duration(days: 7));
-  if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("gold") || planName.contains("40") || planName.contains("99")) return start.add(const Duration(days: 30));
+  if (planName.toLowerCase().contains("7 days") || planName.toLowerCase().contains("bronze") || planName.contains("49")) return start.add(const Duration(days: 7));
+  if (planName.toLowerCase().contains("1 month") || planName.toLowerCase().contains("silver") || planName.toLowerCase().contains("basic") || planName.contains("99")) return start.add(const Duration(days: 30));
+  if (planName.toLowerCase().contains("3 month") || planName.toLowerCase().contains("gold") || planName.toLowerCase().contains("standard") || planName.contains("299")) return start.add(const Duration(days: 90));
   if (planName.toLowerCase().contains("6 month") || planName.toLowerCase().contains("premium")) return start.add(const Duration(days: 180));
   return start.add(const Duration(days: 30)); 
 }
@@ -715,8 +716,6 @@ class _MainScreenState extends State<MainScreen> {
   int _index = 0; bool _isDataLoading = true; RealtimeChannel? _presenceChannel; RealtimeChannel? _dbChannel;
   final ScrollController _profileScrollController = ScrollController();
 
-  static bool hasViewedNotifications = false;
-
   @override void initState() { super.initState(); _loadEverything(); _initPresence(); _initRealtimeSync(); }
   
   void _initPresence() { 
@@ -1023,7 +1022,7 @@ class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCl
       body: ValueListenableBuilder<List<CWItem>>(
         valueListenable: continueWatchingNotifier,
         builder: (context, cwList, child) {
-          if (cwList.isEmpty) return const Center(child: CircularProgressIndicator(color: animeMxPurple));
+          if (cwList.isEmpty) return const Center(child: Text("No watch history yet.", style: TextStyle(color: Colors.white54)));
           
           List<Widget> listWidgets = [];
           String currentDateStr = "";
@@ -1324,10 +1323,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
 
   @override bool get wantKeepAlive => true;
-  static bool hasViewedNotifications = false;
 
   void _showNotifications(BuildContext context, List<LatestEpisodeItem> recentEps) {
-    setState(() => hasViewedNotifications = true);
     showModalBottomSheet(
       context: context,
       backgroundColor: getCard(context),
@@ -1481,8 +1478,6 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
       }
     }
     latestList.sort((a, b) => b.episode.createdAt.compareTo(a.episode.createdAt));
-
-    if (hasViewedNotifications) newNotificationCount = 0;
 
     return Scaffold(
       backgroundColor: getBg(context),
@@ -2798,9 +2793,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   bool _isLoading = true;
 
   final List<Map<String, dynamic>> _plans = [
-    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹14", "duration": "week", "features": ["Daily 30 minutes watch time", "Stream in high-quality", "Free from ads"]},
-    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹40", "duration": "month", "features": ["Daily 3 hours watch time", "Stream in high-quality", "Free from ads"]},
-    {"name": "Gold", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Daily 5 hours watch time", "Stream in high-quality", "Free from ads"]},
+    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
+    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
+    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
   ];
 
   @override
@@ -2969,9 +2964,9 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
   bool _isLoading = true;
 
   final List<Map<String, dynamic>> _allPlans = [
-    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹14", "duration": "week", "features": ["Daily 30 minutes watch time", "Stream in high-quality", "Free from ads"]},
-    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹40", "duration": "month", "features": ["Daily 3 hours watch time", "Stream in high-quality", "Free from ads"]},
-    {"name": "Gold", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Daily 5 hours watch time", "Stream in high-quality", "Free from ads"]},
+    {"name": "Bronze", "desc": "Premium for 7 Days", "price": "₹49", "duration": "week", "features": ["Stream in high-quality", "Free from ads"]},
+    {"name": "Silver", "desc": "Premium for 1 Month", "price": "₹99", "duration": "month", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
+    {"name": "Gold", "desc": "Premium for 3 Month", "price": "₹299", "duration": "3 months", "features": ["Stream in high-quality", "Free from ads", "Early access to the latest episodes"]},
   ];
 
   int _getPlanWeight(String name) {
@@ -3409,102 +3404,138 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
 class SupportPage extends StatelessWidget {
   const SupportPage({super.key});
 
-  Widget _buildSupportCard(BuildContext context, {required String title, required String subtitle, required IconData icon, required Color bgColor, required VoidCallback onTap}) {
-    return BouncingCard(
+  Widget _buildListTile({required IconData icon, required Color iconBgColor, required String title, required String subtitle, required IconData trailingIcon, required VoidCallback onTap}) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF13131A),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
-          boxShadow: [BoxShadow(color: bgColor.withOpacity(0.05), blurRadius: 10, spreadRadius: 1)]
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: bgColor.withOpacity(0.15), shape: BoxShape.circle),
-                child: Icon(icon, color: bgColor, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 4),
-                    Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  ],
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 14),
-            ],
-          ),
-        ),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: iconBgColor, shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white, size: 24),
+      ),
+      title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+      subtitle: Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+      trailing: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), shape: BoxShape.circle),
+        child: Icon(trailingIcon, color: Colors.white54, size: 16)
       ),
     );
   }
 
   @override Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
-      backgroundColor: getBg(context), 
-      appBar: AppBar(title: const Text("Help & Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: getBg(context), elevation: 0, bottom: appbarBottomLine()),
+      backgroundColor: Colors.black, 
+      appBar: AppBar(
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: animeMxPurple), onPressed: () => Navigator.pop(context)),
+        title: const Text("Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)), 
+        backgroundColor: Colors.black, 
+        elevation: 0, 
+        bottom: appbarBottomLine()
+      ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Block 1: Contact Methods
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [primColor.withOpacity(0.3), Colors.transparent], 
-                  begin: Alignment.topCenter, end: Alignment.bottomCenter
-                ),
-              ),
+              decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(16)),
               child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: primColor.withOpacity(0.2), shape: BoxShape.circle),
-                    child: Icon(Icons.support_agent_rounded, color: primColor, size: 50),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text("How can we help you?", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 8),
-                  const Text("Get in touch with us or join our community.", style: TextStyle(color: Colors.white54, fontSize: 14)),
+                  _buildListTile(icon: Icons.telegram, iconBgColor: const Color(0xFF2AABEE), title: "Telegram", subtitle: "Chat with us", trailingIcon: Icons.chat_bubble_outline, onTap: () => launchInBrowser(globalTelegramLink)),
+                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  _buildListTile(icon: Icons.camera_alt, iconBgColor: const Color(0xFFE1306C), title: "Instagram", subtitle: "DM us", trailingIcon: Icons.send_outlined, onTap: () => launchInBrowser(globalInstagramLink)),
+                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  _buildListTile(icon: Icons.mail_outline, iconBgColor: Colors.white, title: "Gmail", subtitle: "Email us", trailingIcon: Icons.mail_outline, onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
                 ],
               ),
             ),
             
-            Padding(
-              padding: const EdgeInsets.all(20),
+            const SizedBox(height: 24),
+            
+            // Block 2: Community
+            Container(
+              decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("CONTACT SUPPORT", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  const SizedBox(height: 16),
-                  
-                  _buildSupportCard(context, title: "Email Support", subtitle: "anixplayer.official@gmail.com", icon: Icons.email_rounded, bgColor: Colors.redAccent, onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
-                  _buildSupportCard(context, title: "Telegram Chat", subtitle: "Instant reply from admins", icon: Icons.send_rounded, bgColor: Colors.blueAccent, onTap: () => launchInBrowser(globalTelegramLink)),
-                  _buildSupportCard(context, title: "Instagram DM", subtitle: "Message us for quick help", icon: Icons.camera_alt_rounded, bgColor: Colors.pinkAccent, onTap: () => launchInBrowser(globalInstagramLink)),
-
-                  const SizedBox(height: 32),
-                  const Text("OUR COMMUNITY", style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                  const SizedBox(height: 16),
-                  
-                  _buildSupportCard(context, title: "WhatsApp Group", subtitle: "Connect with fans", icon: Icons.chat_rounded, bgColor: Colors.greenAccent, onTap: () => launchInBrowser(globalWhatsappLink)),
-                  _buildSupportCard(context, title: "Telegram Channel", subtitle: "Get latest anime news & updates", icon: Icons.campaign_rounded, bgColor: Colors.lightBlueAccent, onTap: () => launchInBrowser(globalTelegramLink)),
-                  _buildSupportCard(context, title: "YouTube Channel", subtitle: "Watch exclusive trailers & content", icon: Icons.play_circle_fill_rounded, bgColor: Colors.red, onTap: () => launchInBrowser(globalYoutubeLink)),
-                  
-                  const SizedBox(height: 40),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.people_alt, color: animeMxPurple, size: 28),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: const [
+                            Text("Our Community", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text("Join our community for updates, discussions & more!", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  const Divider(color: Colors.white10, height: 16),
+                  _buildListTile(icon: Icons.play_arrow, iconBgColor: const Color(0xFFFF0000), title: "YouTube", subtitle: "Subscribe & Watch", trailingIcon: Icons.open_in_new, onTap: () => launchInBrowser(globalYoutubeLink)),
+                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  _buildListTile(icon: Icons.phone, iconBgColor: const Color(0xFF25D366), title: "WhatsApp", subtitle: "Join Our Group", trailingIcon: Icons.open_in_new, onTap: () => launchInBrowser(globalWhatsappLink)),
+                  const Divider(color: Colors.white10, height: 1, indent: 64),
+                  _buildListTile(icon: Icons.telegram, iconBgColor: const Color(0xFF2AABEE), title: "Telegram", subtitle: "Join Our Channel", trailingIcon: Icons.open_in_new, onTap: () => launchInBrowser(globalTelegramLink)),
                 ],
               ),
             ),
+            
+            const SizedBox(height: 24),
+            
+            // Block 3: FAQs
+            Container(
+              decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(16)),
+              child: Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  iconColor: Colors.white,
+                  collapsedIconColor: Colors.white54,
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(color: animeMxPurple, shape: BoxShape.circle),
+                    child: const Icon(Icons.question_mark, color: Colors.white, size: 20),
+                  ),
+                  title: const Text("Frequently Asked Questions", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  subtitle: const Text("Find quick answers to common questions", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: const BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16))
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text("Q: How to buy a subscription?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text("A: Go to the Account tab, click on Subscription, select a plan, and pay via UPI. Upload the screenshot and 12-digit UTR to activate your plan.", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                          SizedBox(height: 16),
+                          Text("Q: How to use the app?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text("A: Browse or search for your favorite anime on the Home or Search screens. Tap on any episode to start watching. You can also save anime to 'My List'.", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                          SizedBox(height: 16),
+                          Text("Q: How to create an account?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text("A: Your account is automatically and securely generated and linked to your device. Just enter your name when you open the app for the first time!", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                          SizedBox(height: 16),
+                          Text("Q: How to upgrade my plan?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          SizedBox(height: 4),
+                          Text("A: If you are already on an active plan, go to Account, tap on 'Upgrade Plan', pay the new amount and upload the screenshot.", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -3663,13 +3694,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   String _premiumMessage = "";
   bool _isPlanVerified = false;
 
-  // Trackers
+  // Screen Lock State
+  bool _isLocked = false;
+
+  // 4 Minute Daily Limit (Free Users) Local Tracker
   int _dailyWatchSeconds = 0;
   Duration _lastRecordedPosition = Duration.zero;
 
   // Skip Animation Trackers
   bool _showForwardSkip = false;
   bool _showBackwardSkip = false;
+
+  TapDownDetails? _doubleTapDetails;
 
   @override 
   void initState() { 
@@ -3684,14 +3720,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _incrementAndFetchViews(); 
     _loadDailyWatchLimit();
     _verifyPlanAndInitPlayer();
-  }
-
-  int _getPlanLimitSeconds(String plan) {
-    String p = plan.toLowerCase();
-    if (p.contains("bronze") || p.contains("14")) return 1800; // 30 mins
-    if (p.contains("silver") || p.contains("40")) return 10800; // 3 hours
-    if (p.contains("gold") || p.contains("99")) return 18000; // 5 hours
-    return 240; // Free = 4 mins
   }
 
   Future<void> _loadDailyWatchLimit() async {
@@ -3892,7 +3920,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
      final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
      bool isNewEpisode = DateTime.now().difference(ep.createdAt).inHours < 24;
      
-     if (isNewEpisode && (currentPlan == "Free" || currentPlan.toLowerCase().contains("bronze") || currentPlan.contains("14"))) {
+     if (isNewEpisode && (currentPlan == "Free" || currentPlan.toLowerCase().contains("bronze") || currentPlan.contains("49"))) {
         if (mounted) {
           setState(() {
             _isPremiumBlocked = true;
@@ -3924,7 +3952,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     _controller!.addListener(() {
       if (!mounted) return;
-      if (_isPlaying) {
+      if (_isPlaying && globalCurrentPlan == "Free") {
         Duration currentPos = _controller!.value.position;
         if (currentPos > _lastRecordedPosition) {
            int diff = (currentPos - _lastRecordedPosition).inSeconds;
@@ -3936,14 +3964,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
            }
         }
         _lastRecordedPosition = currentPos;
-        
-        int maxLimit = _getPlanLimitSeconds(globalCurrentPlan);
 
-        if (_dailyWatchSeconds >= maxLimit && !_isPremiumBlocked) {
+        if (_dailyWatchSeconds >= 240 && !_isPremiumBlocked) { // 4 Minutes Daily limit
           _controller!.pause();
           setState(() {
             _isPremiumBlocked = true;
-            _premiumMessage = "You have reached your daily watch limit for your current plan.\nPlease upgrade your plan to watch more.";
+            _premiumMessage = "You have reached your 4-minute daily free limit.\nPlease upgrade your plan to watch unlimited videos.";
             _isPlaying = false;
             _showControls = false;
           });
@@ -3969,6 +3995,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _userLikeStatus = 0; 
       _isPlanVerified = false;
       _lastRecordedPosition = Duration.zero;
+      _isLocked = false;
     });
     _fetchEpisodeLikes();
     _incrementAndFetchViews();
@@ -3991,6 +4018,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _userLikeStatus = 0; 
       _isPlanVerified = false;
       _lastRecordedPosition = Duration.zero;
+      _isLocked = false;
     });
     _fetchEpisodeLikes();
     _incrementAndFetchViews();
@@ -4051,8 +4079,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _toggleControls() { 
-    setState(() => _showControls = !_showControls); 
-    if (_showControls) _startHideTimer();
+    if (_isLocked) return;
+    setState(() {
+      _showControls = !_showControls;
+    }); 
+    if (_showControls) {
+      _startHideTimer();
+    } else {
+      _hideTimer?.cancel();
+    }
   }
 
   void _toggleFullScreen() { 
@@ -4065,7 +4100,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _skipForward() { 
-    if (_isPremiumBlocked) return;
+    if (_isPremiumBlocked || _isLocked) return;
     _controller?.seekTo(_controller!.value.position + const Duration(seconds: 10)); 
     setState(() => _showForwardSkip = true);
     _startHideTimer();
@@ -4075,13 +4110,34 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _skipBackward() { 
-    if (_isPremiumBlocked) return;
+    if (_isPremiumBlocked || _isLocked) return;
     _controller?.seekTo(_controller!.value.position - const Duration(seconds: 10)); 
     setState(() => _showBackwardSkip = true);
     _startHideTimer();
     Future.delayed(const Duration(milliseconds: 500), () {
       if(mounted) setState(() => _showBackwardSkip = false);
     });
+  }
+
+  void _showSpeedMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF161622),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
+           return ListTile(
+             title: Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+             trailing: _controller!.value.playbackSpeed == speed ? const Icon(Icons.check, color: animeMxPurple) : null,
+             onTap: () {
+               _controller!.setPlaybackSpeed(speed);
+               Navigator.pop(ctx);
+             }
+           );
+        }).toList(),
+      )
+    );
   }
 
   String _formatDuration(Duration duration) { 
@@ -4127,15 +4183,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         ? AspectRatio(aspectRatio: _controller!.value.aspectRatio, child: VideoPlayer(_controller!))
         : const SizedBox();
 
-    if (_isFullScreen) {
-      playerWidget = InteractiveViewer(
-        minScale: 1.0,
-        maxScale: 4.0,
-        child: Center(child: playerWidget),
-      );
-    } else {
-      playerWidget = Center(child: playerWidget);
-    }
+    // Adding Interactive Viewer for smooth landscape Zooming correctly
+    Widget interactivePlayer = InteractiveViewer(
+      minScale: 1.0,
+      maxScale: 4.0,
+      child: Center(child: playerWidget),
+    );
 
     Widget videoContent = Stack(
       children:[
@@ -4168,7 +4221,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           )
         else if (_controller != null && _controller!.value.isInitialized) 
-           playerWidget
+           // Gesture detector wraps the interactive viewer to pass pan/scale gestures gracefully
+           GestureDetector(
+             behavior: HitTestBehavior.opaque,
+             onTapDown: (d) => _doubleTapDetails = d,
+             onDoubleTap: () {
+                if (_isLocked) return;
+                if (_doubleTapDetails != null) {
+                   if (_doubleTapDetails!.globalPosition.dx < MediaQuery.of(context).size.width / 2) {
+                      _skipBackward();
+                   } else {
+                      _skipForward();
+                   }
+                }
+             },
+             onTap: _toggleControls,
+             child: interactivePlayer,
+           )
         else 
            Center(child: CircularProgressIndicator(color: primColor)),
 
@@ -4180,56 +4249,35 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 Image.network(thumbnailImage, fit: BoxFit.cover),
                 Container(color: Colors.black45),
                 Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (_isPlanVerified) {
-                        setState(() { 
-                          _hasStartedPlaying = true; 
-                          _isPlaying = true; 
-                          _controller?.play(); 
-                          _showControls = false; 
-                          _startHideTimer();
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.65), 
-                        shape: BoxShape.circle,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(50),
+                      onTap: () {
+                        if (_isPlanVerified) {
+                          setState(() { 
+                            _hasStartedPlaying = true; 
+                            _isPlaying = true; 
+                            _controller?.play(); 
+                            _showControls = false; 
+                            _startHideTimer();
+                          });
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.65), 
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white54, width: 2),
+                          boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 10)]
+                        ),
+                        child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 40),
                       ),
-                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 55),
                     ),
                   ),
                 ),
               ],
-            ),
-          ),
-
-        // TAP TO HIDE CONTROLS & DOUBLE TAP SKIP LAYER
-        if (!_isPremiumBlocked && _hasStartedPlaying && _controller != null && _controller!.value.isInitialized)
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _toggleControls,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onDoubleTap: _skipBackward,
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onDoubleTap: _skipForward,
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
 
@@ -4265,8 +4313,27 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
-        // ACTUAL VIDEO CONTROLS UI
-        if (!_isPremiumBlocked && _hasStartedPlaying && (_controller != null && _controller!.value.isInitialized)) 
+        if (!_isPremiumBlocked && _hasStartedPlaying && _isLocked && _showControls)
+          Positioned(
+            bottom: 20, left: MediaQuery.of(context).size.width / 2 - 25,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(50),
+                onTap: () {
+                   setState(() { _isLocked = false; _showControls = true; });
+                   _startHideTimer();
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                  child: const Icon(Icons.lock_open, color: Colors.white, size: 28),
+                ),
+              ),
+            )
+          ),
+
+        if (!_isPremiumBlocked && _hasStartedPlaying && _showControls && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 150),
@@ -4290,9 +4357,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                             ),
                             Row(
                               children: [
-                                GestureDetector(onTap: () {}, child: const Icon(Icons.lock_outline, color: Colors.white, size: 22)),
+                                GestureDetector(
+                                  onTap: () => setState(() { _isLocked = true; _showControls = false; }), 
+                                  child: const Icon(Icons.lock_outline, color: Colors.white, size: 22)
+                                ),
                                 const SizedBox(width: 16),
-                                GestureDetector(onTap: () {}, child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22)),
+                                GestureDetector(
+                                  onTap: _showSpeedMenu, 
+                                  child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22)
+                                ),
                               ],
                             )
                           ],
@@ -4304,36 +4377,48 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center, 
                           children:[
-                            Container(
-                              width: 50, height: 50,
-                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                icon: const Icon(Icons.replay_10, color: Colors.white, size: 28), 
-                                onPressed: _skipBackward
+                            Material(
+                              color: Colors.black45,
+                              shape: const CircleBorder(),
+                              clipBehavior: Clip.hardEdge,
+                              child: InkWell(
+                                onTap: _skipBackward,
+                                splashColor: Colors.white30,
+                                child: const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: Icon(Icons.replay_10, color: Colors.white, size: 28),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 40),
-                            Container(
-                              width: 60, height: 60,
-                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black54),
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                icon: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 36), 
-                                onPressed: () { 
+                            Material(
+                              color: Colors.black54,
+                              shape: const CircleBorder(),
+                              clipBehavior: Clip.hardEdge,
+                              child: InkWell(
+                                onTap: () { 
                                   setState(() { _isPlaying = !_isPlaying; _controller!.value.isPlaying ? _controller!.pause() : _controller!.play(); }); 
                                   _startHideTimer();
-                                }
+                                },
+                                splashColor: Colors.white30,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Icon(_controller!.value.isPlaying ? Icons.pause : Icons.play_arrow, color: Colors.white, size: 36),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 40),
-                            Container(
-                              width: 50, height: 50,
-                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.black45),
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                icon: const Icon(Icons.forward_10, color: Colors.white, size: 28), 
-                                onPressed: _skipForward
+                            Material(
+                              color: Colors.black45,
+                              shape: const CircleBorder(),
+                              clipBehavior: Clip.hardEdge,
+                              child: InkWell(
+                                onTap: _skipForward,
+                                splashColor: Colors.white30,
+                                child: const Padding(
+                                  padding: EdgeInsets.all(12),
+                                  child: Icon(Icons.forward_10, color: Colors.white, size: 28),
+                                ),
                               ),
                             ),
                           ]
