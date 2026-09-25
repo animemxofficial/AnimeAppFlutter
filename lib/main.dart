@@ -28,6 +28,9 @@ String localProfileImagePath = "";
 String globalCurrentPlan = "Free";
 DateTime? globalPlanExpiry;
 
+// NOTIFICATION LOGIC
+DateTime globalLastSeenNotification = DateTime.fromMillisecondsSinceEpoch(0);
+
 // ADMIN PANEL SETTINGS
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
@@ -414,6 +417,11 @@ void main() async {
   
   SharedPreferences prefs = await SharedPreferences.getInstance();
   localProfileImagePath = prefs.getString('local_avatar_path') ?? "";
+  
+  String? lastSeenStr = prefs.getString('last_seen_notification');
+  if (lastSeenStr != null) {
+    globalLastSeenNotification = DateTime.parse(lastSeenStr);
+  }
 
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
@@ -704,7 +712,46 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
   }
 
   @override Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: Colors.black, body: Center(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 100), const SizedBox(height: 20), RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), const SizedBox(height: 10), const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), const SizedBox(height: 40), TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 16), TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), const SizedBox(height: 40), Container(width: double.infinity, height: 55, decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), onPressed: _isLoading ? null : _saveName, child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))))]))));
+    return Scaffold(
+      backgroundColor: Colors.black, 
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24), 
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center, 
+              children: [
+                const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 90), 
+                const SizedBox(height: 16), 
+                RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), 
+                const SizedBox(height: 8), 
+                const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), 
+                const SizedBox(height: 40), 
+                TextField(controller: _firstNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "First Name", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), 
+                const SizedBox(height: 16), 
+                TextField(controller: _lastNameController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Last Name (Optional)", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: const Color(0xFF16161E), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.all(16))), 
+                const SizedBox(height: 40), 
+                Container(
+                  width: double.infinity, height: 55, 
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), 
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), 
+                    onPressed: _isLoading ? null : _saveName, 
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                  )
+                ),
+                const SizedBox(height: 24),
+                TextButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage())), 
+                  icon: const Icon(Icons.help_outline, color: Colors.white54, size: 18), 
+                  label: const Text("Need Help? Contact Support", style: TextStyle(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.w500))
+                )
+              ]
+            )
+          )
+        ),
+      )
+    );
   }
 }
 
@@ -1210,7 +1257,13 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
 
   @override bool get wantKeepAlive => true;
 
-  void _showNotifications(BuildContext context, List<LatestEpisodeItem> recentEps) {
+  void _showNotifications(BuildContext context, List<LatestEpisodeItem> recentEps) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('last_seen_notification', DateTime.now().toIso8601String());
+    setState(() {
+      globalLastSeenNotification = DateTime.now();
+    });
+
     showModalBottomSheet(
       context: context,
       backgroundColor: getCard(context),
@@ -1357,7 +1410,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
         for (int e = 0; e < anime.seasonsList[s].episodes.length; e++) {
           final epItem = LatestEpisodeItem(anime: anime, seasonIndex: s, episodeIndex: e, episode: anime.seasonsList[s].episodes[e]);
           latestList.add(epItem);
-          if (DateTime.now().difference(epItem.episode.createdAt).inDays <= 14) {
+          if (DateTime.now().difference(epItem.episode.createdAt).inDays <= 14 && epItem.episode.createdAt.isAfter(globalLastSeenNotification)) {
             newNotificationCount++;
           }
         }
@@ -2368,7 +2421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if(mounted) setState(() => _isLoadingPlan = false);
   }
 
-  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, required Color iconColor, String? trailingText, required VoidCallback onTap}) {
+  Widget _buildGroupedItem(BuildContext context, {required String title, required IconData icon, required Color iconColor, String? trailingText, required VoidCallback onTap, bool showArrow = true}) {
     return InkWell(
       onTap: onTap,
       child: Container(
@@ -2388,9 +2441,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 if (trailingText != null) ...[
                   Text(trailingText, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  const SizedBox(width: 10),
+                  if (showArrow) const SizedBox(width: 10),
                 ],
-                const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 12),
+                if (showArrow) const Icon(Icons.arrow_forward_ios, color: Colors.white38, size: 12),
               ],
             )
           ],
@@ -2569,9 +2622,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Divider(color: Colors.white10, height: 1, thickness: 1),
               _buildGroupedItem(context, title: "Terms & Conditions", icon: Icons.description_outlined, iconColor: Colors.orangeAccent, onTap: () => Navigator.push(context, SmoothPageRoute(page: const TermsConditionsPage()))),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, iconColor: Colors.pinkAccent, trailingText: "v$CURRENT_APP_VERSION", onTap: () {}),
+              _buildGroupedItem(context, title: "About Axion DUB", icon: Icons.info_outline, iconColor: Colors.pinkAccent, trailingText: "v$CURRENT_APP_VERSION", showArrow: false, onTap: () {}),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
-              _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, iconColor: Colors.redAccent, onTap: () async {
+              _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, iconColor: Colors.redAccent, showArrow: false, onTap: () async {
                 await Supabase.instance.client.auth.signOut(); 
                 if(context.mounted) Navigator.pushReplacement(context, SmoothPageRoute(page: const AuthGate())); 
               }),
@@ -3373,11 +3426,13 @@ class SupportPage extends StatelessWidget {
             const SizedBox(height: 12),
             _buildSupportCard(context, icon: Icons.camera_alt_outlined, title: "Instagram", subtitle: "DM us for quick queries", onTap: () => launchInBrowser(globalInstagramLink)),
             const SizedBox(height: 12),
-            _buildSupportCard(context, icon: Icons.email_outlined, title: "Email Support", subtitle: "anixplayer.official@gmail.com", onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
+            _buildSupportCard(context, icon: Icons.email_outlined, title: "Email Support", subtitle: "Send us an email for help", onTap: () => launchInBrowser("mailto:anixplayer.official@gmail.com")),
             
             const SizedBox(height: 32),
             
             const Text("Community", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            const SizedBox(height: 12),
+            _buildSupportCard(context, icon: Icons.telegram, title: "Telegram Group", subtitle: "Join our community group", onTap: () => launchInBrowser(globalTelegramLink)),
             const SizedBox(height: 12),
             _buildSupportCard(context, icon: Icons.play_circle_outline, title: "YouTube", subtitle: "Subscribe for latest updates", onTap: () => launchInBrowser(globalYoutubeLink)),
             const SizedBox(height: 12),
@@ -3565,9 +3620,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   bool _isLocked = false;
 
   // Daily Watch Limit Trackers
-  int _dailyWatchSeconds = 0;
+  double _dailyWatchSeconds = 0.0;
   int _maxAllowedSeconds = 180; // 3 Minutes default for free plan
-  Duration _lastRecordedPosition = Duration.zero;
+  DateTime? _lastTick;
 
   // Early Access Tracker
   bool _isLockedByEarlyAccess = false;
@@ -3600,7 +3655,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       String today = DateTime.now().toIso8601String().substring(0, 10);
       final res = await Supabase.instance.client.from('user_daily_watch').select().eq('user_id', currentUserId).eq('watch_date', today).maybeSingle();
       if (res != null) {
-        _dailyWatchSeconds = res['watched_seconds'] ?? 0;
+        _dailyWatchSeconds = (res['watched_seconds'] ?? 0).toDouble();
       } else {
         _dailyWatchSeconds = 0;
         await Supabase.instance.client.from('user_daily_watch').insert({
@@ -3626,7 +3681,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
        await Supabase.instance.client.from('user_daily_watch').upsert({
          'user_id': currentUserId,
          'watch_date': today,
-         'watched_seconds': _dailyWatchSeconds
+         'watched_seconds': _dailyWatchSeconds.toInt()
        }, onConflict: 'user_id, watch_date');
     } catch(e) {}
   }
@@ -3873,15 +3928,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     _controller!.addListener(() {
       if (!mounted) return;
-      if (_isPlaying) {
-        Duration currentPos = _controller!.value.position;
-        if (currentPos > _lastRecordedPosition) {
-           int diff = (currentPos - _lastRecordedPosition).inSeconds;
-           if (diff > 0 && diff < 5) {
-             _dailyWatchSeconds += diff;
-           }
+      
+      // Highly accurate real-time watch limit detection logic
+      if (_isPlaying && _controller!.value.isPlaying) {
+        DateTime now = DateTime.now();
+        if (_lastTick != null) {
+           _dailyWatchSeconds += now.difference(_lastTick!).inMilliseconds / 1000.0;
         }
-        _lastRecordedPosition = currentPos;
+        _lastTick = now;
 
         if (_maxAllowedSeconds != -1 && _dailyWatchSeconds >= _maxAllowedSeconds && !_isPremiumBlocked) { 
           _controller!.pause();
@@ -3897,7 +3951,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
           });
         }
       } else {
-        _lastRecordedPosition = _controller?.value.position ?? Duration.zero;
+        _lastTick = null;
       }
     });
   }
@@ -3917,7 +3971,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _dislikeCount = 0; 
       _userLikeStatus = 0; 
       _isPlanVerified = false;
-      _lastRecordedPosition = Duration.zero;
+      _lastTick = null;
       _isLocked = false;
       _isLockedByEarlyAccess = false;
       _isPremiumBlocked = false;
@@ -3943,7 +3997,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _dislikeCount = 0; 
       _userLikeStatus = 0; 
       _isPlanVerified = false;
-      _lastRecordedPosition = Duration.zero;
+      _lastTick = null;
       _isLocked = false;
       _isLockedByEarlyAccess = false;
       _isPremiumBlocked = false;
@@ -4050,23 +4104,52 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _showSpeedMenu() {
-    showModalBottomSheet(
+    HapticFeedback.lightImpact();
+    showGeneralDialog(
       context: context,
-      backgroundColor: const Color(0xFF161622),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
-           return ListTile(
-             title: Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-             trailing: _controller!.value.playbackSpeed == speed ? const Icon(Icons.check, color: animeMxPurple) : null,
-             onTap: () {
-               _controller!.setPlaybackSpeed(speed);
-               Navigator.pop(ctx);
-             }
-           );
-        }).toList(),
-      )
+      barrierDismissible: true,
+      barrierLabel: "SpeedMenu",
+      barrierColor: Colors.transparent, // Background transparent requirement
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight, // Slide from right
+          child: Material(
+            color: Colors.black.withOpacity(0.7),
+            child: SizedBox(
+              width: 250,
+              height: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((speed) {
+                  return InkWell(
+                    onTap: () {
+                      _controller!.setPlaybackSpeed(speed);
+                      Navigator.pop(context);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          if (_controller!.value.playbackSpeed == speed) const Icon(Icons.check, color: animeMxPurple, size: 22)
+                        ]
+                      )
+                    )
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
+          child: child,
+        );
+      },
     );
   }
 
@@ -4295,30 +4378,33 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
-        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked && _showControls)
+        // FLOATING UNLOCK BUTTON WHEN LOCKED
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked)
           Positioned(
-            bottom: 20, left: MediaQuery.of(context).size.width / 2 - 25,
+            bottom: 30, left: MediaQuery.of(context).size.width / 2 - 25,
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(50),
                 onTap: () {
+                   HapticFeedback.mediumImpact();
                    setState(() { _isLocked = false; _showControls = true; });
                    _startHideTimer();
                 },
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                  child: const Icon(Icons.lock_open, color: Colors.white, size: 28),
+                  child: const Icon(Icons.lock, color: Colors.white, size: 28),
                 ),
               ),
             )
           ),
 
-        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _showControls && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
+        // MAIN VIDEO CONTROLS
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 150),
+            duration: const Duration(milliseconds: 300), // Smooth fade animation here
             child: IgnorePointer(
               ignoring: !_showControls,
               child: GestureDetector(
@@ -4342,17 +4428,32 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                               ),
                               Row(
                                 children: [
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() { _isLocked = true; _showControls = false; });
-                                      _hideTimer?.cancel();
-                                    }, 
-                                    child: const Icon(Icons.lock_outline, color: Colors.white, size: 22)
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: () {
+                                        HapticFeedback.mediumImpact();
+                                        setState(() { _isLocked = true; _showControls = false; });
+                                        _hideTimer?.cancel();
+                                      }, 
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(8.0),
+                                        child: Icon(Icons.lock_outline, color: Colors.white, size: 22),
+                                      )
+                                    ),
                                   ),
-                                  const SizedBox(width: 16),
-                                  GestureDetector(
-                                    onTap: _showSpeedMenu, 
-                                    child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22)
+                                  const SizedBox(width: 8),
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(20),
+                                      onTap: _showSpeedMenu, 
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(8.0),
+                                        child: Icon(Icons.settings_outlined, color: Colors.white, size: 22),
+                                      )
+                                    ),
                                   ),
                                 ],
                               )
