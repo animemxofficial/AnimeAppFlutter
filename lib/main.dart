@@ -13,7 +13,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
 
-// FORCED NEW UPDATE PUSH TO BYPASS PREVIOUS BUG LOL
+// ZYNOX FINAL SYNC VERSION (For Admin force updates checking logic)
 const String CURRENT_APP_VERSION = "1.0.2"; 
 
 // SUPABASE AUTH UUID & USER INFO
@@ -28,10 +28,7 @@ String localProfileImagePath = "";
 String globalCurrentPlan = "Free";
 DateTime? globalPlanExpiry;
 
-// NOTIFICATION LOGIC
-DateTime globalLastSeenNotification = DateTime.fromMillisecondsSinceEpoch(0);
-
-// ADMIN PANEL SETTINGS
+// ADMIN PANEL DYNAMIC SETTINGS SYNC (Matches SQL Data precisely!)
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
 String globalWhatsappLink = "https://wa.me/"; 
@@ -43,14 +40,14 @@ String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2x
 String globalPrivacyPolicy = "At Zynox TV, your privacy and security are our highest priorities...";
 String globalTermsConditions = "Terms and Conditions will be updated soon."; 
 
-// UPDATE SYSTEM VARIABLES (Synced via Database)
+// UPDATE SYSTEM VARIABLES 
 String globalLatestAppVersion = "1.0.2";
 String globalAppApkUrl = "https://google.com"; 
 List<String> globalUpdateFeatures = [
   "New Zynox branding and logos",
-  "Smoother transparent playback settings",
   "Enhanced Blue Dark UI Subscription Mode",
   "Upgraded dynamic exact Search Engine matching",
+  "Optimized settings positioning",
   "Bug fixes across various app screens"
 ];
 
@@ -63,13 +60,13 @@ final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 final ValueNotifier<Map<String, int>> globalEpisodeViewsNotifier = ValueNotifier({});
 
-// PRELOAD LIKES MAP
 final ValueNotifier<Map<String, Map<String, int>>> globalAnimeLikesNotifier = ValueNotifier({});
 
-// THEME COLORS CONSTANTS 
-const Color animeMxPurple = Color(0xFF8A2BE2); // Primary Action
-const Color animeMxBlue = Color(0xFF2563EB); // Gradient Helper Color
-const Color goldenColor = Color(0xFFFFD700); // Prominent golden premium highlights 
+// THEME COLORS CONSTANTS (Fixed and Hard-Locked into Application Layout perfectly)
+const Color animeMxPurple = Color(0xFF8A2BE2); // Primary Theme Color
+const Color goldenColor = Color(0xFFFFD700); // Gold
+const Color backgroundDark = Colors.black;
+const Color backgroundCards = Color(0xFF13131A);
 
 Color getBg(BuildContext context) => Colors.black;
 Color getCard(BuildContext context) => const Color(0xFF13131A); 
@@ -119,7 +116,7 @@ DateTime? getPlanExpiryDate(String createdAt, String planName) {
   return start.add(const Duration(days: 30)); 
 }
 
-// SMOOTH PAGE TRANSITION ANIMATION
+// ANIMATION CLASSES
 class SmoothPageRoute extends PageRouteBuilder {
   final Widget page;
   SmoothPageRoute({required this.page})
@@ -132,7 +129,6 @@ class SmoothPageRoute extends PageRouteBuilder {
         );
 }
 
-// SMOOTH BOTTOM NAV FADE TRANSITION
 class FadeIndexedStack extends StatefulWidget {
   final int index;
   final List<Widget> children;
@@ -142,20 +138,16 @@ class FadeIndexedStack extends StatefulWidget {
 
 class _FadeIndexedStackState extends State<FadeIndexedStack> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-
   @override void initState() {
     super.initState();
     _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
     _controller.forward();
   }
-
   @override void didUpdateWidget(FadeIndexedStack oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.index != oldWidget.index) _controller.forward(from: 0.0);
   }
-
   @override void dispose() { _controller.dispose(); super.dispose(); }
-
   @override Widget build(BuildContext context) {
     return FadeTransition(opacity: _controller, child: IndexedStack(index: widget.index, children: widget.children));
   }
@@ -192,7 +184,7 @@ Future<bool?> showCustomDeleteDialog(BuildContext context, String title, String 
   return showDialog<bool>(
     context: context,
     builder: (ctx) => Dialog(
-      backgroundColor: const Color(0xFF13131A),
+      backgroundColor: backgroundCards,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -419,6 +411,7 @@ class AppUpdateScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 40),
                 
+                // NEW ZYNOX LOGO IMPLEMENTATION FOR UPDATE SCREEN
                 Container(
                   width: 90, height: 90,
                   decoration: BoxDecoration(
@@ -660,9 +653,6 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       currentUserName = fullName;
       currentUserUid = shortUid;
       
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('tour_completed', false);
-
       if (mounted) Navigator.pushReplacement(context, SmoothPageRoute(page: const MainScreen()));
     } catch (e) { 
       if (mounted) {
@@ -805,71 +795,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override void dispose() { _presenceChannel?.unsubscribe(); _dbChannel?.unsubscribe(); _profileScrollController.dispose(); super.dispose(); }
-
-  void _showCookiesAndTourDialog() {
-     showDialog(
-       context: context,
-       barrierDismissible: false,
-       builder: (ctx) => Dialog(
-         backgroundColor: const Color(0xFF13131A),
-         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-         child: Padding(
-           padding: const EdgeInsets.all(24.0),
-           child: Column(
-             mainAxisSize: MainAxisSize.min,
-             children: [
-               const Icon(Icons.cookie_outlined, color: Colors.orangeAccent, size: 50),
-               const SizedBox(height: 16),
-               const Text("We Value Your Privacy", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-               const SizedBox(height: 8),
-               const Text("We use basic cookies & preferences purely to keep your Watch Limits and progress updated securely without privacy intrusion.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
-               const SizedBox(height: 24),
-               SizedBox(
-                 width: double.infinity,
-                 height: 45,
-                 child: ElevatedButton(
-                   style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                   onPressed: () => Navigator.pop(ctx), 
-                   child: const Text("Accept & Continue", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                 )
-               )
-             ]
-           )
-         )
-       )
-     ).then((_) {
-         showDialog(
-           context: context,
-           builder: (ctx) => Dialog(
-             backgroundColor: const Color(0xFF13131A),
-             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-             child: Padding(
-               padding: const EdgeInsets.all(24.0),
-               child: Column(
-                 mainAxisSize: MainAxisSize.min,
-                 children: [
-                   const Icon(Icons.movie_creation_outlined, color: animeMxPurple, size: 50),
-                   const SizedBox(height: 16),
-                   const Text("Quick Tour!", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                   const SizedBox(height: 12),
-                   const Text("1. Use 'Home' to browse safe collections.\n2. Tap 'Search' specifically for episode matches via typing directly.\n3. Keep eye on Account limits via Subscriptions.", style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.6)),
-                   const SizedBox(height: 24),
-                   SizedBox(
-                     width: double.infinity,
-                     height: 45,
-                     child: ElevatedButton(
-                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                       onPressed: () => Navigator.pop(ctx), 
-                       child: const Text("Got it!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                     )
-                   )
-                 ]
-               )
-             )
-           )
-         );
-     });
-  }
   
   Future<void> _fetchGlobalPlan() async {
     try {
@@ -914,15 +839,7 @@ class _MainScreenState extends State<MainScreen> {
     await _fetchDatabaseCatalog(); 
     await _fetchUserPreferences(); 
     
-    if(mounted) {
-       setState(() => _isDataLoading = false);
-       SharedPreferences prefs = await SharedPreferences.getInstance();
-       bool isTourCompleted = prefs.getBool('tour_completed') ?? false;
-       if (!isTourCompleted) {
-         await prefs.setBool('tour_completed', true);
-         _showCookiesAndTourDialog();
-       }
-    }
+    if(mounted) setState(() => _isDataLoading = false);
   }
 
   Future<void> _fetchSettings() async {
@@ -1173,80 +1090,76 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
                 String displayTitle = rawTitle.isEmpty ? "Anime" : rawTitle;
                 String metadata = linkedAnime?.description.isNotEmpty == true 
                     ? linkedAnime!.description 
-                    : "Experience the ultimate adventure in this epic anime.";
+                    : (isCustom ? "Stay Tuned! Exclusive new episodes incoming." : "Experience the ultimate adventure in this epic anime.");
 
-                return BouncingCard(
-                  onTap: () {
-                    if (linkedAnime != null) {
-                      _handleWatchNow(linkedAnime);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Stay tuned for updates!")));
-                    }
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: animeMxPurple.withOpacity(0.5), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(color: animeMxPurple.withOpacity(0.2), blurRadius: 15, spreadRadius: 1)
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          Image.network(
-                            hero['image_url'],
-                            fit: BoxFit.cover,
-                            alignment: Alignment.centerRight,
-                            gaplessPlayback: true, 
-                            errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
-                          ),
+                // If Custom Banner (Not Linked to any anime yet), we dont show watch now button to prevent crash 
+                bool hasWatchNow = !isCustom && linkedAnime != null;
 
-                          Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.black.withOpacity(0.95), 
-                                  Colors.black.withOpacity(0.7),
-                                  Colors.transparent,             
-                                ],
-                                stops: const [0.0, 0.4, 1.0],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
+                return Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: animeMxPurple.withOpacity(0.5), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(color: animeMxPurple.withOpacity(0.2), blurRadius: 15, spreadRadius: 1)
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          hero['image_url'],
+                          fit: BoxFit.cover,
+                          alignment: Alignment.centerRight,
+                          gaplessPlayback: true, 
+                          errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
+                        ),
+
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.black.withOpacity(0.95), 
+                                Colors.black.withOpacity(0.7),
+                                Colors.transparent,             
+                              ],
+                              stops: const [0.0, 0.4, 1.0],
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
                             ),
                           ),
+                        ),
 
-                          Positioned(
-                            left: 16,
-                            bottom: 20,
-                            right: 80,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  displayTitle,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 22, 
-                                    fontWeight: FontWeight.w900,
-                                    height: 1.1,
-                                    letterSpacing: 0.5,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                        Positioned(
+                          left: 16,
+                          bottom: 20,
+                          right: 80,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                displayTitle,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22, 
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.1,
+                                  letterSpacing: 0.5,
                                 ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  metadata,
-                                  style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                metadata,
+                                style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if(hasWatchNow) ...[
                                 const SizedBox(height: 12),
                                 SizedBox(
                                   height: 36,
@@ -1261,37 +1174,43 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
                                     icon: const Icon(Icons.play_arrow_rounded, size: 20),
                                     label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                                     onPressed: () {
-                                      if (linkedAnime != null) {
-                                        _handleWatchNow(linkedAnime);
-                                      }
+                                      _handleWatchNow(linkedAnime!);
                                     },
                                   ),
                                 )
-                              ],
-                            ),
+                              ] else ...[
+                                // Coming Soon Indicator layout instead of non-working play btn
+                                const SizedBox(height: 12),
+                                Container(
+                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                   decoration: BoxDecoration(color: goldenColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: goldenColor.withOpacity(0.5))),
+                                   child: const Text("Coming Soon", style: TextStyle(color: goldenColor, fontSize: 11, fontWeight: FontWeight.bold))
+                                )
+                              ]
+                            ],
                           ),
-                          
-                          Positioned(
-                            bottom: 12, left: 0, right: 0,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(widget.heroList.length, (idx) {
-                                bool active = _currentIndex == idx;
-                                return AnimatedContainer(
-                                  duration: const Duration(milliseconds: 300),
-                                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                                  height: 4,
-                                  width: active ? 16 : 6,
-                                  decoration: BoxDecoration(
-                                    color: active ? animeMxPurple : Colors.white38,
-                                    borderRadius: BorderRadius.circular(4)
-                                  ),
-                                );
-                              }),
-                            ),
-                          )
-                        ],
-                      ),
+                        ),
+                        
+                        Positioned(
+                          bottom: 12, left: 0, right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(widget.heroList.length, (idx) {
+                              bool active = _currentIndex == idx;
+                              return AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                margin: const EdgeInsets.symmetric(horizontal: 3),
+                                height: 4,
+                                width: active ? 16 : 6,
+                                decoration: BoxDecoration(
+                                  color: active ? animeMxPurple : Colors.white38,
+                                  borderRadius: BorderRadius.circular(4)
+                                ),
+                              );
+                            }),
+                          ),
+                        )
+                      ],
                     ),
                   ),
                 );
@@ -2939,7 +2858,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                       children: [
                                         Text(plan['name'], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 4),
-                                        Text(plan['desc'], style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                        Text(plan['desc'], style: const TextStyle(color: Colors.white54, fontSize: 12)),
                                         const SizedBox(height: 8),
                                         ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
                                       ],
@@ -3125,7 +3044,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.black, // True Black for cards
+                                color: const Color(0xFF13131A), 
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1),
                               ),
@@ -3411,7 +3330,7 @@ class SupportPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle),
-              child: Icon(icon, color: animeMxPurple, size: 24),
+              child: const Icon(icon, color: animeMxPurple, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -3664,11 +3583,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   bool _isPremiumBlocked = false;
   String _premiumMessage = "";
   bool _isPlanVerified = false;
-
-  // Lock State
-  bool _isLocked = false;
-  bool _showLockIcon = false;
-  Timer? _lockIconTimer;
 
   // Menu States
   bool _isSpeedMenuVisible = false;
@@ -4064,7 +3978,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             _setPremiumMessage();
             _isPlaying = false;
             _showControls = false;
-            _syncWatchTimeWithDB(); // final sync for the session
+            _syncWatchTimeWithDB(); 
           });
         }
       } else {
@@ -4089,8 +4003,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _userLikeStatus = 0; 
       _isPlanVerified = false;
       _lastTick = null;
-      _isLocked = false;
-      _showLockIcon = false;
       _isSpeedMenuVisible = false;
       _isLockedByEarlyAccess = false;
       _isPremiumBlocked = false;
@@ -4117,8 +4029,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _userLikeStatus = 0; 
       _isPlanVerified = false;
       _lastTick = null;
-      _isLocked = false;
-      _showLockIcon = false;
       _isSpeedMenuVisible = false;
       _isLockedByEarlyAccess = false;
       _isPremiumBlocked = false;
@@ -4182,20 +4092,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   void _startHideTimer() {
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted && _isPlaying && !_isLocked && !_isSpeedMenuVisible) setState(() => _showControls = false);
+      if (mounted && _isPlaying && !_isSpeedMenuVisible) setState(() => _showControls = false);
     });
   }
 
   void _toggleControls() { 
-    if (_isLocked) {
-       // Direct complete unlock if tapped anywhere on lock icon screen overlay, handling clean UX
-       setState(() { _isLocked = false; _showControls = true; });
-       _startHideTimer();
-       return;
-    }
     setState(() {
       _showControls = !_showControls;
-      if (!_showControls) _isSpeedMenuVisible = false; // Hide menu when hiding controls
+      if (!_showControls) _isSpeedMenuVisible = false; 
     }); 
     if (_showControls) {
       _startHideTimer();
@@ -4214,7 +4118,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _skipForward() { 
-    if (_isPremiumBlocked || _isLocked) return;
+    if (_isPremiumBlocked) return;
     _controller?.seekTo(_controller!.value.position + const Duration(seconds: 10)); 
     setState(() => _showForwardSkip = true);
     _startHideTimer();
@@ -4224,63 +4128,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _skipBackward() { 
-    if (_isPremiumBlocked || _isLocked) return;
+    if (_isPremiumBlocked) return;
     _controller?.seekTo(_controller!.value.position - const Duration(seconds: 10)); 
     setState(() => _showBackwardSkip = true);
     _startHideTimer();
     Future.delayed(const Duration(milliseconds: 500), () {
       if(mounted) setState(() => _showBackwardSkip = false);
     });
-  }
-
-  void _showSpeedMenu() {
-    HapticFeedback.lightImpact();
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: "SpeedMenu",
-      barrierColor: Colors.transparent, 
-      transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return Align(
-          alignment: Alignment.centerRight, 
-          child: Material(
-            color: Colors.black.withOpacity(0.7),
-            child: SizedBox(
-              width: 250,
-              height: double.infinity,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [2.0, 1.5, 1.25, 1.0, 0.75, 0.5].map((speed) {
-                  return InkWell(
-                    onTap: () {
-                      _controller!.setPlaybackSpeed(speed);
-                      Navigator.pop(context);
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                          if (_controller!.value.playbackSpeed == speed) const Icon(Icons.check, color: animeMxPurple, size: 22)
-                        ]
-                      )
-                    )
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (context, animation, secondaryAnimation, child) {
-        return SlideTransition(
-          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
-          child: child,
-        );
-      },
-    );
   }
 
   String _formatDuration(Duration duration) { 
@@ -4420,7 +4274,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
              behavior: HitTestBehavior.opaque,
              onTapDown: (d) => _doubleTapDetails = d,
              onDoubleTap: () {
-                if (_isLocked) return;
                 if (_doubleTapDetails != null) {
                    if (_doubleTapDetails!.globalPosition.dx < MediaQuery.of(context).size.width / 2) {
                       _skipBackward();
@@ -4511,8 +4364,44 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
+        // SPEED OVERLAY INSIDE PLAYER
+        if (_isSpeedMenuVisible && _showControls)
+           Positioned(
+              right: 16, top: 50, // Placed below appbar directly instead of center
+              child: Container(
+                 width: 110,
+                 padding: const EdgeInsets.symmetric(vertical: 4),
+                 decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12)), 
+                 child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [2.0, 1.5, 1.25, 1.0, 0.75, 0.5].map((s) {
+                       bool isActive = _controller!.value.playbackSpeed == s;
+                       return InkWell(
+                         onTap: () {
+                            HapticFeedback.selectionClick();
+                            _controller!.setPlaybackSpeed(s);
+                            setState((){ _isSpeedMenuVisible = false; });
+                            _startHideTimer();
+                         },
+                         child: Container(
+                           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                           decoration: isActive ? BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)) : null,
+                           child: Row(
+                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                             children: [
+                               Text(s==1.0 ? "Normal" : "${s}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, shadows: [Shadow(color: Colors.black, blurRadius: 6)])),
+                               if (_controller!.value.playbackSpeed == s) const Icon(Icons.check, color: animeMxPurple, size: 14)
+                             ]
+                           )
+                         )
+                       );
+                    }).toList()
+                 )
+              )
+           ),
+
         // MAIN VIDEO CONTROLS
-        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 300), 
@@ -4544,22 +4433,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(20),
                                       onTap: () {
-                                        HapticFeedback.mediumImpact();
-                                        setState(() { _isLocked = true; _showControls = false; _showLockIcon = false; });
-                                        _hideTimer?.cancel();
+                                        HapticFeedback.lightImpact();
+                                        setState(() { _isSpeedMenuVisible = !_isSpeedMenuVisible; });
                                       }, 
-                                      child: const Padding(
-                                        padding: EdgeInsets.all(8.0),
-                                        child: Icon(Icons.lock_outline, color: Colors.white, size: 22),
-                                      )
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(20),
-                                      onTap: _showSpeedMenu, 
                                       child: const Padding(
                                         padding: EdgeInsets.all(8.0),
                                         child: Icon(Icons.settings_outlined, color: Colors.white, size: 22),
@@ -4816,7 +4692,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
                     if (_inlineActionMsg.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.only(top: 20, left: 16, right: 16),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -4831,8 +4707,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         ),
                       ),
                     
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Divider(color: Colors.white10, height: 20, thickness: 1)),
-                    
+                    const SizedBox(height: 20),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Divider(color: Colors.white10, height: 10, thickness: 1)),
+                    const SizedBox(height: 10),
+
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
