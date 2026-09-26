@@ -12,7 +12,6 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'package:share_plus/share_plus.dart'; 
 
 const String CURRENT_APP_VERSION = "1.0.1"; 
 
@@ -43,10 +42,16 @@ String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2x
 String globalPrivacyPolicy = "At Zynox TV, your privacy and security are our highest priorities...";
 String globalTermsConditions = "Terms and Conditions will be updated soon."; 
 
-// UPDATE SYSTEM VARIABLES (Fully Cleaned - Only Admin DB drives this now)
-String globalLatestAppVersion = CURRENT_APP_VERSION;
-String globalAppApkUrl = ""; 
-List<String> globalUpdateFeatures = []; // Fake hardcoded list removed!
+// UPDATE SYSTEM VARIABLES (Synced via Database)
+String globalLatestAppVersion = "1.0.1";
+String globalAppApkUrl = "https://google.com"; 
+List<String> globalUpdateFeatures = [
+  "Faster Home loading",
+  "Modern video player",
+  "Daily Points rewards",
+  "Improved search and downloads",
+  "Plus important stability fixes."
+];
 
 List<String> globalRecentSearches = [];
 
@@ -380,7 +385,7 @@ class AniXApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false, 
       title: "Zynox TV",
-      themeMode: ThemeMode.dark, 
+      themeMode: ThemeMode.dark,
       darkTheme: ThemeData(
         brightness: Brightness.dark, 
         primaryColor: animeMxPurple, 
@@ -396,9 +401,6 @@ class AniXApp extends StatelessWidget {
   }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// OTA FORCE APP UPDATE PAGE (Fully Admin Panel Sync Working)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class AppUpdateScreen extends StatelessWidget {
   const AppUpdateScreen({super.key});
 
@@ -415,15 +417,16 @@ class AppUpdateScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-                // Exact Specified Custom Image Icon 
+                
+                // NEW ZYNOX LOGO IMPLEMENTATION FOR UPDATE SCREEN
                 Container(
                   width: 90, height: 90,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.3), blurRadius: 20)]
+                    boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.4), blurRadius: 20)]
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(20),
                     child: Image.network(
                       "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi5xXtmlCe-0Kwff9NukiWGaJlrFq83SlfDQGMyuTLJQWBzXxIIaAxN8J0ltje6lLtfXqNKgjkM3aWvrYCUJ_lW7HnTXbMPAa4ObqaJgcP_ntDTmzKrG4heSUQDwkfIYE1MO2ZwzR-bRCZT-2Boq1WZ5ViHJs1A24mnpIPwBtxqjsuB0KsCh8bEDrDPOmU/s1254/1790418407475.png",
                       fit: BoxFit.cover,
@@ -452,26 +455,15 @@ class AppUpdateScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       const Divider(color: Colors.white12, thickness: 1),
                       const SizedBox(height: 16),
-                      
-                      // Safety Check: Render Whats New only if data exists pushed from admin panel!
-                      if (globalUpdateFeatures.isNotEmpty) ...[
-                        const Text("What's New:", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
-                        ...globalUpdateFeatures.map((feature) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.circle, color: Colors.white54, size: 6)),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(feature, style: const TextStyle(color: Colors.white54, fontSize: 14, height: 1.4))),
-                            ],
-                          ),
-                        )).toList(),
-                      ] else ...[
-                         const Text("Important improvements & optimizations await you in the newest release!", style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.4)),
-                      ],
+                      const Text("What's New:", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
+                      
+                      ...globalUpdateFeatures.map((feature) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(feature, style: const TextStyle(color: Colors.white54, fontSize: 14, height: 1.4)),
+                      )).toList(),
+                      
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -900,25 +892,23 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
     
-    bool isUpdateRequired = false;
-    
-    // Server Pushed Remote Update Validation Logics explicitly tied only to the database 'app_updates' checks securely
+    // Updated Logic strictly catching true forced valid values, avoids any defaults blank issues
+    bool isUpdateNeeded = false;
     try {
       final updateRes = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
       if(updateRes != null) {
-         String dbVersion = updateRes['version']?.toString().trim() ?? CURRENT_APP_VERSION;
-         if (dbVersion != CURRENT_APP_VERSION && dbVersion.isNotEmpty) {
-             globalLatestAppVersion = dbVersion;
-             globalAppApkUrl = updateRes['apk_url']?.toString() ?? "https://google.com";
-             String featuresRaw = updateRes['whats_new']?.toString() ?? "";
-             if(featuresRaw.isNotEmpty) globalUpdateFeatures = featuresRaw.split('\n');
-             isUpdateRequired = true;
+         String dbVersion = updateRes['version']?.toString().trim() ?? "";
+         if(dbVersion.isNotEmpty && dbVersion != CURRENT_APP_VERSION) {
+            globalLatestAppVersion = dbVersion;
+            globalAppApkUrl = updateRes['apk_url']?.toString().trim() ?? "https://google.com";
+            String featuresRaw = updateRes['whats_new']?.toString() ?? "";
+            if(featuresRaw.isNotEmpty) globalUpdateFeatures = featuresRaw.split('\n');
+            isUpdateNeeded = true;
          }
       }
     } catch(e) {}
     
-    // If the Admin Pushed genuine mismatch OTA Updates remotely directly forces here !
-    if (isUpdateRequired) {
+    if (isUpdateNeeded) {
       if(mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AppUpdateScreen()));
         return;
@@ -1063,7 +1053,7 @@ class _MainScreenState extends State<MainScreen> {
         children: pages,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed, selectedItemColor: animeMxPurple, unselectedItemColor: Colors.grey[500], selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
+        backgroundColor: Colors.black, type: BottomNavigationBarType.fixed, selectedItemColor: animeMxPurple, unselectedItemColor: Colors.grey[500], selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11), unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 10),
         currentIndex: _index, onTap: _onNavTapped,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: "Home"),
@@ -1100,6 +1090,7 @@ class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCl
         title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
         bottom: appbarBottomLine()
       ),
+      // User strictly requested infinite loading black screen here
       body: const Center(child: CircularProgressIndicator(color: animeMxPurple)),
     );
   }
@@ -2159,7 +2150,7 @@ class _ExploreScreenState extends State<ExploreScreen> with AutomaticKeepAliveCl
 
 class ExploreAnimeCard extends StatelessWidget {
   final Anime anime;
-  const ExploreAnimeCard({super.key, required this.anime});
+  const ExploreAnimeCard({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -2729,9 +2720,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Divider(color: Colors.white10, height: 1, thickness: 1),
               _buildGroupedItem(context, title: "Log Out", icon: Icons.logout, iconColor: Colors.redAccent, showArrow: false, onTap: () async {
                 await Supabase.instance.client.auth.signOut(); 
-                SharedPreferences prefs = await SharedPreferences.getInstance();
-                await prefs.clear();
-                animeListNotifier.value.clear(); continueWatchingNotifier.value.clear(); myListNotifier.value.clear();
                 if(context.mounted) Navigator.pushReplacement(context, SmoothPageRoute(page: const AuthGate())); 
               }),
               const Divider(color: Colors.white10, height: 1, thickness: 1),
@@ -3789,14 +3777,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   Future<void> _fetchEpisodeLikes() async {
     String currentEpisodeId = "${widget.anime.id}_${_currentSeasonIndex}_${_currentEpisodeIndex}";
     try {
-      final res = await Supabase.instance.client.from('zynox_episode_reactions').select('is_like').eq('episode_id', currentEpisodeId);
+      final res = await Supabase.instance.client.from('axion_episode_reactions').select('is_like').eq('episode_id', currentEpisodeId);
       int likes = 0; int dislikes = 0;
       for (var r in res) {
         if (r['is_like'] == true) likes++;
         else if (r['is_like'] == false) dislikes++;
       }
       
-      final userRes = await Supabase.instance.client.from('zynox_episode_reactions').select('is_like').eq('episode_id', currentEpisodeId).eq('user_id', currentUserId).maybeSingle();
+      final userRes = await Supabase.instance.client.from('axion_episode_reactions').select('is_like').eq('episode_id', currentEpisodeId).eq('user_id', currentUserId).maybeSingle();
       int userStatus = 0;
       if (userRes != null) {
         userStatus = userRes['is_like'] == true ? 1 : -1;
@@ -3810,7 +3798,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   Future<void> _fetchRatings() async {
     try {
-      final res = await Supabase.instance.client.from('zynox_anime_ratings').select('rating').eq('anime_id', widget.anime.id);
+      final res = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id);
       if (res.isEmpty) {
         if (mounted) setState(() { _averageRating = 0.0; _totalRatings = 0; _hasUserRated = false; });
         return;
@@ -3818,7 +3806,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       int sum = 0;
       for (var r in res) { sum += (r['rating'] as int); }
       
-      final userRes = await Supabase.instance.client.from('zynox_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
+      final userRes = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
       
       if (mounted) setState(() {
         _totalRatings = res.length;
@@ -3832,7 +3820,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     HapticFeedback.mediumImpact();
 
     try {
-      await Supabase.instance.client.from('zynox_anime_ratings').upsert({
+      await Supabase.instance.client.from('axion_anime_ratings').upsert({
         'anime_id': widget.anime.id,
         'user_id': currentUserId,
         'rating': rating
@@ -3849,7 +3837,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   void _showRatingBottomSheet() async {
     int tempRating = 5;
     try {
-      final userRes = await Supabase.instance.client.from('zynox_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
+      final userRes = await Supabase.instance.client.from('axion_anime_ratings').select('rating').eq('anime_id', widget.anime.id).eq('user_id', currentUserId).maybeSingle();
       if(userRes != null) tempRating = userRes['rating'] as int;
     } catch(e) {}
 
@@ -3937,9 +3925,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     try {
       if (isRemoving) {
-        await Supabase.instance.client.from('zynox_episode_reactions').delete().match({'episode_id': currentEpisodeId, 'user_id': currentUserId});
+        await Supabase.instance.client.from('axion_episode_reactions').delete().match({'episode_id': currentEpisodeId, 'user_id': currentUserId});
       } else {
-        await Supabase.instance.client.from('zynox_episode_reactions').upsert({
+        await Supabase.instance.client.from('axion_episode_reactions').upsert({
           'episode_id': currentEpisodeId,
           'user_id': currentUserId,
           'is_like': isLikeAction
@@ -4061,6 +4049,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _controller!.addListener(() {
       if (!mounted) return;
       
+      // Highly accurate real-time watch limit detection logic
       if (_isPlaying && _controller!.value.isPlaying) {
         DateTime now = DateTime.now();
         if (_lastTick != null) {
@@ -4199,13 +4188,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   void _toggleControls() { 
     if (_isLocked) {
-       setState(() { _showLockIcon = !_showLockIcon; });
-       if (_showLockIcon) {
-         _lockIconTimer?.cancel();
-         _lockIconTimer = Timer(const Duration(seconds: 3), () {
-           if (mounted) setState(() => _showLockIcon = false);
-         });
-       }
+       // Direct complete unlock if tapped anywhere on lock icon screen overlay, handling clean UX
+       setState(() { _isLocked = false; _showControls = true; });
+       _startHideTimer();
        return;
     }
     setState(() {
@@ -4476,19 +4461,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             ),
           ),
 
-        // FLOATING UNLOCK BUTTON WHEN LOCKED
-        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked && _showLockIcon)
+        // COMPLETE HIDE & SHOW LOCK UNLOCK ONLY
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked)
           Positioned(
             bottom: 30, left: MediaQuery.of(context).size.width / 2 - 25,
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(50),
-                onTap: () {
-                   HapticFeedback.mediumImpact();
-                   setState(() { _isLocked = false; _showLockIcon = false; _showControls = true; });
-                   _startHideTimer();
-                },
+                onTap: _toggleControls, 
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
