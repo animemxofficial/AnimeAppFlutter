@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
+import 'package:share_plus/share_plus.dart'; 
 
 const String CURRENT_APP_VERSION = "1.0.1"; 
 
@@ -65,7 +66,7 @@ final ValueNotifier<Map<String, int>> globalEpisodeViewsNotifier = ValueNotifier
 // PRELOAD LIKES MAP
 final ValueNotifier<Map<String, Map<String, int>>> globalAnimeLikesNotifier = ValueNotifier({});
 
-// THEME COLORS CONSTANTS
+// THEME COLORS CONSTANTS (Restored as asked for Zynox TV Theme Default setup)
 const Color animeMxPurple = Color(0xFF8A2BE2); // Primary Action
 const Color animeMxBlue = Color(0xFF2563EB); // Gradient Helper Color
 const Color goldenColor = Color(0xFFFFD700); // Prominent golden premium highlights 
@@ -385,7 +386,7 @@ class AniXApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false, 
       title: "Zynox TV",
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.dark, 
       darkTheme: ThemeData(
         brightness: Brightness.dark, 
         primaryColor: animeMxPurple, 
@@ -892,8 +893,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
     
-    // Updated Logic strictly catching true forced valid values, avoids any defaults blank issues
-    bool isUpdateNeeded = false;
+    // Server Pushed Remote Update Validation Logics integrated accurately
     try {
       final updateRes = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
       if(updateRes != null) {
@@ -903,17 +903,13 @@ class _MainScreenState extends State<MainScreen> {
             globalAppApkUrl = updateRes['apk_url']?.toString().trim() ?? "https://google.com";
             String featuresRaw = updateRes['whats_new']?.toString() ?? "";
             if(featuresRaw.isNotEmpty) globalUpdateFeatures = featuresRaw.split('\n');
-            isUpdateNeeded = true;
+            if(mounted) {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AppUpdateScreen()));
+              return;
+            }
          }
       }
     } catch(e) {}
-    
-    if (isUpdateNeeded) {
-      if(mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AppUpdateScreen()));
-        return;
-      }
-    }
 
     await _fetchGlobalPlan();
     await fetchGlobalAnimeViews(); 
@@ -2150,7 +2146,7 @@ class _ExploreScreenState extends State<ExploreScreen> with AutomaticKeepAliveCl
 
 class ExploreAnimeCard extends StatelessWidget {
   final Anime anime;
-  const ExploreAnimeCard({super.key});
+  const ExploreAnimeCard({super.key, required this.anime});
 
   @override
   Widget build(BuildContext context) {
@@ -3036,7 +3032,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(decoration: BoxDecoration(color: animeMxPurple, borderRadius: BorderRadius.circular(6)), padding: const EdgeInsets.all(2), child: const Icon(Icons.check, color: Colors.white, size: 14)),
+          Container(decoration: const BoxDecoration(color: animeMxPurple, borderRadius: BorderRadius.all(Radius.circular(6))), padding: const EdgeInsets.all(2), child: const Icon(Icons.check, color: Colors.white, size: 14)),
           const SizedBox(width: 12),
           Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14))
         ],
@@ -3125,7 +3121,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.black, 
+                                color: Colors.black, // True Black for cards
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: isSelected ? animeMxPurple : Colors.white10, width: isSelected ? 2 : 1),
                               ),
@@ -3411,7 +3407,7 @@ class SupportPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle),
-              child: const Icon(icon, color: animeMxPurple, size: 24),
+              child: Icon(icon, color: animeMxPurple, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -3451,11 +3447,11 @@ class SupportPage extends StatelessWidget {
 
   @override Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, 
+      backgroundColor: getBg(context), 
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: animeMxPurple), onPressed: () => Navigator.pop(context)),
         title: const Text("Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)), 
-        backgroundColor: Colors.black, 
+        backgroundColor: getBg(context), 
         elevation: 0, 
         bottom: appbarBottomLine()
       ),
@@ -3516,14 +3512,14 @@ class SupportPage extends StatelessWidget {
 class PrivacyPolicyPage extends StatelessWidget { 
   const PrivacyPolicyPage({super.key});
   @override Widget build(BuildContext context) { 
-    return Scaffold(backgroundColor: Colors.black, appBar: AppBar(title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
+    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Privacy Policy", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
   } 
 }
 
 class TermsConditionsPage extends StatelessWidget { 
   const TermsConditionsPage({super.key});
   @override Widget build(BuildContext context) { 
-    return Scaffold(backgroundColor: Colors.black, appBar: AppBar(title: const Text("Terms & Conditions", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalTermsConditions, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
+    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Terms & Conditions", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalTermsConditions, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
   } 
 }
 
@@ -3532,7 +3528,7 @@ class SeeAllCategoryPage extends StatelessWidget {
   const SeeAllCategoryPage({super.key, required this.title, required this.animeList, this.isLatestOnly = false});
   @override Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: const IconThemeData(color: Colors.white), bottom: appbarBottomLine()),
+      backgroundColor: getBg(context), appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: IconThemeData(color: getText(context)), bottom: appbarBottomLine()),
       body: GridView.builder(padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.52, crossAxisSpacing: 10, mainAxisSpacing: 16), itemCount: animeList.length, itemBuilder: (context, index) => ExploreAnimeCard(anime: animeList[index]))
     );
   }
@@ -3978,7 +3974,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
      
      // 1. Establish Rules
      int delayDays = 2; // Default Free
-     _maxAllowedSeconds = 180; // 3 Minutes default for free plan
+     _maxAllowedSeconds = 180; 
      
      if (currentPlan.toLowerCase().contains("diamond") || currentPlan.contains("150")) {
         _maxAllowedSeconds = -1; // Unlimited
@@ -4188,14 +4184,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   void _toggleControls() { 
     if (_isLocked) {
-       // Direct complete unlock if tapped anywhere on lock icon screen overlay, handling clean UX
        setState(() { _isLocked = false; _showControls = true; });
        _startHideTimer();
        return;
     }
     setState(() {
       _showControls = !_showControls;
-      if (!_showControls) _isSpeedMenuVisible = false; // Hide menu when hiding controls
+      if (!_showControls) _isSpeedMenuVisible = false; 
     }); 
     if (_showControls) {
       _startHideTimer();
@@ -4231,6 +4226,56 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     Future.delayed(const Duration(milliseconds: 500), () {
       if(mounted) setState(() => _showBackwardSkip = false);
     });
+  }
+
+  void _showSpeedMenu() {
+    HapticFeedback.lightImpact();
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "SpeedMenu",
+      barrierColor: Colors.transparent, 
+      transitionDuration: const Duration(milliseconds: 250),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Align(
+          alignment: Alignment.centerRight, 
+          child: Material(
+            color: Colors.black.withOpacity(0.7),
+            child: SizedBox(
+              width: 250,
+              height: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [2.0, 1.5, 1.25, 1.0, 0.75, 0.5].map((speed) {
+                  return InkWell(
+                    onTap: () {
+                      _controller!.setPlaybackSpeed(speed);
+                      Navigator.pop(context);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(speed == 1.0 ? "Normal" : "${speed}x", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          if (_controller!.value.playbackSpeed == speed) const Icon(Icons.check, color: animeMxPurple, size: 22)
+                        ]
+                      )
+                    )
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return SlideTransition(
+          position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero).animate(animation),
+          child: child,
+        );
+      },
+    );
   }
 
   String _formatDuration(Duration duration) { 
@@ -4460,58 +4505,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
               ),
             ),
           ),
-
-        // COMPLETE HIDE & SHOW LOCK UNLOCK ONLY
-        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked)
-          Positioned(
-            bottom: 30, left: MediaQuery.of(context).size.width / 2 - 25,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(50),
-                onTap: _toggleControls, 
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                  child: const Icon(Icons.lock, color: Colors.white, size: 28),
-                ),
-              ),
-            )
-          ),
-
-        // SPEED OVERLAY INSIDE PLAYER
-        if (_isSpeedMenuVisible && _showControls && !_isLocked)
-           Positioned(
-              right: 16, top: 16, bottom: 50,
-              child: Center(
-                 child: Container(
-                   width: 100,
-                   color: Colors.transparent, 
-                   child: SingleChildScrollView(
-                     child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [2.0, 1.5, 1.25, 1.0, 0.75, 0.5].map((s) {
-                           bool isActive = _controller!.value.playbackSpeed == s;
-                           return InkWell(
-                             onTap: () {
-                                HapticFeedback.selectionClick();
-                                _controller!.setPlaybackSpeed(s);
-                                setState((){ _isSpeedMenuVisible = false; });
-                                _startHideTimer();
-                             },
-                             child: Container(
-                               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                               margin: const EdgeInsets.symmetric(vertical: 4),
-                               decoration: isActive ? BoxDecoration(color: animeMxPurple.withOpacity(0.8), borderRadius: BorderRadius.circular(8)) : null,
-                               child: Text(s==1.0 ? "Normal" : "${s}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, shadows: [Shadow(color: Colors.black, blurRadius: 10)])),
-                             )
-                           );
-                        }).toList()
-                     )
-                   )
-                 )
-              )
-           ),
 
         // MAIN VIDEO CONTROLS
         if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
