@@ -12,6 +12,7 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
+import 'package:share_plus/share_plus.dart'; 
 
 // ZYNOX FINAL SYNC VERSION (For Admin force updates checking logic)
 const String CURRENT_APP_VERSION = "1.0.2"; 
@@ -28,7 +29,10 @@ String localProfileImagePath = "";
 String globalCurrentPlan = "Free";
 DateTime? globalPlanExpiry;
 
-// ADMIN PANEL DYNAMIC SETTINGS SYNC (Matches SQL Data precisely!)
+// NOTIFICATION LOGIC (Fixed Definition Location)
+DateTime globalLastSeenNotification = DateTime.fromMillisecondsSinceEpoch(0);
+
+// ADMIN PANEL DYNAMIC SETTINGS SYNC 
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
 String globalWhatsappLink = "https://wa.me/"; 
@@ -59,7 +63,6 @@ final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 final ValueNotifier<Map<String, int>> globalEpisodeViewsNotifier = ValueNotifier({});
-
 final ValueNotifier<Map<String, Map<String, int>>> globalAnimeLikesNotifier = ValueNotifier({});
 
 // THEME COLORS CONSTANTS (Fixed and Hard-Locked into Application Layout perfectly)
@@ -116,7 +119,7 @@ DateTime? getPlanExpiryDate(String createdAt, String planName) {
   return start.add(const Duration(days: 30)); 
 }
 
-// ANIMATION CLASSES
+// SMOOTH PAGE TRANSITION ANIMATION
 class SmoothPageRoute extends PageRouteBuilder {
   final Widget page;
   SmoothPageRoute({required this.page})
@@ -129,6 +132,7 @@ class SmoothPageRoute extends PageRouteBuilder {
         );
 }
 
+// SMOOTH BOTTOM NAV FADE TRANSITION
 class FadeIndexedStack extends StatefulWidget {
   final int index;
   final List<Widget> children;
@@ -184,7 +188,7 @@ Future<bool?> showCustomDeleteDialog(BuildContext context, String title, String 
   return showDialog<bool>(
     context: context,
     builder: (ctx) => Dialog(
-      backgroundColor: backgroundCards,
+      backgroundColor: const Color(0xFF13131A),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -410,8 +414,6 @@ class AppUpdateScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
-                
-                // NEW ZYNOX LOGO IMPLEMENTATION FOR UPDATE SCREEN
                 Container(
                   width: 90, height: 90,
                   decoration: BoxDecoration(
@@ -430,7 +432,6 @@ class AppUpdateScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Text("ZYNOX TV", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                 const SizedBox(height: 40),
-                
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -450,19 +451,15 @@ class AppUpdateScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       const Text("What's New:", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
-                      
                       ...globalUpdateFeatures.map((feature) => Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(feature, style: const TextStyle(color: Colors.white54, fontSize: 14, height: 1.4)),
                       )).toList(),
-                      
                       const SizedBox(height: 20),
                     ],
                   ),
                 ),
-                
                 const Spacer(),
-                
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -520,7 +517,6 @@ class SecurityBlockScreen extends StatelessWidget {
                   )
                 )
               ],
-              
               if(!isSuspended) ...[
                 const SizedBox(height: 40),
                 SizedBox(
@@ -653,6 +649,9 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       currentUserName = fullName;
       currentUserUid = shortUid;
       
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('tour_completed', false);
+
       if (mounted) Navigator.pushReplacement(context, SmoothPageRoute(page: const MainScreen()));
     } catch (e) { 
       if (mounted) {
@@ -816,7 +815,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
     
-    // Server Pushed Remote Update Validation Logics integrated accurately
+    // Server Pushed Remote Update Validation Logics
     try {
       final updateRes = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
       if(updateRes != null) {
@@ -1001,7 +1000,6 @@ class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveCl
         title: const Text("Watch History", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
         bottom: appbarBottomLine()
       ),
-      // User strictly requested infinite loading black screen here
       body: const Center(child: CircularProgressIndicator(color: animeMxPurple)),
     );
   }
@@ -1095,122 +1093,128 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
                 // If Custom Banner (Not Linked to any anime yet), we dont show watch now button to prevent crash 
                 bool hasWatchNow = !isCustom && linkedAnime != null;
 
-                return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: animeMxPurple.withOpacity(0.5), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(color: animeMxPurple.withOpacity(0.2), blurRadius: 15, spreadRadius: 1)
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        Image.network(
-                          hero['image_url'],
-                          fit: BoxFit.cover,
-                          alignment: Alignment.centerRight,
-                          gaplessPlayback: true, 
-                          errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
-                        ),
+                return BouncingCard(
+                  onTap: () {
+                    if (hasWatchNow && linkedAnime != null) {
+                      _handleWatchNow(linkedAnime);
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: animeMxPurple.withOpacity(0.5), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(color: animeMxPurple.withOpacity(0.2), blurRadius: 15, spreadRadius: 1)
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            hero['image_url'],
+                            fit: BoxFit.cover,
+                            alignment: Alignment.centerRight,
+                            gaplessPlayback: true, 
+                            errorBuilder: (c, e, s) => const Icon(Icons.broken_image, color: Colors.white54),
+                          ),
 
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.black.withOpacity(0.95), 
-                                Colors.black.withOpacity(0.7),
-                                Colors.transparent,             
-                              ],
-                              stops: const [0.0, 0.4, 1.0],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.black.withOpacity(0.95), 
+                                  Colors.black.withOpacity(0.7),
+                                  Colors.transparent,             
+                                ],
+                                stops: const [0.0, 0.4, 1.0],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
                             ),
                           ),
-                        ),
 
-                        Positioned(
-                          left: 16,
-                          bottom: 20,
-                          right: 80,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                displayTitle,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22, 
-                                  fontWeight: FontWeight.w900,
-                                  height: 1.1,
-                                  letterSpacing: 0.5,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                metadata,
-                                style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if(hasWatchNow) ...[
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  height: 36,
-                                  child: ElevatedButton.icon(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: animeMxPurple,
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      padding: const EdgeInsets.symmetric(horizontal: 16)
-                                    ),
-                                    icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                                    label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                                    onPressed: () {
-                                      _handleWatchNow(linkedAnime!);
-                                    },
+                          Positioned(
+                            left: 16,
+                            bottom: 20,
+                            right: 80,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  displayTitle,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22, 
+                                    fontWeight: FontWeight.w900,
+                                    height: 1.1,
+                                    letterSpacing: 0.5,
                                   ),
-                                )
-                              ] else ...[
-                                // Coming Soon Indicator layout instead of non-working play btn
-                                const SizedBox(height: 12),
-                                Container(
-                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                   decoration: BoxDecoration(color: goldenColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: goldenColor.withOpacity(0.5))),
-                                   child: const Text("Coming Soon", style: TextStyle(color: goldenColor, fontSize: 11, fontWeight: FontWeight.bold))
-                                )
-                              ]
-                            ],
-                          ),
-                        ),
-                        
-                        Positioned(
-                          bottom: 12, left: 0, right: 0,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(widget.heroList.length, (idx) {
-                              bool active = _currentIndex == idx;
-                              return AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                margin: const EdgeInsets.symmetric(horizontal: 3),
-                                height: 4,
-                                width: active ? 16 : 6,
-                                decoration: BoxDecoration(
-                                  color: active ? animeMxPurple : Colors.white38,
-                                  borderRadius: BorderRadius.circular(4)
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              );
-                            }),
+                                const SizedBox(height: 6),
+                                Text(
+                                  metadata,
+                                  style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if(hasWatchNow) ...[
+                                  const SizedBox(height: 12),
+                                  SizedBox(
+                                    height: 36,
+                                    child: ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: animeMxPurple,
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16)
+                                      ),
+                                      icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                                      label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      onPressed: () {
+                                        _handleWatchNow(linkedAnime);
+                                      },
+                                    ),
+                                  )
+                                ] else ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                     decoration: BoxDecoration(color: goldenColor.withOpacity(0.2), borderRadius: BorderRadius.circular(6), border: Border.all(color: goldenColor.withOpacity(0.5))),
+                                     child: const Text("Coming Soon", style: TextStyle(color: goldenColor, fontSize: 11, fontWeight: FontWeight.bold))
+                                  )
+                                ]
+                              ],
+                            ),
                           ),
-                        )
-                      ],
+                          
+                          Positioned(
+                            bottom: 12, left: 0, right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(widget.heroList.length, (idx) {
+                                bool active = _currentIndex == idx;
+                                return AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                                  height: 4,
+                                  width: active ? 16 : 6,
+                                  decoration: BoxDecoration(
+                                    color: active ? animeMxPurple : Colors.white38,
+                                    borderRadius: BorderRadius.circular(4)
+                                  ),
+                                );
+                              }),
+                            ),
+                          )
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -2858,7 +2862,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                       children: [
                                         Text(plan['name'], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 4),
-                                        Text(plan['desc'], style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                        Text(plan['desc'], style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                         const SizedBox(height: 8),
                                         ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
                                       ],
@@ -3044,7 +3048,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF13131A), 
+                                color: Colors.black, // True Black for cards
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1),
                               ),
@@ -3892,7 +3896,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
      
      // 1. Establish Rules
      int delayDays = 2; // Default Free
-     _maxAllowedSeconds = 180; // 3 Minutes default for free plan
+     _maxAllowedSeconds = 180; 
      
      if (currentPlan.toLowerCase().contains("diamond") || currentPlan.contains("150")) {
         _maxAllowedSeconds = -1; // Unlimited
@@ -3978,7 +3982,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
             _setPremiumMessage();
             _isPlaying = false;
             _showControls = false;
-            _syncWatchTimeWithDB(); 
+            _syncWatchTimeWithDB(); // final sync for the session
           });
         }
       } else {
@@ -4043,7 +4047,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _hideTimer?.cancel();
     _dbSyncTimer?.cancel();
     _countdownTimer?.cancel();
-    _lockIconTimer?.cancel();
     _inlineTimer?.cancel();
     _syncWatchTimeWithDB();
     if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
@@ -4099,7 +4102,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   void _toggleControls() { 
     setState(() {
       _showControls = !_showControls;
-      if (!_showControls) _isSpeedMenuVisible = false; 
+      if (!_showControls) _isSpeedMenuVisible = false; // Hide menu when hiding controls
     }); 
     if (_showControls) {
       _startHideTimer();
