@@ -12,9 +12,9 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'package:share_plus/share_plus.dart'; 
 
-const String CURRENT_APP_VERSION = "1.0.1"; 
+// FORCED NEW UPDATE PUSH TO BYPASS PREVIOUS BUG LOL
+const String CURRENT_APP_VERSION = "1.0.2"; 
 
 // SUPABASE AUTH UUID & USER INFO
 String currentUserId = ""; 
@@ -44,14 +44,14 @@ String globalPrivacyPolicy = "At Zynox TV, your privacy and security are our hig
 String globalTermsConditions = "Terms and Conditions will be updated soon."; 
 
 // UPDATE SYSTEM VARIABLES (Synced via Database)
-String globalLatestAppVersion = "1.0.1";
+String globalLatestAppVersion = "1.0.2";
 String globalAppApkUrl = "https://google.com"; 
 List<String> globalUpdateFeatures = [
-  "Faster Home loading",
-  "Modern video player",
-  "Daily Points rewards",
-  "Improved search and downloads",
-  "Plus important stability fixes."
+  "New Zynox branding and logos",
+  "Smoother transparent playback settings",
+  "Enhanced Blue Dark UI Subscription Mode",
+  "Upgraded dynamic exact Search Engine matching",
+  "Bug fixes across various app screens"
 ];
 
 List<String> globalRecentSearches = [];
@@ -66,7 +66,7 @@ final ValueNotifier<Map<String, int>> globalEpisodeViewsNotifier = ValueNotifier
 // PRELOAD LIKES MAP
 final ValueNotifier<Map<String, Map<String, int>>> globalAnimeLikesNotifier = ValueNotifier({});
 
-// THEME COLORS CONSTANTS (Restored as asked for Zynox TV Theme Default setup)
+// THEME COLORS CONSTANTS 
 const Color animeMxPurple = Color(0xFF8A2BE2); // Primary Action
 const Color animeMxBlue = Color(0xFF2563EB); // Gradient Helper Color
 const Color goldenColor = Color(0xFFFFD700); // Prominent golden premium highlights 
@@ -419,7 +419,6 @@ class AppUpdateScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 40),
                 
-                // NEW ZYNOX LOGO IMPLEMENTATION FOR UPDATE SCREEN
                 Container(
                   width: 90, height: 90,
                   decoration: BoxDecoration(
@@ -583,7 +582,6 @@ class _AuthGateState extends State<AuthGate> {
         return;
       }
 
-      // BRAND NEW USER DETECTED OR CLEARED CACHE -> COMPLETE WIPE & REGENERATE EVERYTHING CLEARLY
       await Supabase.instance.client.auth.signOut();
       await Supabase.instance.client.auth.signInAnonymously();
       
@@ -1622,7 +1620,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
               String epCount = "EP ${getTotalEpisodes(anime)}";
               
               String dubStat = anime.dubStatus.toUpperCase();
-              String tagLang = dubStat.contains("SUB") ? "SUB" : "A-DUB";
+              String tagLang = dubStat.contains("SUB") ? "SUB" : "ZTV-DUB";
               
               String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
               String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
@@ -1848,7 +1846,7 @@ class SearchListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     int totalEp = getTotalEpisodes(anime);
     int totalSeasons = anime.seasonsList.length;
-    String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "A-DUB";
+    String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "ZTV-DUB";
     
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -1981,8 +1979,10 @@ class _BrowseScreenState extends State<BrowseScreen> with AutomaticKeepAliveClie
     
     for (var a in matchedAnimes.take(4)) {
       suggestions.add(a.title);
-      if (a.seasonsList.length > 1) suggestions.add("${a.title} Season ${a.seasonsList.length}");
-      suggestions.add("${a.title} Episode 1");
+      for(var s in a.seasonsList) {
+        String sName = s.name.isNotEmpty ? s.name : "Season ${a.seasonsList.indexOf(s)+1}";
+        suggestions.add("${a.title} $sName");
+      }
     }
     
     setState(() {
@@ -2000,7 +2000,9 @@ class _BrowseScreenState extends State<BrowseScreen> with AutomaticKeepAliveClie
       if(!mounted) return;
       setState(() { 
         _searchResults = animeListNotifier.value.where((anime) {
-          return anime.title.toLowerCase().contains(query.toLowerCase()) || anime.genre.toLowerCase().contains(query.toLowerCase()) || anime.category.toLowerCase().contains(query.toLowerCase());
+          String s = query.toLowerCase();
+          String t = anime.title.toLowerCase();
+          return t.contains(s) || s.contains(t) || anime.genre.toLowerCase().contains(s) || anime.category.toLowerCase().contains(s);
         }).toList(); 
         _isSearching = false;
       }); 
@@ -2153,7 +2155,7 @@ class ExploreAnimeCard extends StatelessWidget {
     int totalEp = getTotalEpisodes(anime);
     String seasonText = getSeasonText(anime);
     String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-    String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "A-DUB";
+    String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "ZTV-DUB";
 
     return BouncingCard(
       onTap: () {
@@ -2269,7 +2271,7 @@ class _MyListScreenState extends State<MyListScreen> {
             padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), itemCount: savedList.length, 
             itemBuilder: (context, index) { 
               final anime = savedList[index].anime;
-              String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "A-DUB";
+              String tagLang = anime.dubStatus.toUpperCase().contains("SUB") ? "SUB" : "ZTV-DUB";
               String seasonText = getSeasonText(anime);
               
               final cwList = continueWatchingNotifier.value;
@@ -2849,7 +2851,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(decoration: BoxDecoration(color: animeMxPurple, borderRadius: BorderRadius.circular(6)), padding: const EdgeInsets.all(2), child: const Icon(Icons.check, color: Colors.white, size: 14)),
+          Container(decoration: const BoxDecoration(color: Color(0xFF3B82F6), borderRadius: BorderRadius.all(Radius.circular(6))), padding: const EdgeInsets.all(2), child: const Icon(Icons.check, color: Colors.white, size: 14)),
           const SizedBox(width: 12),
           Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14))
         ],
@@ -2858,11 +2860,13 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 
   @override Widget build(BuildContext context) {
+    Color btnColor = const Color(0xFF3B82F6); 
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: const Text("Subscription", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), bottom: appbarBottomLine()), 
-        body: const Center(child: CircularProgressIndicator(color: animeMxPurple)),
+        body: const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
       );
     }
 
@@ -2883,10 +2887,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                         const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle, 
-                            color: animeMxPurple,
-                            boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.3), blurRadius: 15)]
+                            gradient: LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF2563EB)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                           ),
                           child: const Icon(Icons.workspace_premium, color: Colors.white, size: 45),
                         ),
@@ -2923,12 +2926,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF13131A),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: isSelected ? animeMxPurple : Colors.white10, width: isSelected ? 2 : 1)
+                                border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1)
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? animeMxPurple : Colors.white54, size: 22),
+                                  Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? btnColor : Colors.white54, size: 22),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -2936,9 +2939,9 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                       children: [
                                         Text(plan['name'], style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 4),
-                                        Text(plan['desc'], style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                                        Text(plan['desc'], style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                         const SizedBox(height: 8),
-                                        ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: const BoxDecoration(color: animeMxPurple, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
+                                        ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
                                       ],
                                     ),
                                   ),
@@ -2972,7 +2975,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
             child: SizedBox(
               width: double.infinity, height: 55,
               child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                style: ElevatedButton.styleFrom(backgroundColor: btnColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 onPressed: () {
                   final p = _plans[_selectedPlanIndex];
                   Navigator.push(context, SmoothPageRoute(page: UnifiedPaymentScreen(planName: p['name'], price: p['price'])));
@@ -3032,7 +3035,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Container(decoration: const BoxDecoration(color: animeMxPurple, borderRadius: BorderRadius.all(Radius.circular(6))), padding: const EdgeInsets.all(2), child: const Icon(Icons.check, color: Colors.white, size: 14)),
+          Container(decoration: const BoxDecoration(color: Color(0xFF3B82F6), borderRadius: BorderRadius.all(Radius.circular(6))), padding: const EdgeInsets.all(2), child: const Icon(Icons.check, color: Colors.white, size: 14)),
           const SizedBox(width: 12),
           Text(text, style: const TextStyle(color: Colors.white70, fontSize: 14))
         ],
@@ -3041,11 +3044,13 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
   }
 
   @override Widget build(BuildContext context) {
+    Color btnColor = const Color(0xFF3B82F6); 
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: const Text("Upgrade Plan", style: TextStyle(color: Colors.white)), bottom: appbarBottomLine()),
-        body: const Center(child: CircularProgressIndicator(color: animeMxPurple)),
+        body: const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
       );
     }
 
@@ -3061,7 +3066,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
               const SizedBox(height: 20),
               const Text("You are already on the highest plan!", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              Text("Current Plan: ${widget.currentPlanName}", style: const TextStyle(color: animeMxPurple, fontSize: 16)),
+              Text("Current Plan: ${widget.currentPlanName}", style: const TextStyle(color: Colors.blueAccent, fontSize: 16)),
             ],
           ),
         ),
@@ -3084,17 +3089,16 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                       children: [
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             shape: BoxShape.circle, 
-                            color: animeMxPurple,
-                            boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.3), blurRadius: 15)]
+                            gradient: LinearGradient(colors: [Color(0xFF60A5FA), Color(0xFF2563EB)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                           ),
                           child: const Icon(Icons.trending_up_rounded, color: Colors.white, size: 45),
                         ),
                         const SizedBox(height: 16),
                         const Text("Level up your experience", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 6),
-                        Text("Current Plan: ${widget.currentPlanName}", style: const TextStyle(color: animeMxPurple, fontSize: 14, fontWeight: FontWeight.bold)),
+                        Text("Current Plan: ${widget.currentPlanName}", style: const TextStyle(color: Colors.blueAccent, fontSize: 14, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -3123,12 +3127,12 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                               decoration: BoxDecoration(
                                 color: Colors.black, // True Black for cards
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: isSelected ? animeMxPurple : Colors.white10, width: isSelected ? 2 : 1),
+                                border: Border.all(color: isSelected ? btnColor : Colors.white10, width: isSelected ? 2 : 1),
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? animeMxPurple : Colors.white54, size: 22),
+                                  Icon(isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: isSelected ? btnColor : Colors.white54, size: 22),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
@@ -3138,7 +3142,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
                                         const SizedBox(height: 4),
                                         Text(plan['desc'], style: const TextStyle(color: Colors.white70, fontSize: 12)),
                                         const SizedBox(height: 8),
-                                        ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: const BoxDecoration(color: animeMxPurple, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
+                                        ...List.generate(plan['features'].length, (fi) => Padding(padding: const EdgeInsets.only(bottom: 2), child: Row(children: [Container(width: 4, height: 4, decoration: BoxDecoration(color: btnColor, shape: BoxShape.circle)), const SizedBox(width: 6), Text(plan['features'][fi], style: const TextStyle(color: Colors.white54, fontSize: 11))]))),
                                       ],
                                     ),
                                   ),
@@ -3173,7 +3177,7 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
               width: double.infinity, height: 55,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: animeMxPurple, 
+                  backgroundColor: btnColor, 
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
@@ -3407,7 +3411,7 @@ class SupportPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle),
-              child: Icon(icon, color: animeMxPurple, size: 24),
+              child: const Icon(icon, color: animeMxPurple, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -3447,11 +3451,11 @@ class SupportPage extends StatelessWidget {
 
   @override Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: getBg(context), 
+      backgroundColor: Colors.black, 
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: animeMxPurple), onPressed: () => Navigator.pop(context)),
         title: const Text("Support", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)), 
-        backgroundColor: getBg(context), 
+        backgroundColor: Colors.black, 
         elevation: 0, 
         bottom: appbarBottomLine()
       ),
@@ -3512,14 +3516,14 @@ class SupportPage extends StatelessWidget {
 class PrivacyPolicyPage extends StatelessWidget { 
   const PrivacyPolicyPage({super.key});
   @override Widget build(BuildContext context) { 
-    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Privacy Policy", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
+    return Scaffold(backgroundColor: Colors.black, appBar: AppBar(title: const Text("Privacy Policy", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalPrivacyPolicy, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
   } 
 }
 
 class TermsConditionsPage extends StatelessWidget { 
   const TermsConditionsPage({super.key});
   @override Widget build(BuildContext context) { 
-    return Scaffold(backgroundColor: getBg(context), appBar: AppBar(title: Text("Terms & Conditions", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalTermsConditions, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
+    return Scaffold(backgroundColor: Colors.black, appBar: AppBar(title: const Text("Terms & Conditions", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, bottom: appbarBottomLine()), body: SingleChildScrollView(padding: const EdgeInsets.all(20), child: Text(globalTermsConditions, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)))); 
   } 
 }
 
@@ -3528,7 +3532,7 @@ class SeeAllCategoryPage extends StatelessWidget {
   const SeeAllCategoryPage({super.key, required this.title, required this.animeList, this.isLatestOnly = false});
   @override Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: getBg(context), appBar: AppBar(backgroundColor: getBg(context), elevation: 0, title: Text(title, style: TextStyle(color: getText(context), fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: IconThemeData(color: getText(context)), bottom: appbarBottomLine()),
+      backgroundColor: Colors.black, appBar: AppBar(backgroundColor: Colors.black, elevation: 0, title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)), iconTheme: const IconThemeData(color: Colors.white), bottom: appbarBottomLine()),
       body: GridView.builder(padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 40), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.52, crossAxisSpacing: 10, mainAxisSpacing: 16), itemCount: animeList.length, itemBuilder: (context, index) => ExploreAnimeCard(anime: animeList[index]))
     );
   }
@@ -3974,7 +3978,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
      
      // 1. Establish Rules
      int delayDays = 2; // Default Free
-     _maxAllowedSeconds = 180; 
+     _maxAllowedSeconds = 180; // 3 Minutes default for free plan
      
      if (currentPlan.toLowerCase().contains("diamond") || currentPlan.contains("150")) {
         _maxAllowedSeconds = -1; // Unlimited
@@ -4184,13 +4188,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   void _toggleControls() { 
     if (_isLocked) {
+       // Direct complete unlock if tapped anywhere on lock icon screen overlay, handling clean UX
        setState(() { _isLocked = false; _showControls = true; });
        _startHideTimer();
        return;
     }
     setState(() {
       _showControls = !_showControls;
-      if (!_showControls) _isSpeedMenuVisible = false; 
+      if (!_showControls) _isSpeedMenuVisible = false; // Hide menu when hiding controls
     }); 
     if (_showControls) {
       _startHideTimer();
@@ -4540,7 +4545,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                       borderRadius: BorderRadius.circular(20),
                                       onTap: () {
                                         HapticFeedback.mediumImpact();
-                                        setState(() { _isLocked = true; _showControls = false; _isSpeedMenuVisible = false; }); 
+                                        setState(() { _isLocked = true; _showControls = false; _showLockIcon = false; });
                                         _hideTimer?.cancel();
                                       }, 
                                       child: const Padding(
@@ -4554,10 +4559,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                     color: Colors.transparent,
                                     child: InkWell(
                                       borderRadius: BorderRadius.circular(20),
-                                      onTap: () {
-                                        HapticFeedback.lightImpact();
-                                        setState(() { _isSpeedMenuVisible = !_isSpeedMenuVisible; });
-                                      }, 
+                                      onTap: _showSpeedMenu, 
                                       child: const Padding(
                                         padding: EdgeInsets.all(8.0),
                                         child: Icon(Icons.settings_outlined, color: Colors.white, size: 22),
