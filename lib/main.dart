@@ -478,7 +478,7 @@ class _ThemeSettingsPageState extends State<ThemeSettingsPage> {
                     ),
                     onTap: () => _updateThemeMode(false),
                   ),
-                  Divider(color: isDarkMode ? Colors.white10 : Colors.black10, height: 1),
+                  Divider(color: isDarkMode ? Colors.white10 : Colors.black12, height: 1),
                   ListTile(
                     title: Text("Dark Mode", style: TextStyle(color: getText(context), fontWeight: FontWeight.w600)),
                     trailing: Radio<bool>(
