@@ -633,6 +633,12 @@ class _AuthGateState extends State<AuthGate> {
       if (user == null) { throw Exception("Failed to create User Session."); }
       
       currentUserId = user.id;
+      
+      // Wipe watch local limit tracker for safety of new hardware linking!
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('watch_date_$currentUserId');
+      await prefs.remove('watch_sec_$currentUserId');
+
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
 
     } catch (e) { 
@@ -696,6 +702,9 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       currentUserName = fullName;
       currentUserUid = shortUid;
       
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('tour_completed', false);
+
       if (mounted) Navigator.pushReplacement(context, SmoothPageRoute(page: const MainScreen()));
     } catch (e) { 
       if (mounted) {
@@ -741,7 +750,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), 
                     onPressed: _isLoading ? null : _saveName, 
-                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1))
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Create", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1))
                   )
                 ),
                 const SizedBox(height: 24),
@@ -828,6 +837,71 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override void dispose() { _presenceChannel?.unsubscribe(); _dbChannel?.unsubscribe(); _profileScrollController.dispose(); super.dispose(); }
+
+  void _showCookiesAndTourDialog() {
+     showDialog(
+       context: context,
+       barrierDismissible: false,
+       builder: (ctx) => Dialog(
+         backgroundColor: getCard(context),
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+         child: Padding(
+           padding: const EdgeInsets.all(24.0),
+           child: Column(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+               const Icon(Icons.cookie_outlined, color: Colors.orangeAccent, size: 50),
+               const SizedBox(height: 16),
+               const Text("We Value Your Privacy", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+               const SizedBox(height: 8),
+               const Text("We use basic cookies & preferences purely to keep your Watch Limits and progress updated without tracking issues.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5)),
+               const SizedBox(height: 24),
+               SizedBox(
+                 width: double.infinity,
+                 height: 45,
+                 child: ElevatedButton(
+                   style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                   onPressed: () => Navigator.pop(ctx), 
+                   child: const Text("Accept & Continue", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                 )
+               )
+             ]
+           )
+         )
+       )
+     ).then((_) {
+         showDialog(
+           context: context,
+           builder: (ctx) => Dialog(
+             backgroundColor: getCard(context),
+             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+             child: Padding(
+               padding: const EdgeInsets.all(24.0),
+               child: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                   const Icon(Icons.movie_creation_outlined, color: animeMxPurple, size: 50),
+                   const SizedBox(height: 16),
+                   const Text("Quick Guide!", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                   const SizedBox(height: 12),
+                   const Text("1. Browse Anime securely at 'Home'\n2. Keyword & Deep dive queries via 'Search'\n3. Upgrade limits via 'Account > Subscription'", style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.6)),
+                   const SizedBox(height: 24),
+                   SizedBox(
+                     width: double.infinity,
+                     height: 45,
+                     child: ElevatedButton(
+                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                       onPressed: () => Navigator.pop(ctx), 
+                       child: const Text("Got it!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                     )
+                   )
+                 ]
+               )
+             )
+           )
+         );
+     });
+  }
   
   Future<void> _fetchGlobalPlan() async {
     try {
@@ -860,7 +934,16 @@ class _MainScreenState extends State<MainScreen> {
     await fetchGlobalAnimeViews(); 
     await _fetchDatabaseCatalog(); 
     await _fetchUserPreferences(); 
-    if(mounted) setState(() => _isDataLoading = false);
+    
+    if(mounted) {
+       setState(() => _isDataLoading = false);
+       SharedPreferences prefs = await SharedPreferences.getInstance();
+       bool isTourCompleted = prefs.getBool('tour_completed') ?? false;
+       if (!isTourCompleted) {
+         await prefs.setBool('tour_completed', true);
+         _showCookiesAndTourDialog();
+       }
+    }
   }
 
   Future<void> _fetchSettings() async {
@@ -1959,9 +2042,17 @@ class _BrowseScreenState extends State<BrowseScreen> with AutomaticKeepAliveClie
     } 
   }
 
-  void _setSearchQuery(String query) { _searchController.text = query; _performSearch(query); if (query.isNotEmpty) { _updateRecentSearchesInDb(query); } }
+  void _setSearchQuery(String query) { 
+    _searchController.text = query; 
+    FocusScope.of(context).unfocus(); 
+    _performSearch(query); 
+    if (query.isNotEmpty) { 
+       _updateRecentSearchesInDb(query); 
+    } 
+  }
 
   void _submitSearch(String query) { 
+    FocusScope.of(context).unfocus(); 
     if (query.trim().isNotEmpty && !globalRecentSearches.contains(query.trim())) { setState(() { globalRecentSearches.insert(0, query.trim()); }); _updateRecentSearchesInDb(query.trim()); } 
     _performSearch(query); 
   }
@@ -2708,12 +2799,11 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   }
 
   @override Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
     return Scaffold(
       backgroundColor: getBg(context),
-      appBar: AppBar(title: Text("Order History", style: TextStyle(color: getText(context))), backgroundColor: getBg(context), bottom: appbarBottomLine()),
+      appBar: AppBar(title: Text("Order History", style: TextStyle(color: getText(context), fontWeight: FontWeight.bold)), backgroundColor: getBg(context), bottom: appbarBottomLine()),
       body: _isLoading 
-        ? Center(child: CircularProgressIndicator(color: primColor))
+        ? Center(child: CircularProgressIndicator(color: animeMxPurple))
         : _orders.isEmpty 
           ? Center(child: Text("No orders found.", style: TextStyle(color: getSubText(context), fontSize: 16)))
           : ListView.builder(
@@ -2722,36 +2812,45 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
               itemBuilder: (context, index) {
                 final order = _orders[index];
                 String status = order['display_status'] ?? "Pending";
-                Color statusColor = status == 'Approved' ? Colors.green : (status == 'Rejected' ? Colors.redAccent : (status == 'Expired' ? Colors.yellow : Colors.orange));
-                String date = "Unknown";
+                Color statusColor;
+                if (status == 'Approved') statusColor = Colors.greenAccent;
+                else if (status == 'Rejected') statusColor = Colors.redAccent;
+                else if (status == 'Expired') statusColor = Colors.grey;
+                else statusColor = Colors.orangeAccent;
+                
+                String date = "Unknown Time";
                 if(order['created_at'] != null) {
                   DateTime d = DateTime.parse(order['created_at']).toLocal();
-                  date = "${d.day}/${d.month}/${d.year}";
+                  date = "${d.day}/${d.month}/${d.year} at ${d.hour}:${d.minute}";
                 }
                 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+                  margin: const EdgeInsets.only(bottom: 16), padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(16), border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(order['plan'] ?? "Unknown Plan", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Text(status, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)))
+                          Row(
+                            children: [
+                              Icon(Icons.workspace_premium, color: statusColor, size: 24),
+                              const SizedBox(width: 8),
+                              Text(order['plan'] ?? "Plan Name", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor)), child: Text(status.toUpperCase(), style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)))
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(color: Colors.white10, height: 1)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Amount", style: TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 2), Text("₹${order['amount'] ?? 0}", style: TextStyle(color: primColor, fontSize: 16, fontWeight: FontWeight.bold))]),
-                          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [const Text("Date", style: TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 2), Text(date, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold))]),
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Total Paid", style: TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 2), Text("₹${order['amount'] ?? 0}", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900))]),
+                          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [const Text("Order Timeline", style: TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 2), Text(date, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))]),
                         ],
-                      ),
-                      const SizedBox(height: 12),
-                      Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8)), child: Row(children: [const Icon(Icons.receipt_long, color: Colors.white54, size: 16), const SizedBox(width: 8), Text("UTR: ${order['transaction_id'] ?? 'N/A'}", style: const TextStyle(color: Colors.white70, fontSize: 12))]))
+                      )
                     ],
                   ),
                 );
@@ -3141,7 +3240,6 @@ class UnifiedPaymentScreen extends StatefulWidget {
 }
 class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   File? _imageFile;
-  final TextEditingController _trxController = TextEditingController();
   bool _isSubmitting = false;
 
   void _launchUPIApp(BuildContext context) async {
@@ -3162,8 +3260,8 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 
   Future<void> _submitRequest() async {
-    if (_imageFile == null || _trxController.text.length != 12) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please provide both Screenshot and 12-Digit UTR.")));
+    if (_imageFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please upload the Screenshot.")));
       return;
     }
     setState(() => _isSubmitting = true);
@@ -3183,15 +3281,14 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
         'uid': currentUserUid,
         'plan': widget.planName,
         'amount': amount,
-        'transaction_id': _trxController.text.trim(),
+        'transaction_id': "Screenshot Uploaded",
         'image_path': imageUrl,
         'status': 'Pending',
         'created_at': DateTime.now().toIso8601String()
       });
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Payment Proof Submitted Successfully!"), backgroundColor: Colors.green));
-        Navigator.pop(context);
+        Navigator.pushReplacement(context, SmoothPageRoute(page: const OrderHistoryPage()));
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
@@ -3201,9 +3298,13 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 
   @override Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor;
+    Color bgTheme = const Color(0xFF0D1321);
+    Color cardTheme = const Color(0xFF1D2A4A);
+    Color primColor = const Color(0xFF3B82F6);
+    
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: bgTheme,
+      appBar: AppBar(title: const Text("Scan to Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: bgTheme, elevation: 0),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
@@ -3212,76 +3313,57 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
               Expanded(
                 flex: 5,
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: getCard(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white10)
+                    color: cardTheme,
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Text("1. Scan & Pay", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      const Text("Scan the QR code using any UPI app and pay the amount.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 12),
+                      Text("Amount to Pay", style: TextStyle(color: Colors.blue[200], fontSize: 14)),
+                      const SizedBox(height: 8),
+                      Text(widget.price, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      const SizedBox(height: 24),
                       Expanded(
-                        child: Row(
-                          children: [
-                            AspectRatio(
-                              aspectRatio: 1,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black))
-                                ),
+                        child: Center(
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 20)]),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black))
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text("Amount to Pay", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                  Text(widget.price, style: TextStyle(color: primColor, fontSize: 24, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 12),
-                                  const Text("UPI ID", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                    decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8)),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(child: Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                        GestureDetector(
-                                          onTap: () {
-                                            Clipboard.setData(ClipboardData(text: globalUpiId));
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
-                                          },
-                                          child: const Icon(Icons.copy, color: Colors.white70, size: 16)
-                                        )
-                                      ],
-                                    ),
-                                  )
-                                ],
-                              ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(12)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("UPI ID", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                const SizedBox(height: 4),
+                                Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1),
+                              ],
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                Clipboard.setData(ClipboardData(text: globalUpiId));
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
+                              },
+                              child: const Icon(Icons.copy, color: Colors.blueAccent, size: 20)
                             )
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 45,
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                          onPressed: () => _launchUPIApp(context),
-                          icon: const Icon(Icons.payment, color: Colors.white, size: 20),
-                          label: const Text("Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                        )
                       )
                     ],
                   ),
@@ -3289,86 +3371,52 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
               ),
               const SizedBox(height: 16),
               Expanded(
-                flex: 6,
+                flex: 4,
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: getCard(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white10)
+                    color: cardTheme,
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("2. Verify Payment", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      const Text("After successful payment, submit your proof.", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                      const SizedBox(height: 12),
+                      const Text("Verify Payment", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      const Text("Upload screenshot after a successful transaction.", style: TextStyle(color: Colors.white54, fontSize: 13)),
+                      const SizedBox(height: 16),
 
-                      const Text("Upload Screenshot", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
                       Expanded(
                         child: GestureDetector(
                           onTap: _pickImage,
                           child: Container(
                             width: double.infinity,
-                            decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12, style: BorderStyle.solid)),
+                            decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12), border: Border.all(color: primColor.withOpacity(0.5), style: BorderStyle.solid, width: 2)),
                             child: _imageFile != null
-                                ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                                ? ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(_imageFile!, fit: BoxFit.cover))
                                 : Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.cloud_upload, color: primColor, size: 30),
-                                      const SizedBox(height: 8),
-                                      const Text("Tap to upload screenshot", style: TextStyle(color: Colors.white54, fontSize: 12))
+                                      Icon(Icons.image_outlined, color: primColor, size: 40),
+                                      const SizedBox(height: 12),
+                                      const Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500))
                                     ]
                                   ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      const Text("12-Digit UTR Number", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 6),
-                      SizedBox(
-                        height: 45,
-                        child: TextField(
-                          controller: _trxController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(12)],
-                          style: const TextStyle(color: Colors.white, fontSize: 14),
-                          decoration: InputDecoration(
-                            hintText: "Enter 12-digit UTR number",
-                            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                            filled: true,
-                            fillColor: Colors.black45,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
-                          )
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
+                      const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
-                        height: 45,
+                        height: 50,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                           onPressed: _isSubmitting ? null : _submitRequest,
                           child: _isSubmitting
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                              : const Text("Confirm Submission", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
                         )
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(Icons.verified_user_outlined, color: Colors.white38, size: 14),
-                          SizedBox(width: 4),
-                          Text("Your payment will be verified within a few minutes.", style: TextStyle(color: Colors.white38, fontSize: 10))
-                        ],
-                      )
                     ],
                   ),
                 )
@@ -3484,7 +3532,7 @@ class SupportPage extends StatelessWidget {
               decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
               child: Column(
                 children: [
-                  _buildFaqItem(question: "How to buy a subscription?", answer: "Go to the Account tab, click on Subscription, select a plan, and pay via UPI. Upload the screenshot and 12-digit UTR to activate your plan."),
+                  _buildFaqItem(question: "How to buy a subscription?", answer: "Go to the Account tab, click on Subscription, select a plan, and pay via UPI. Upload the screenshot to activate your plan."),
                   const Divider(color: Colors.white10, height: 1),
                   _buildFaqItem(question: "How to use the app?", answer: "Browse or search for your favorite anime on the Home or Search screens. Tap on any episode to start watching. You can also save anime to 'My List'."),
                   const Divider(color: Colors.white10, height: 1),
@@ -3661,7 +3709,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   // Daily Watch Limit Trackers
   double _dailyWatchSeconds = 0.0;
-  int _maxAllowedSeconds = 180; // 3 Minutes default for free plan
+  int _maxAllowedSeconds = 180; 
   DateTime? _lastTick;
 
   // Early Access Tracker
@@ -3673,6 +3721,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   // Skip Animation Trackers
   bool _showForwardSkip = false;
   bool _showBackwardSkip = false;
+
+  // Inline Notification
+  String _inlineActionMsg = "";
+  bool _isInlineError = false;
+  Timer? _inlineTimer;
 
   TapDownDetails? _doubleTapDetails;
 
@@ -3691,25 +3744,29 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _verifyPlanAndInitPlayer();
   }
 
-  void _showCenterSnackbar(String msg, Color color) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-      backgroundColor: color,
-      behavior: SnackBarBehavior.floating,
-      margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height * 0.45, left: 40, right: 40),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      duration: const Duration(seconds: 2),
-    ));
+  void _showInlineNotification(String msg, bool isError) {
+    if(isError) HapticFeedback.heavyImpact();
+    else HapticFeedback.lightImpact();
+
+    if(!mounted) return;
+    setState(() {
+      _inlineActionMsg = msg;
+      _isInlineError = isError;
+    });
+
+    _inlineTimer?.cancel();
+    _inlineTimer = Timer(const Duration(seconds: 3), () {
+      if(mounted) setState(() => _inlineActionMsg = "");
+    });
   }
 
   Future<void> _fetchDailyWatchLimit() async {
     try {
       String today = DateTime.now().toIso8601String().substring(0, 10);
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      String savedDate = prefs.getString('watch_date') ?? '';
-      double savedSec = prefs.getDouble('watch_sec') ?? 0.0;
+      
+      String savedDate = prefs.getString('watch_date_$currentUserId') ?? '';
+      double savedSec = prefs.getDouble('watch_sec_$currentUserId') ?? 0.0;
       
       final res = await Supabase.instance.client.from('user_daily_watch').select().eq('user_id', currentUserId).eq('watch_date', today).maybeSingle();
       
@@ -3740,8 +3797,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     try {
        String today = DateTime.now().toIso8601String().substring(0, 10);
        SharedPreferences prefs = await SharedPreferences.getInstance();
-       await prefs.setString('watch_date', today);
-       await prefs.setDouble('watch_sec', _dailyWatchSeconds);
+       await prefs.setString('watch_date_$currentUserId', today);
+       await prefs.setDouble('watch_sec_$currentUserId', _dailyWatchSeconds);
        
        await Supabase.instance.client.from('user_daily_watch').upsert({
          'user_id': currentUserId,
@@ -3806,7 +3863,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       if (mounted) {
         setState(() { _hasUserRated = true; });
         _fetchRatings(); 
-        _showCenterSnackbar("Thanks for rating $rating stars!", Colors.green);
+        _showInlineNotification("Thanks for rating $rating stars!", false);
       }
     } catch(e) {}
   }
@@ -4109,6 +4166,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _dbSyncTimer?.cancel();
     _countdownTimer?.cancel();
     _lockIconTimer?.cancel();
+    _inlineTimer?.cancel();
     _syncWatchTimeWithDB();
     if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
       _updateContinueWatching(); 
@@ -4270,7 +4328,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     if (isSaved) { list.removeWhere((item) => item.anime.title == widget.anime.title); } else { list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); }
     myListNotifier.value = list; MyListService().saveMyList(currentUserId, list);
     
-    _showCenterSnackbar(isSaved ? "Removed from My List" : "Successfully added to My List", isSaved ? Colors.redAccent : Colors.green);
+    _showInlineNotification(isSaved ? "Removed from My List" : "Successfully added to My List", isSaved);
   }
 
   String _getCountdownText() {
@@ -4282,8 +4340,6 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    Color primColor = Theme.of(context).primaryColor; 
-
     if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
       return Scaffold(
         backgroundColor: Colors.black,
@@ -4308,7 +4364,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     Widget interactivePlayer = InteractiveViewer(
       minScale: 1.0,
-      maxScale: 1.3, // Constrained zoom to fit properly
+      maxScale: 1.35, // Restricted to match standard display fits properly
       child: Center(child: playerWidget),
     );
 
@@ -4340,9 +4396,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         SizedBox(
                           height: 45, width: 200,
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                             onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage())),
-                            child: const Text("Upgrade Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                            child: const Text("Upgrade Plan", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
                           ),
                         )
                       ],
@@ -4374,9 +4430,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         SizedBox(
                           height: 45, width: 200,
                           child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFFD700), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                             onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage())),
-                            child: const Text("Upgrade Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                            child: const Text("Upgrade Plan", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))
                           ),
                         )
                       ],
@@ -4408,7 +4464,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
              child: interactivePlayer,
            )
         else 
-           Center(child: CircularProgressIndicator(color: primColor)),
+           Center(child: CircularProgressIndicator(color: animeMxPurple)),
 
         if (!_isPremiumBlocked && !_isLockedByEarlyAccess && !_hasStartedPlaying)
           Positioned.fill(
@@ -4512,7 +4568,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300), // Smooth fade animation
+            duration: const Duration(milliseconds: 300), 
             child: IgnorePointer(
               ignoring: !_showControls,
               child: GestureDetector(
@@ -4801,7 +4857,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                               IconButton(
                                 icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
                                 onPressed: () {
-                                  _showCenterSnackbar("Video download failed. This episode cannot be downloaded right now.", Colors.redAccent);
+                                  _showInlineNotification("Download Failed! This episode is currently restricted.", true);
                                 },
                               ),
                             ],
@@ -4913,6 +4969,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         ),
                       ),
                     ),
+                    
+                    if (_inlineActionMsg.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                          decoration: BoxDecoration(color: _isInlineError ? Colors.redAccent.withOpacity(0.9) : Colors.green.withOpacity(0.9), borderRadius: BorderRadius.circular(8)),
+                          child: Row(
+                            children: [
+                              Icon(_isInlineError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white, size: 20),
+                              const SizedBox(width: 12),
+                              Expanded(child: Text(_inlineActionMsg, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                        ),
+                      ),
+                      
                     const SizedBox(height: 40),
 
                   ],
