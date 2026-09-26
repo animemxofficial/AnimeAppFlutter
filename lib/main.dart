@@ -721,9 +721,13 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center, 
               children: [
-                const Icon(Icons.person_pin, color: Color(0xFF8A2BE2), size: 90), 
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [animeMxPurple.withOpacity(0.2), Colors.transparent], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+                  child: const Icon(Icons.person_pin, color: animeMxPurple, size: 90)
+                ), 
                 const SizedBox(height: 16), 
-                RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "DUB", style: TextStyle(color: Color(0xFF8A2BE2), fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), 
+                RichText(text: const TextSpan(children: [TextSpan(text: "Axion ", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2)), TextSpan(text: "DUB", style: TextStyle(color: animeMxPurple, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2))])), 
                 const SizedBox(height: 8), 
                 const Text("Welcome! Let's get to know you.", style: TextStyle(color: Colors.white54, fontSize: 14)), 
                 const SizedBox(height: 40), 
@@ -733,16 +737,16 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                 const SizedBox(height: 40), 
                 Container(
                   width: double.infinity, height: 55, 
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [Color(0xFF8A2BE2), Color(0xFF6B21A8)])), 
+                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), gradient: const LinearGradient(colors: [animeMxPurple, Color(0xFF6B21A8)])), 
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.transparent, shadowColor: Colors.transparent), 
                     onPressed: _isLoading ? null : _saveName, 
-                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                    child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("ENTER APP", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1))
                   )
                 ),
                 const SizedBox(height: 24),
                 TextButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage())), 
+                  onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SupportPage())), 
                   icon: const Icon(Icons.help_outline, color: Colors.white54, size: 18), 
                   label: const Text("Need Help? Contact Support", style: TextStyle(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.w500))
                 )
@@ -1878,6 +1882,7 @@ class BrowseScreen extends StatefulWidget {
 class _BrowseScreenState extends State<BrowseScreen> with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController(); 
   List<Anime> _searchResults = [];
+  List<String> _keywordSuggestions = [];
   bool _isLoadingSearches = true;
   bool _isSearching = false;
 
@@ -1915,11 +1920,34 @@ class _BrowseScreenState extends State<BrowseScreen> with AutomaticKeepAliveClie
     try { await Supabase.instance.client.from('user_preferences').update({'recent_searches': '[]'}).eq('id', currentUserId); } catch (e) {}
   }
 
+  void _onSearchChanged(String query) {
+    if (query.isEmpty) {
+      setState(() { _searchResults = []; _keywordSuggestions = []; _isSearching = false; });
+      return;
+    }
+    setState(() => _isSearching = true);
+    
+    // Build Suggestions
+    List<String> suggestions = [];
+    final matchedAnimes = animeListNotifier.value.where((a) => a.title.toLowerCase().contains(query.toLowerCase()) || a.genre.toLowerCase().contains(query.toLowerCase())).toList();
+    
+    for (var a in matchedAnimes.take(4)) {
+      suggestions.add(a.title);
+      if (a.seasonsList.length > 1) suggestions.add("${a.title} Season ${a.seasonsList.length}");
+      suggestions.add("${a.title} Episode 1");
+    }
+    
+    setState(() {
+      _keywordSuggestions = suggestions.toSet().toList().take(6).toList();
+      _isSearching = false;
+    });
+  }
+
   void _performSearch(String query) async { 
     if (query.isEmpty) { 
-      setState(() { _searchResults = []; _isSearching = false; }); 
+      setState(() { _searchResults = []; _keywordSuggestions = []; _isSearching = false; }); 
     } else { 
-      setState(() { _isSearching = true; });
+      setState(() { _isSearching = true; _keywordSuggestions = []; });
       await Future.delayed(const Duration(milliseconds: 300)); 
       if(!mounted) return;
       setState(() { 
@@ -1955,15 +1983,25 @@ class _BrowseScreenState extends State<BrowseScreen> with AutomaticKeepAliveClie
                 decoration: BoxDecoration(color: getCard(context), borderRadius: BorderRadius.circular(12)), 
                 child: TextField(
                   controller: _searchController, 
+                  onChanged: _onSearchChanged,
                   onSubmitted: _submitSearch, 
                   style: TextStyle(color: getText(context), fontSize: 15), 
-                  decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _performSearch(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
+                  decoration: InputDecoration(hintText: "Search anime, movies, episodes...", hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14), prefixIcon: Icon(Icons.search, color: Colors.grey[500]), suffixIcon: _searchController.text.isNotEmpty ? IconButton(icon: Icon(Icons.cancel, color: Colors.grey[600]), onPressed: () { _searchController.clear(); _onSearchChanged(""); }) : null, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 16))
                 )
               ),
               const SizedBox(height: 24),
               
               if (_searchController.text.isNotEmpty) ...[
-                if (_isSearching)
+                if (_keywordSuggestions.isNotEmpty && _searchResults.isEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: _keywordSuggestions.map((k) => ListTile(
+                      leading: const Icon(Icons.search, color: Colors.white54, size: 20),
+                      title: Text(k, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                      onTap: () => _setSearchQuery(k),
+                    )).toList(),
+                  )
+                else if (_isSearching)
                   const Padding(padding: EdgeInsets.only(top: 40), child: Center(child: CircularProgressIndicator(color: animeMxPurple)))
                 else if (_searchResults.isEmpty) 
                   const Center(child: Padding(padding: EdgeInsets.only(top: 20), child: Text("No content found.", style: TextStyle(color: Colors.grey, fontSize: 15)))) 
@@ -2307,7 +2345,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _selectedImage = File(pickedFile.path); 
         localProfileImagePath = pickedFile.path;
       }); 
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Photo Updated! (Saved locally)"), backgroundColor: Colors.green));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Photo Updated Successfully!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
     } 
   }
 
@@ -3618,6 +3656,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   // Lock State
   bool _isLocked = false;
+  bool _showLockIcon = false;
+  Timer? _lockIconTimer;
 
   // Daily Watch Limit Trackers
   double _dailyWatchSeconds = 0.0;
@@ -3626,6 +3666,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
   // Early Access Tracker
   bool _isLockedByEarlyAccess = false;
+  String _earlyAccessMessage = "";
   DateTime? _unlockDate;
   Timer? _countdownTimer;
 
@@ -3650,25 +3691,45 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _verifyPlanAndInitPlayer();
   }
 
+  void _showCenterSnackbar(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+      backgroundColor: color,
+      behavior: SnackBarBehavior.floating,
+      margin: EdgeInsets.only(bottom: MediaQuery.of(context).size.height * 0.45, left: 40, right: 40),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
   Future<void> _fetchDailyWatchLimit() async {
     try {
       String today = DateTime.now().toIso8601String().substring(0, 10);
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String savedDate = prefs.getString('watch_date') ?? '';
+      double savedSec = prefs.getDouble('watch_sec') ?? 0.0;
+      
       final res = await Supabase.instance.client.from('user_daily_watch').select().eq('user_id', currentUserId).eq('watch_date', today).maybeSingle();
+      
       if (res != null) {
-        _dailyWatchSeconds = (res['watched_seconds'] ?? 0).toDouble();
+        double dbSec = (res['watched_seconds'] ?? 0).toDouble();
+        _dailyWatchSeconds = max(dbSec, (savedDate == today ? savedSec : 0.0));
       } else {
-        _dailyWatchSeconds = 0;
+        _dailyWatchSeconds = (savedDate == today ? savedSec : 0.0);
         await Supabase.instance.client.from('user_daily_watch').insert({
           'user_id': currentUserId,
           'watch_date': today,
-          'watched_seconds': 0
+          'watched_seconds': _dailyWatchSeconds.toInt()
         });
       }
     } catch(e) {
-      _dailyWatchSeconds = 0;
+      _dailyWatchSeconds = 0.0;
     }
 
-    _dbSyncTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _dbSyncTimer?.cancel();
+    _dbSyncTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
        if (_isPlaying && !_isPremiumBlocked && _hasStartedPlaying) {
          _syncWatchTimeWithDB();
        }
@@ -3678,6 +3739,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   Future<void> _syncWatchTimeWithDB() async {
     try {
        String today = DateTime.now().toIso8601String().substring(0, 10);
+       SharedPreferences prefs = await SharedPreferences.getInstance();
+       await prefs.setString('watch_date', today);
+       await prefs.setDouble('watch_sec', _dailyWatchSeconds);
+       
        await Supabase.instance.client.from('user_daily_watch').upsert({
          'user_id': currentUserId,
          'watch_date': today,
@@ -3741,11 +3806,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       if (mounted) {
         setState(() { _hasUserRated = true; });
         _fetchRatings(); 
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Thanks for rating $rating stars!", style: const TextStyle(color: Colors.white)),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
-        ));
+        _showCenterSnackbar("Thanks for rating $rating stars!", Colors.green);
       }
     } catch(e) {}
   }
@@ -3854,6 +3915,30 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     }
   }
 
+  void _setPremiumMessage() {
+    if (globalCurrentPlan.toLowerCase() == "free") {
+      _premiumMessage = "Free Trial Ended.\nYou have a 3-minute daily limit on the Free Plan.";
+    } else if (globalCurrentPlan.toLowerCase().contains("bronze") || globalCurrentPlan.contains("14")) {
+      _premiumMessage = "Daily Limit Reached.\nYou have a 30-minute daily watch limit on the Bronze Plan.";
+    } else if (globalCurrentPlan.toLowerCase().contains("silver") || globalCurrentPlan.contains("45")) {
+      _premiumMessage = "Daily Limit Reached.\nYou have a 3-hour daily watch limit on the Silver Plan.";
+    } else if (globalCurrentPlan.toLowerCase().contains("gold") || globalCurrentPlan.contains("99")) {
+      _premiumMessage = "Daily Limit Reached.\nYou have a 6-hour daily watch limit on the Gold Plan.";
+    }
+  }
+
+  void _setEarlyAccessMessage() {
+    if (globalCurrentPlan.toLowerCase() == "free") {
+      _earlyAccessMessage = "Free Plan does not include Early Access.";
+    } else if (globalCurrentPlan.toLowerCase().contains("bronze") || globalCurrentPlan.contains("14")) {
+      _earlyAccessMessage = "Bronze Plan does not include Early Access.";
+    } else if (globalCurrentPlan.toLowerCase().contains("silver") || globalCurrentPlan.contains("45")) {
+      _earlyAccessMessage = "Silver Plan does not include Early Access.";
+    } else {
+      _earlyAccessMessage = "This episode is currently locked.";
+    }
+  }
+
   Future<void> _verifyPlanAndInitPlayer() async {
      String currentPlan = "Free";
      try {
@@ -3888,6 +3973,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
      
      // 2. Fetch User Time
      await _fetchDailyWatchLimit();
+     
+     if (_maxAllowedSeconds != -1 && _dailyWatchSeconds >= _maxAllowedSeconds) {
+       if (mounted) {
+         setState(() {
+           _isPremiumBlocked = true;
+           _setPremiumMessage();
+           _isPlanVerified = true;
+         });
+       }
+       return; 
+     }
 
      // 3. Early Access Check
      final ep = widget.anime.seasonsList[_currentSeasonIndex].episodes[_currentEpisodeIndex]; 
@@ -3895,6 +3991,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
      DateTime unlockDate = releaseDate.add(Duration(days: delayDays));
      
      if (unlockDate.isAfter(DateTime.now())) {
+        _setEarlyAccessMessage();
         if (mounted) {
           setState(() {
             _isLockedByEarlyAccess = true;
@@ -3941,13 +4038,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
           _controller!.pause();
           setState(() {
             _isPremiumBlocked = true;
-            if (globalCurrentPlan.toLowerCase() == "free") {
-              _premiumMessage = "Free Trial Ended. You've reached your daily 3-minute limit.\nUpgrade your plan to unlock unlimited streaming!";
-            } else {
-              _premiumMessage = "You have reached your daily watch limit.\nPlease upgrade your plan to watch more.";
-            }
+            _setPremiumMessage();
             _isPlaying = false;
             _showControls = false;
+            _syncWatchTimeWithDB(); // final sync for the session
           });
         }
       } else {
@@ -3973,6 +4067,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _isPlanVerified = false;
       _lastTick = null;
       _isLocked = false;
+      _showLockIcon = false;
       _isLockedByEarlyAccess = false;
       _isPremiumBlocked = false;
     });
@@ -3999,6 +4094,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       _isPlanVerified = false;
       _lastTick = null;
       _isLocked = false;
+      _showLockIcon = false;
       _isLockedByEarlyAccess = false;
       _isPremiumBlocked = false;
     });
@@ -4012,6 +4108,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     _hideTimer?.cancel();
     _dbSyncTimer?.cancel();
     _countdownTimer?.cancel();
+    _lockIconTimer?.cancel();
+    _syncWatchTimeWithDB();
     if (widget.anime.seasonsList.isNotEmpty && widget.anime.seasonsList[_currentSeasonIndex].episodes.isNotEmpty) {
       _updateContinueWatching(); 
       _controller?.dispose(); 
@@ -4063,7 +4161,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   }
 
   void _toggleControls() { 
-    if (_isLocked) return;
+    if (_isLocked) {
+      setState(() { _showLockIcon = !_showLockIcon; });
+      if (_showLockIcon) {
+        _lockIconTimer?.cancel();
+        _lockIconTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _showLockIcon = false);
+        });
+      }
+      return;
+    }
     setState(() {
       _showControls = !_showControls;
     }); 
@@ -4109,11 +4216,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       context: context,
       barrierDismissible: true,
       barrierLabel: "SpeedMenu",
-      barrierColor: Colors.transparent, // Background transparent requirement
+      barrierColor: Colors.transparent, 
       transitionDuration: const Duration(milliseconds: 250),
       pageBuilder: (context, animation, secondaryAnimation) {
         return Align(
-          alignment: Alignment.centerRight, // Slide from right
+          alignment: Alignment.centerRight, 
           child: Material(
             color: Colors.black.withOpacity(0.7),
             child: SizedBox(
@@ -4163,11 +4270,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     if (isSaved) { list.removeWhere((item) => item.anime.title == widget.anime.title); } else { list.add(SavedEpisode(anime: widget.anime, seasonIndex: 0, episodeIndex: 0)); }
     myListNotifier.value = list; MyListService().saveMyList(currentUserId, list);
     
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(isSaved ? "Removed from My List" : "Successfully added to My List", style: const TextStyle(color: Colors.white)),
-      backgroundColor: isSaved ? Colors.redAccent : Colors.green,
-      duration: const Duration(seconds: 2),
-    ));
+    _showCenterSnackbar(isSaved ? "Removed from My List" : "Successfully added to My List", isSaved ? Colors.redAccent : Colors.green);
   }
 
   String _getCountdownText() {
@@ -4205,7 +4308,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
 
     Widget interactivePlayer = InteractiveViewer(
       minScale: 1.0,
-      maxScale: 4.0,
+      maxScale: 1.3, // Constrained zoom to fit properly
       child: Center(child: playerWidget),
     );
 
@@ -4232,7 +4335,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                         const SizedBox(height: 24),
                         const Text("Early Access Required", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
-                        const Text("This episode is currently locked. Premium users get early access.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        Text(_earlyAccessMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          height: 45, width: 200,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            onPressed: () => Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage())),
+                            child: const Text("Upgrade Plan", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                          ),
+                        )
                       ],
                     ),
                   ),
@@ -4257,11 +4369,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.lock_outline, color: Colors.redAccent, size: 60),
-                        const SizedBox(height: 16),
-                        const Text("Time Limit Reached", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        Text(_premiumMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+                        Text(_premiumMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, height: 1.5)),
                         const SizedBox(height: 24),
                         SizedBox(
                           height: 45, width: 200,
@@ -4379,7 +4487,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
           ),
 
         // FLOATING UNLOCK BUTTON WHEN LOCKED
-        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked)
+        if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && _isLocked && _showLockIcon)
           Positioned(
             bottom: 30, left: MediaQuery.of(context).size.width / 2 - 25,
             child: Material(
@@ -4388,7 +4496,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                 borderRadius: BorderRadius.circular(50),
                 onTap: () {
                    HapticFeedback.mediumImpact();
-                   setState(() { _isLocked = false; _showControls = true; });
+                   setState(() { _isLocked = false; _showLockIcon = false; _showControls = true; });
                    _startHideTimer();
                 },
                 child: Container(
@@ -4404,7 +4512,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         if (!_isPremiumBlocked && !_isLockedByEarlyAccess && _hasStartedPlaying && !_isLocked && (_controller != null && _controller!.value.isInitialized)) 
           AnimatedOpacity(
             opacity: _showControls ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300), // Smooth fade animation here
+            duration: const Duration(milliseconds: 300), // Smooth fade animation
             child: IgnorePointer(
               ignoring: !_showControls,
               child: GestureDetector(
@@ -4434,7 +4542,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                       borderRadius: BorderRadius.circular(20),
                                       onTap: () {
                                         HapticFeedback.mediumImpact();
-                                        setState(() { _isLocked = true; _showControls = false; });
+                                        setState(() { _isLocked = true; _showControls = false; _showLockIcon = false; });
                                         _hideTimer?.cancel();
                                       }, 
                                       child: const Padding(
@@ -4693,11 +4801,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                               IconButton(
                                 icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
                                 onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                                    content: Text("Video download failed. This episode cannot be downloaded right now.", style: TextStyle(color: Colors.white)), 
-                                    backgroundColor: Colors.redAccent,
-                                    duration: Duration(seconds: 3),
-                                  ));
+                                  _showCenterSnackbar("Video download failed. This episode cannot be downloaded right now.", Colors.redAccent);
                                 },
                               ),
                             ],
