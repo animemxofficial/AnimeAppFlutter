@@ -3396,7 +3396,7 @@ class SupportPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.15), shape: BoxShape.circle),
-              child: const Icon(icon, color: animeMxPurple, size: 24),
+              child: Icon(icon, color: animeMxPurple, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
