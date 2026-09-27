@@ -12,7 +12,6 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'package:share_plus/share_plus.dart'; 
 
 // ZYNOX FINAL SYNC VERSION (For Admin force updates checking logic)
 const String CURRENT_APP_VERSION = "1.0.2"; 
@@ -29,10 +28,10 @@ String localProfileImagePath = "";
 String globalCurrentPlan = "Free";
 DateTime? globalPlanExpiry;
 
-// NOTIFICATION LOGIC (Fixed Definition Location)
+// NOTIFICATION LOGIC
 DateTime globalLastSeenNotification = DateTime.fromMillisecondsSinceEpoch(0);
 
-// ADMIN PANEL DYNAMIC SETTINGS SYNC 
+// ADMIN PANEL DYNAMIC SETTINGS SYNC (Matches SQL Data precisely!)
 String globalWebsiteUrl = "https://google.com"; 
 String globalTelegramLink = "";
 String globalWhatsappLink = "https://wa.me/"; 
@@ -63,9 +62,10 @@ final ValueNotifier<List<CWItem>> continueWatchingNotifier = ValueNotifier([]);
 final ValueNotifier<List<SavedEpisode>> myListNotifier = ValueNotifier([]);
 final ValueNotifier<Map<String, int>> globalAnimeViewsNotifier = ValueNotifier({});
 final ValueNotifier<Map<String, int>> globalEpisodeViewsNotifier = ValueNotifier({});
+
 final ValueNotifier<Map<String, Map<String, int>>> globalAnimeLikesNotifier = ValueNotifier({});
 
-// THEME COLORS CONSTANTS (Fixed and Hard-Locked into Application Layout perfectly)
+// THEME COLORS CONSTANTS
 const Color animeMxPurple = Color(0xFF8A2BE2); // Primary Theme Color
 const Color goldenColor = Color(0xFFFFD700); // Gold
 const Color backgroundDark = Colors.black;
@@ -119,7 +119,7 @@ DateTime? getPlanExpiryDate(String createdAt, String planName) {
   return start.add(const Duration(days: 30)); 
 }
 
-// SMOOTH PAGE TRANSITION ANIMATION
+// ANIMATION CLASSES
 class SmoothPageRoute extends PageRouteBuilder {
   final Widget page;
   SmoothPageRoute({required this.page})
@@ -132,7 +132,6 @@ class SmoothPageRoute extends PageRouteBuilder {
         );
 }
 
-// SMOOTH BOTTOM NAV FADE TRANSITION
 class FadeIndexedStack extends StatefulWidget {
   final int index;
   final List<Widget> children;
@@ -188,7 +187,7 @@ Future<bool?> showCustomDeleteDialog(BuildContext context, String title, String 
   return showDialog<bool>(
     context: context,
     builder: (ctx) => Dialog(
-      backgroundColor: const Color(0xFF13131A),
+      backgroundColor: backgroundCards,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -414,6 +413,8 @@ class AppUpdateScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
+                
+                // NEW ZYNOX LOGO IMPLEMENTATION FOR UPDATE SCREEN
                 Container(
                   width: 90, height: 90,
                   decoration: BoxDecoration(
@@ -432,6 +433,7 @@ class AppUpdateScreen extends StatelessWidget {
                 const SizedBox(height: 24),
                 const Text("ZYNOX TV", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                 const SizedBox(height: 40),
+                
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
@@ -451,15 +453,19 @@ class AppUpdateScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       const Text("What's New:", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
+                      
                       ...globalUpdateFeatures.map((feature) => Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(feature, style: const TextStyle(color: Colors.white54, fontSize: 14, height: 1.4)),
                       )).toList(),
+                      
                       const SizedBox(height: 20),
                     ],
                   ),
                 ),
+                
                 const Spacer(),
+                
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -517,6 +523,7 @@ class SecurityBlockScreen extends StatelessWidget {
                   )
                 )
               ],
+              
               if(!isSuspended) ...[
                 const SizedBox(height: 40),
                 SizedBox(
@@ -571,6 +578,7 @@ class _AuthGateState extends State<AuthGate> {
         return;
       }
 
+      // BRAND NEW USER DETECTED OR CLEARED CACHE -> COMPLETE WIPE & REGENERATE EVERYTHING CLEARLY
       await Supabase.instance.client.auth.signOut();
       await Supabase.instance.client.auth.signInAnonymously();
       
@@ -794,6 +802,71 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override void dispose() { _presenceChannel?.unsubscribe(); _dbChannel?.unsubscribe(); _profileScrollController.dispose(); super.dispose(); }
+
+  void _showCookiesAndTourDialog() {
+     showDialog(
+       context: context,
+       barrierDismissible: false,
+       builder: (ctx) => Dialog(
+         backgroundColor: const Color(0xFF13131A),
+         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+         child: Padding(
+           padding: const EdgeInsets.all(24.0),
+           child: Column(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+               const Icon(Icons.cookie_outlined, color: Colors.orangeAccent, size: 50),
+               const SizedBox(height: 16),
+               const Text("We Value Your Privacy", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+               const SizedBox(height: 8),
+               const Text("We use basic cookies & preferences purely to keep your Watch Limits and progress updated securely without privacy intrusion.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.5)),
+               const SizedBox(height: 24),
+               SizedBox(
+                 width: double.infinity,
+                 height: 45,
+                 child: ElevatedButton(
+                   style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                   onPressed: () => Navigator.pop(ctx), 
+                   child: const Text("Accept & Continue", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                 )
+               )
+             ]
+           )
+         )
+       )
+     ).then((_) {
+         showDialog(
+           context: context,
+           builder: (ctx) => Dialog(
+             backgroundColor: const Color(0xFF13131A),
+             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+             child: Padding(
+               padding: const EdgeInsets.all(24.0),
+               child: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
+                   const Icon(Icons.movie_creation_outlined, color: animeMxPurple, size: 50),
+                   const SizedBox(height: 16),
+                   const Text("Quick Tour!", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                   const SizedBox(height: 12),
+                   const Text("1. Use 'Home' to browse safe collections.\n2. Tap 'Search' specifically for episode matches via typing directly.\n3. Keep eye on Account limits via Subscriptions.", style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.6)),
+                   const SizedBox(height: 24),
+                   SizedBox(
+                     width: double.infinity,
+                     height: 45,
+                     child: ElevatedButton(
+                       style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                       onPressed: () => Navigator.pop(ctx), 
+                       child: const Text("Got it!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                     )
+                   )
+                 ]
+               )
+             )
+           )
+         );
+     });
+  }
   
   Future<void> _fetchGlobalPlan() async {
     try {
@@ -1096,7 +1169,7 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
                 return BouncingCard(
                   onTap: () {
                     if (hasWatchNow && linkedAnime != null) {
-                      _handleWatchNow(linkedAnime);
+                      _handleWatchNow(linkedAnime!);
                     }
                   },
                   child: Container(
@@ -1178,7 +1251,7 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
                                       icon: const Icon(Icons.play_arrow_rounded, size: 20),
                                       label: const Text("Watch Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                                       onPressed: () {
-                                        _handleWatchNow(linkedAnime);
+                                        _handleWatchNow(linkedAnime!);
                                       },
                                     ),
                                   )
@@ -4370,7 +4443,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         // SPEED OVERLAY INSIDE PLAYER
         if (_isSpeedMenuVisible && _showControls)
            Positioned(
-              right: 16, top: 50, // Placed below appbar directly instead of center
+              right: 16, top: 50, 
               child: Container(
                  width: 110,
                  padding: const EdgeInsets.symmetric(vertical: 4),
