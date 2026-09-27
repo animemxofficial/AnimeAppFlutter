@@ -88,6 +88,13 @@ String formatViewsCount(int views) {
   return views.toString();
 }
 
+// Z DUB / FAN DUB LOGIC FORMATTER
+String formatDubStatus(String input) {
+  String clean = input.toUpperCase().trim();
+  if (clean == "DUB") return "Z DUB";
+  return clean;
+}
+
 String getSeasonText(Anime anime) {
   if (anime.category.toLowerCase().contains("movie")) return "MOVIE";
   if (anime.seasonsList.isEmpty) return "S1";
@@ -1500,7 +1507,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
             itemBuilder: (context, index) { 
               Anime anime = list[index];
               String epCount = "EP ${getTotalEpisodes(anime)}";
-              String tagLang = anime.dubStatus.toUpperCase(); // Direct render DUB state set from admin!
+              String tagLang = formatDubStatus(anime.dubStatus);
               String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
               String seasonText = anime.category.toLowerCase().contains("movie") ? "MOVIE" : getSeasonText(anime);
 
@@ -1725,7 +1732,7 @@ class SearchListCard extends StatelessWidget {
   Widget build(BuildContext context) {
     int totalEp = getTotalEpisodes(anime);
     int totalSeasons = anime.seasonsList.length;
-    String tagLang = anime.dubStatus.toUpperCase();
+    String tagLang = formatDubStatus(anime.dubStatus);
     
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -2034,7 +2041,7 @@ class ExploreAnimeCard extends StatelessWidget {
     int totalEp = getTotalEpisodes(anime);
     String seasonText = getSeasonText(anime);
     String views = formatViewsCount(globalAnimeViewsNotifier.value[anime.title] ?? 0);
-    String tagLang = anime.dubStatus.toUpperCase();
+    String tagLang = formatDubStatus(anime.dubStatus);
 
     return BouncingCard(
       onTap: () {
@@ -2150,7 +2157,7 @@ class _MyListScreenState extends State<MyListScreen> {
             padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 100), itemCount: savedList.length, 
             itemBuilder: (context, index) { 
               final anime = savedList[index].anime;
-              String tagLang = anime.dubStatus.toUpperCase();
+              String tagLang = formatDubStatus(anime.dubStatus);
               String seasonText = getSeasonText(anime);
               
               final cwList = continueWatchingNotifier.value;
@@ -3074,6 +3081,9 @@ class _UpgradePlanPageState extends State<UpgradePlanPage> {
   }
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// UNIFIED PAYMENT SCREEN (IMPROVED DESIGN)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class UnifiedPaymentScreen extends StatefulWidget {
   final String planName;
   final String price;
@@ -3140,129 +3150,211 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
   }
 
   @override Widget build(BuildContext context) {
-    Color bgTheme = const Color(0xFF0D1321);
-    Color cardTheme = const Color(0xFF1D2A4A);
+    Color bgTheme = const Color(0xFF0B101E); 
+    Color cardTheme = const Color(0xFF0F172A);
     Color primColor = const Color(0xFF3B82F6);
+    Color accentBlue = const Color(0xFF60A5FA);
+    Color borderGlow = const Color(0xFF1E3A8A);
     
     return Scaffold(
       backgroundColor: bgTheme,
-      appBar: AppBar(title: const Text("Scan to Pay", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: bgTheme, elevation: 0, iconTheme: const IconThemeData(color: Colors.white)),
+      appBar: AppBar(
+        backgroundColor: bgTheme,
+        elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text("Payment", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            Text("Scan & Pay", style: TextStyle(color: Color(0xFF60A5FA), fontSize: 13, fontWeight: FontWeight.w500)),
+          ],
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E3A8A).withOpacity(0.4),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: primColor.withOpacity(0.5))
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lock, color: accentBlue, size: 14),
+                  const SizedBox(width: 6),
+                  Text("Secure Payment", style: TextStyle(color: accentBlue, fontSize: 11, fontWeight: FontWeight.bold))
+                ],
+              ),
+            ),
+          )
+        ],
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
           child: Column(
             children: [
-              Expanded(
-                flex: 5,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: cardTheme,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text("Amount to Pay", style: TextStyle(color: Colors.blue[200], fontSize: 14)),
-                      const SizedBox(height: 8),
-                      Text(widget.price, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                      const SizedBox(height: 24),
-                      Expanded(
-                        child: Center(
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 20)]),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black))
-                              ),
-                            ),
+              // CARD 1: QR & AMOUNT
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardTheme,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: borderGlow, width: 1.5),
+                  boxShadow: [
+                    BoxShadow(color: borderGlow.withOpacity(0.2), blurRadius: 30, spreadRadius: 5)
+                  ]
+                ),
+                child: Column(
+                  children: [
+                    Text("AMOUNT TO PAY", style: TextStyle(color: accentBlue, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                    const SizedBox(height: 8),
+                    Text(widget.price, style: const TextStyle(color: Colors.white, fontSize: 44, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 24),
+                    
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 220, height: 220,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(color: primColor, width: 2),
+                            boxShadow: [BoxShadow(color: primColor.withOpacity(0.3), blurRadius: 20)]
                           ),
                         ),
+                        Container(
+                          width: 190, height: 190,
+                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.all(12),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(globalPaymentQrUrl, fit: BoxFit.cover, errorBuilder: (c,e,s) => const Icon(Icons.qr_code_scanner, color: Colors.black, size: 50))
+                          ),
+                        )
+                      ],
+                    ),
+                    const SizedBox(height: 30),
+                    
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white10)
                       ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(color: Colors.black45, borderRadius: BorderRadius.circular(12)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text("UPI ID", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                                const SizedBox(height: 4),
-                                Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1),
-                              ],
-                            ),
-                            GestureDetector(
-                              onTap: () {
-                                Clipboard.setData(ClipboardData(text: globalUpiId));
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
-                              },
-                              child: const Icon(Icons.copy, color: Colors.blueAccent, size: 20)
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: primColor.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                                child: Text("UPI ID", style: TextStyle(color: accentBlue, fontSize: 10, fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(globalUpiId, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold), maxLines: 1),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: globalUpiId));
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("UPI ID copied!")));
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: primColor.withOpacity(0.2), shape: BoxShape.circle),
+                              child: Icon(Icons.copy, color: accentBlue, size: 20)
                             )
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
+                          )
+                        ],
+                      ),
+                    )
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Expanded(
-                flex: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: cardTheme,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Verify Payment", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      const Text("Upload screenshot after a successful transaction.", style: TextStyle(color: Colors.white54, fontSize: 13)),
-                      const SizedBox(height: 16),
-
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12), border: Border.all(color: primColor.withOpacity(0.5), style: BorderStyle.solid, width: 2)),
-                            child: _imageFile != null
-                                ? ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.file(_imageFile!, fit: BoxFit.cover))
-                                : Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.image_outlined, color: primColor, size: 40),
-                                      const SizedBox(height: 12),
-                                      const Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500))
-                                    ]
-                                  ),
-                          ),
+              
+              const SizedBox(height: 20),
+              
+              // CARD 2: VERIFY PAYMENT
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: cardTheme,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: borderGlow, width: 1.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: primColor.withOpacity(0.2), shape: BoxShape.circle),
+                          child: Icon(Icons.verified_user_outlined, color: accentBlue, size: 24),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
+                        const SizedBox(width: 16),
+                        const Text("Verify Payment", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      ]
+                    ),
+                    const SizedBox(height: 12),
+                    const Text("Upload screenshot after a successful transaction.", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                    const SizedBox(height: 20),
+                    
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: Container(
+                        height: 120,
                         width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: primColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                          onPressed: _isSubmitting ? null : _submitRequest,
-                          child: _isSubmitting
-                              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
-                              : const Text("Confirm Submission", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
-                        )
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B), 
+                          borderRadius: BorderRadius.circular(16), 
+                          border: Border.all(color: primColor.withOpacity(0.5), style: BorderStyle.solid, width: 1.5) 
+                        ),
+                        child: _imageFile != null
+                            ? ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.file(_imageFile!, fit: BoxFit.cover))
+                            : Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(color: primColor.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                                    child: Icon(Icons.image_outlined, color: accentBlue, size: 30)
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text("Tap to upload Screenshot", style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500))
+                                ]
+                              ),
                       ),
-                    ],
-                  ),
-                )
-              ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primColor, 
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 5,
+                          shadowColor: primColor.withOpacity(0.5)
+                        ),
+                        onPressed: _isSubmitting ? null : _submitRequest,
+                        icon: _isSubmitting ? const SizedBox() : const Icon(Icons.send, color: Colors.white, size: 20),
+                        label: _isSubmitting
+                            ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5))
+                            : const Text("Confirm Submission", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))
+                      )
+                    ),
+                  ],
+                ),
+              )
             ],
           ),
         )
@@ -4116,6 +4208,21 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
     return "${diff.inHours}h ${diff.inMinutes.remainder(60)}m ${diff.inSeconds.remainder(60)}s";
   }
 
+  Widget _buildInlineMessage() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(color: _isInlineError ? Colors.redAccent.withOpacity(0.9) : Colors.green.withOpacity(0.9), borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          Icon(_isInlineError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white, size: 20),
+          const SizedBox(width: 12),
+          Expanded(child: Text(_inlineActionMsg, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.anime.seasonsList.isEmpty || widget.anime.seasonsList[_currentSeasonIndex].episodes.isEmpty) {
@@ -4326,11 +4433,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
         // SPEED OVERLAY INSIDE PLAYER
         if (_isSpeedMenuVisible && _showControls)
            Positioned(
-              right: 16, top: 50, // Placed below appbar directly instead of center
+              right: 16, top: 50, 
               child: Container(
                  width: 110,
                  padding: const EdgeInsets.symmetric(vertical: 4),
-                 decoration: BoxDecoration(color: Colors.transparent, borderRadius: BorderRadius.circular(12)), 
+                 decoration: BoxDecoration(
+                   color: const Color(0xFF13131A).withOpacity(0.95), 
+                   borderRadius: BorderRadius.circular(12),
+                   border: Border.all(color: Colors.white12)
+                 ), 
                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [2.0, 1.5, 1.25, 1.0, 0.75, 0.5].map((s) {
@@ -4348,7 +4459,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                            child: Row(
                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                              children: [
-                               Text(s==1.0 ? "Normal" : "${s}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13, shadows: [Shadow(color: Colors.black, blurRadius: 6)])),
+                               Text(s==1.0 ? "Normal" : "${s}x", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                                if (_controller!.value.playbackSpeed == s) const Icon(Icons.check, color: animeMxPurple, size: 14)
                              ]
                            )
@@ -4388,19 +4499,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                 ),
                                 Row(
                                   children: [
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(20),
-                                        onTap: () {
-                                          HapticFeedback.lightImpact();
-                                          setState(() { _isSpeedMenuVisible = !_isSpeedMenuVisible; });
-                                        }, 
-                                        child: const Padding(
-                                          padding: EdgeInsets.all(8.0),
-                                          child: Icon(Icons.settings_outlined, color: Colors.white, size: 22),
-                                        )
-                                      ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        HapticFeedback.lightImpact();
+                                        setState(() { _isSpeedMenuVisible = !_isSpeedMenuVisible; });
+                                      }, 
+                                      child: Container(
+                                        color: Colors.transparent, 
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: const Icon(Icons.settings_outlined, color: Colors.white, size: 22),
+                                      )
                                     ),
                                   ],
                                 )
@@ -4520,267 +4628,271 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
       ],
     );
 
-    if (_isFullScreen) {
-      return Scaffold(backgroundColor: Colors.black, body: Center(child: videoContent));
-    }
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            AspectRatio(aspectRatio: 16 / 9, child: videoContent),
-            
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 30),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // Single Line Description + Arrow
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: GestureDetector(
-                        onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Text(shortDesc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.only(left: 8),
-                              child: Icon(Icons.chevron_right, color: Colors.white54, size: 18)
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                    
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Divider(color: Colors.white10, height: 30, thickness: 1)),
-                    
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+    Widget mainContent = SafeArea(
+      child: Column(
+        children: [
+          AspectRatio(aspectRatio: 16 / 9, child: videoContent),
+          
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 50),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(episodeTitle, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Single Line Description + Arrow
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: GestureDetector(
+                      onTap: () => Navigator.push(context, SmoothPageRoute(page: DescriptionPage(anime: widget.anime))),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          // Custom Like/Dislike Pill 
-                          Container(
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E1E2A),
-                              borderRadius: BorderRadius.circular(22),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                GestureDetector(
-                                  onTap: () => _toggleLike(true),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                                    decoration: BoxDecoration(
-                                      color: _userLikeStatus == 1 ? Colors.white24 : Colors.transparent,
-                                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(22), right: Radius.circular(8)),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Row(
-                                      children: [
-                                        Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 22),
-                                        const SizedBox(width: 8),
-                                        Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Container(width: 1, height: 26, color: Colors.white12),
-                                GestureDetector(
-                                  onTap: () => _toggleLike(false),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                                    decoration: BoxDecoration(
-                                      color: _userLikeStatus == -1 ? Colors.white24 : Colors.transparent,
-                                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(22), left: Radius.circular(8)),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 22),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Expanded(
+                            child: Text(shortDesc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 13)),
                           ),
-                          
-                          // Right Side Action Icons
-                          Row(
-                            children: [
-                              ValueListenableBuilder<List<SavedEpisode>>(
-                                valueListenable: myListNotifier,
-                                builder: (context, savedList, child) {
-                                  bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
-                                  return IconButton(
-                                    icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: isSaved ? animeMxPurple : Colors.white70, size: 28),
-                                    onPressed: _toggleSaveAnime,
-                                  );
-                                }
-                              ),
-                              
-                              GestureDetector(
-                                onTap: _showRatingBottomSheet,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                  child: CustomRatingStar(isRated: _hasUserRated),
-                                ),
-                              ),
-                              
-                              IconButton(
-                                icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
-                                onPressed: () {
-                                  _showInlineNotification("Download Failed! Content restricted by owner.", true);
-                                },
-                              ),
-                            ],
+                          const Padding(
+                            padding: EdgeInsets.only(left: 8),
+                            child: Icon(Icons.chevron_right, color: Colors.white54, size: 18)
                           )
                         ],
                       ),
                     ),
-
-                    if (_inlineActionMsg.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 20, left: 16, right: 16),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                          decoration: BoxDecoration(color: _isInlineError ? Colors.redAccent.withOpacity(0.9) : Colors.green.withOpacity(0.9), borderRadius: BorderRadius.circular(8)),
-                          child: Row(
-                            children: [
-                              Icon(_isInlineError ? Icons.error_outline : Icons.check_circle_outline, color: Colors.white, size: 20),
-                              const SizedBox(width: 12),
-                              Expanded(child: Text(_inlineActionMsg, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
-                            ],
+                  ),
+                  
+                  const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Divider(color: Colors.white10, height: 30, thickness: 1)),
+                  
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Custom Like/Dislike Pill 
+                        Container(
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E2A),
+                            borderRadius: BorderRadius.circular(22),
                           ),
-                        ),
-                      ),
-                    
-                    const SizedBox(height: 20),
-                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Divider(color: Colors.white10, height: 10, thickness: 1)),
-                    const SizedBox(height: 10),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text("Episode Lists", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                          
-                          if (widget.anime.seasonsList.isNotEmpty)
-                            Theme(
-                              data: Theme.of(context).copyWith(
-                                splashColor: Colors.transparent,
-                                highlightColor: Colors.transparent,
-                              ),
-                              child: PopupMenuButton<int>(
-                                color: const Color(0xFF1E1E2A), 
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                position: PopupMenuPosition.under, 
-                                constraints: const BoxConstraints(minWidth: 120, maxWidth: 120),
-                                onOpened: () => setState(() => _isSeasonMenuOpen = true),
-                                onCanceled: () => setState(() => _isSeasonMenuOpen = false),
-                                onSelected: (val) {
-                                  setState(() => _isSeasonMenuOpen = false);
-                                  _changeSeason(val);
-                                },
-                                itemBuilder: (context) => widget.anime.seasonsList.asMap().entries.map((e) {
-                                  bool isSel = e.key == _currentSeasonIndex;
-                                  return PopupMenuItem(
-                                    value: e.key,
-                                    height: 40,
-                                    child: SizedBox(
-                                      width: 100, 
-                                      child: Text(e.value.name.isEmpty ? "Season ${e.key+1}" : e.value.name, style: TextStyle(color: isSel ? animeMxPurple : Colors.white70, fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
-                                    ),
-                                  );
-                                }).toList(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GestureDetector(
+                                onTap: () => _toggleLike(true),
                                 child: Container(
-                                  height: 38,
-                                  width: 120, 
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  decoration: BoxDecoration(
+                                    color: _userLikeStatus == 1 ? Colors.white24 : Colors.transparent,
+                                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(22), right: Radius.circular(8)),
+                                  ),
+                                  alignment: Alignment.center,
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text(widget.anime.seasonsList[_currentSeasonIndex].name.isEmpty ? "Season ${_currentSeasonIndex+1}" : widget.anime.seasonsList[_currentSeasonIndex].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                      Icon(_isSeasonMenuOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white, size: 20)
+                                      Icon(_userLikeStatus == 1 ? Icons.thumb_up : Icons.thumb_up_alt_outlined, color: Colors.white, size: 22),
+                                      const SizedBox(width: 8),
+                                      Text("$_likeCount", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))
                                     ],
                                   ),
                                 ),
                               ),
-                            )
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Wrap(
-                          spacing: 12, runSpacing: 16,
-                          children: List.generate(displayedEpisodes.length, (index) {
-                            bool isActive = index == _currentEpisodeIndex;
-                            String epId = "${widget.anime.title}_${_currentSeasonIndex}_$index";
-                            int specificEpViews = globalEpisodeViewsNotifier.value[epId] ?? 0;
-                            String formattedViews = formatViewsCount(specificEpViews);
-
-                            return BouncingCard(
-                              onTap: () => _changeEpisode(index),
-                              child: Column(
-                                children: [
-                                  Container(
-                                    width: 60, height: 60,
-                                    decoration: BoxDecoration(
-                                      color: isActive ? animeMxPurple : const Color(0xFF13131A),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: isActive ? Colors.transparent : Colors.white12)
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        "${index + 1}", 
-                                        style: TextStyle(color: isActive ? Colors.white : Colors.white70, fontSize: 18, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
-                                      )
-                                    ),
+                              Container(width: 1, height: 26, color: Colors.white12),
+                              GestureDetector(
+                                onTap: () => _toggleLike(false),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  decoration: BoxDecoration(
+                                    color: _userLikeStatus == -1 ? Colors.white24 : Colors.transparent,
+                                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(22), left: Radius.circular(8)),
                                   ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.remove_red_eye, color: Colors.white54, size: 10),
-                                      const SizedBox(width: 4),
-                                      Text(formattedViews, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
-                                    ],
-                                  )
-                                ],
+                                  alignment: Alignment.center,
+                                  child: Icon(_userLikeStatus == -1 ? Icons.thumb_down : Icons.thumb_down_alt_outlined, color: Colors.white, size: 22),
+                                ),
                               ),
-                            );
-                          }),
+                            ],
+                          ),
                         ),
+                        
+                        // Right Side Action Icons
+                        Row(
+                          children: [
+                            ValueListenableBuilder<List<SavedEpisode>>(
+                              valueListenable: myListNotifier,
+                              builder: (context, savedList, child) {
+                                bool isSaved = savedList.any((item) => item.anime.title == widget.anime.title);
+                                return IconButton(
+                                  icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border, color: isSaved ? animeMxPurple : Colors.white70, size: 28),
+                                  onPressed: _toggleSaveAnime,
+                                );
+                              }
+                            ),
+                            
+                            GestureDetector(
+                              onTap: _showRatingBottomSheet,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: CustomRatingStar(isRated: _hasUserRated),
+                              ),
+                            ),
+                            
+                            IconButton(
+                              icon: const Icon(Icons.file_download_outlined, color: Colors.white70, size: 28),
+                              onPressed: () {
+                                _showInlineNotification("Download Failed! Content restricted by owner.", true);
+                              },
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: Divider(color: Colors.white10, height: 10, thickness: 1)),
+                  const SizedBox(height: 10),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text("Episode Lists", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        
+                        if (widget.anime.seasonsList.isNotEmpty)
+                          Theme(
+                            data: Theme.of(context).copyWith(
+                              splashColor: Colors.transparent,
+                              highlightColor: Colors.transparent,
+                            ),
+                            child: PopupMenuButton<int>(
+                              color: const Color(0xFF1E1E2A), 
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              position: PopupMenuPosition.under, 
+                              constraints: const BoxConstraints(minWidth: 120, maxWidth: 120),
+                              onOpened: () => setState(() => _isSeasonMenuOpen = true),
+                              onCanceled: () => setState(() => _isSeasonMenuOpen = false),
+                              onSelected: (val) {
+                                setState(() => _isSeasonMenuOpen = false);
+                                _changeSeason(val);
+                              },
+                              itemBuilder: (context) => widget.anime.seasonsList.asMap().entries.map((e) {
+                                bool isSel = e.key == _currentSeasonIndex;
+                                return PopupMenuItem(
+                                  value: e.key,
+                                  height: 40,
+                                  child: SizedBox(
+                                    width: 100, 
+                                    child: Text(e.value.name.isEmpty ? "Season ${e.key+1}" : e.value.name, style: TextStyle(color: isSel ? animeMxPurple : Colors.white70, fontSize: 13, fontWeight: isSel ? FontWeight.bold : FontWeight.normal)),
+                                  ),
+                                );
+                              }).toList(),
+                              child: Container(
+                                height: 38,
+                                width: 120, 
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(color: const Color(0xFF161622), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(widget.anime.seasonsList[_currentSeasonIndex].name.isEmpty ? "Season ${_currentSeasonIndex+1}" : widget.anime.seasonsList[_currentSeasonIndex].name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    Icon(_isSeasonMenuOpen ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.white, size: 20)
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 12, runSpacing: 16,
+                        children: List.generate(displayedEpisodes.length, (index) {
+                          bool isActive = index == _currentEpisodeIndex;
+                          String epId = "${widget.anime.title}_${_currentSeasonIndex}_$index";
+                          int specificEpViews = globalEpisodeViewsNotifier.value[epId] ?? 0;
+                          String formattedViews = formatViewsCount(specificEpViews);
+
+                          return BouncingCard(
+                            onTap: () => _changeEpisode(index),
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 60, height: 60,
+                                  decoration: BoxDecoration(
+                                    color: isActive ? animeMxPurple : const Color(0xFF13131A),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: isActive ? Colors.transparent : Colors.white12)
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      "${index + 1}", 
+                                      style: TextStyle(color: isActive ? Colors.white : Colors.white70, fontSize: 18, fontWeight: isActive ? FontWeight.w900 : FontWeight.bold)
+                                    )
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.remove_red_eye, color: Colors.white54, size: 10),
+                                    const SizedBox(width: 4),
+                                    Text(formattedViews, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
+                                  ],
+                                )
+                              ],
+                            ),
+                          );
+                        }),
                       ),
                     ),
-                    
-                    const SizedBox(height: 40),
-
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            )
+            ),
+          )
+        ],
+      ),
+    );
+
+    if (_isFullScreen) {
+      return Scaffold(
+        backgroundColor: Colors.black, 
+        body: Stack(
+          children: [
+            Center(child: videoContent),
+            if (_inlineActionMsg.isNotEmpty)
+              Positioned(
+                bottom: 20, left: 16, right: 16,
+                child: SafeArea(child: _buildInlineMessage()),
+              )
           ],
-        ),
+        )
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          mainContent,
+          if (_inlineActionMsg.isNotEmpty)
+            Positioned(
+              bottom: 20, left: 16, right: 16,
+              child: SafeArea(child: _buildInlineMessage()),
+            )
+        ],
       ),
     );
   }
