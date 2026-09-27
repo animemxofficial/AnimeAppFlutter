@@ -1,9 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     
+    <!-- INTERNET PERMISSION (Pehle se tha) -->
     <uses-permission android:name="android.permission.INTERNET" />
     
+    <!-- NOTIFICATION & VIBRATION PERMISSIONS (Naya add kiya gaya hai) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
     <application
-        android:label="Zynox TV"
+        android:label="Zynox Admin"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
