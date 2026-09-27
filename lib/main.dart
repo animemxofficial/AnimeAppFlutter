@@ -803,10 +803,19 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     }
   }
 
-  Future<void> _updateStatus(dynamic id, String newStatus) async {
+  Future<void> _updateStatus(dynamic id, String newStatus, String userId) async {
     try {
+      if (newStatus == 'Approved') {
+        // Find existing approved plans of THIS user, force expire them safely! 
+        await Supabase.instance.client
+            .from('payment_requests')
+            .update({'status': 'Expired'})
+            .eq('user_id', userId)
+            .eq('status', 'Approved');
+      }
+      
       await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id.toString());
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment $newStatus"), backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.orange));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment $newStatus Successfully! Old packages revoked!"), backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.orange));
       _fetchRequests();
     } catch(e) { }
   }
@@ -964,11 +973,11 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                     
                     // Fetch real user name & UID properly from DB
                     String userName = req['user_name'] ?? req['name'] ?? "Unknown User"; 
-                    String uid = req['user_id'] ?? req['uid'] ?? req['transaction_id']?.toString().substring(0, 8) ?? "N/A"; 
+                    String uid = req['uid'] ?? req['user_id'] ?? req['transaction_id']?.toString().substring(0, 8) ?? "N/A"; 
                     
-                    // Fetch real amount instead of default 0.00
+                    String dbUserIdLink = req['user_id'] ?? "Unknown";
+
                     String amount = req['amount']?.toString() ?? "0";
-                    
                     Color statusColor = req['status'] == 'Approved' ? const Color(0xFF10B981) : (req['status'] == 'Rejected' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
 
                     return Container(
@@ -1029,15 +1038,14 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                             ),
                             const SizedBox(height: 16),
                             
-                            // Wrap fixes the Overflow issue on mobile
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
                               alignment: WrapAlignment.start,
                               children: [
                                 _buildActionButton(Icons.image, "Proof", const Color(0xFF3B82F6), () => _showProofDialog(req['image_path'], req['transaction_id'])),
-                                _buildActionButton(Icons.check, "Approve", const Color(0xFF10B981), () => _updateStatus(req['id'], 'Approved')),
-                                _buildActionButton(Icons.close, "Reject", const Color(0xFFF59E0B), () => _updateStatus(req['id'], 'Rejected')),
+                                _buildActionButton(Icons.check, "Approve", const Color(0xFF10B981), () => _updateStatus(req['id'], 'Approved', dbUserIdLink)),
+                                _buildActionButton(Icons.close, "Reject", const Color(0xFFF59E0B), () => _updateStatus(req['id'], 'Rejected', dbUserIdLink)),
                                 _buildActionButton(Icons.edit, "Edit", adminPurple, () => _editPaymentDialog(req)),
                                 _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequestDialog(req['id'])),
                               ],
@@ -1121,7 +1129,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
   final _imageController = TextEditingController(); 
   final _mainCategoryController = TextEditingController(); 
   final _subCategoryController = TextEditingController(); 
-  String _selectedDub = 'ZTV-DUB'; // Changed logic perfectly as ordered. 
+  String _selectedDub = 'ZTV-DUB'; 
   List<dynamic> _animeList = []; 
   bool _isLoading = false;
 
@@ -1286,7 +1294,6 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
             value: _selectedDub, 
             style: const TextStyle(color: Colors.white), 
             decoration: _inputDeco("Dub Status", Icons.mic), 
-            // Exact status drop-down logic integrated below for dynamic fetching on front-end!
             items: ['ZTV-DUB', 'FAN DUB', 'MIX O/D'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), 
             onChanged: (v) => setState(() => _selectedDub = v!)
           ),
@@ -1696,7 +1703,7 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
 }
 
 // ==========================================
-// 5. MANAGE HERO SECTION (Minimal Custom Requirement for User-Panel Matches)
+// 5. MANAGE HERO SECTION (Restored fully custom inputs layout mapping fixed UI constraint issue!)
 // ==========================================
 class ManageHeroScreen extends StatefulWidget {
   const ManageHeroScreen({super.key});
@@ -1706,11 +1713,23 @@ class ManageHeroScreen extends StatefulWidget {
 }
 
 class _ManageHeroScreenState extends State<ManageHeroScreen> {
+  final _titleController = TextEditingController(); 
   final _imageController = TextEditingController(); 
+  final _tagController = TextEditingController(); 
   List<dynamic> _animeList = []; 
   String? _selectedAnimeId; 
   bool _isCustom = false; 
+  String _selectedColor = "FF8A2BE2"; 
   List<dynamic> _heroItems = []; 
+  
+  final Map<String, String> _colorOptions = {
+    "Purple": "FF8A2BE2", 
+    "Red": "FFFF4D4D", 
+    "Blue": "FF4DA6FF", 
+    "Green": "FF00C853", 
+    "Orange": "FFFF9F43", 
+    "Pink": "FFFF4081"
+  };
 
   @override
   void initState() { 
@@ -1732,12 +1751,17 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   Future<void> _addHero() async {
     try {
       await Supabase.instance.client.from('hero_slider').insert({
+        'title': _titleController.text, 
         'image_url': _imageController.text, 
         'anime_id': _isCustom ? null : _selectedAnimeId, 
-        'is_custom': _isCustom,
+        'is_custom': _isCustom, 
+        'tag': _tagController.text.isEmpty ? "NEW" : _tagController.text, 
+        'tag_color': _selectedColor
       });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Hero Added!"), backgroundColor: Colors.green));
+      _titleController.clear(); 
       _imageController.clear(); 
+      _tagController.clear(); 
       _fetchData();
     } catch (e) {}
   }
@@ -1769,7 +1793,10 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   }
 
   Future<void> _editHeroDialog(Map<String, dynamic> item) async {
+    TextEditingController editTitle = TextEditingController(text: item['title'] ?? '');
     TextEditingController editImage = TextEditingController(text: item['image_url'] ?? '');
+    TextEditingController editTag = TextEditingController(text: item['tag'] ?? '');
+    String editColor = item['tag_color'] ?? "FF8A2BE2";
 
     await showDialog(
       context: context,
@@ -1782,7 +1809,19 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextField(controller: editTitle, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")),
+                const SizedBox(height: 12),
                 TextField(controller: editImage, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL")),
+                const SizedBox(height: 12),
+                TextField(controller: editTag, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag")),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _colorOptions.values.contains(editColor) ? editColor : "FF8A2BE2", 
+                  decoration: _inputDeco("Tag Color"), 
+                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)))))).toList(), 
+                  onChanged: (v) => setStateModal(() => editColor = v!)
+                )
               ],
             ),
           ),
@@ -1791,7 +1830,10 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             ElevatedButton(
               onPressed: () async {
                 await Supabase.instance.client.from('hero_slider').update({
+                  'title': editTitle.text,
                   'image_url': editImage.text,
+                  'tag': editTag.text,
+                  'tag_color': editColor
                 }).eq('id', item['id'].toString());
                 if(mounted) Navigator.pop(context);
                 _fetchData();
@@ -1835,7 +1877,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
                   children: const [
                     Text("Add New Hero Banner", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                     SizedBox(height: 4),
-                    Text("Add minimal UI Banner without titles/descriptions", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    Text("Add new banner to show on home slider", style: TextStyle(color: Colors.white54, fontSize: 12)),
                   ],
                 )
               ],
@@ -1846,7 +1888,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
           Container(
             decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12)),
             child: SwitchListTile(
-              title: const Text("Custom Banner (Coming Soon Style)", style: TextStyle(color: Colors.white, fontSize: 14)), 
+              title: const Text("Custom Banner (Not linked to Anime)", style: TextStyle(color: Colors.white, fontSize: 14)), 
               activeColor: adminPurple, 
               value: _isCustom, 
               onChanged: (val) => setState(() => _isCustom = val)
@@ -1857,24 +1899,40 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             DropdownButtonFormField<String>(
               dropdownColor: cardDark, 
               value: _selectedAnimeId, 
-              hint: const Text("Select Link Target Anime", style: TextStyle(color: Colors.white54)), 
+              hint: const Text("Link to Existing Anime", style: TextStyle(color: Colors.white54)), 
               style: const TextStyle(color: Colors.white), 
-              decoration: _inputDeco("Link To Anime"), 
+              decoration: _inputDeco("Select Anime"), 
               items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), 
               onChanged: (v) => setState(() => _selectedAnimeId = v)
             ),
             const SizedBox(height: 12),
           ],
-          
-          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Provide Designed Landscape Full Banner URL")), 
+          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")), 
+          const SizedBox(height: 12),
+          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL (Landscape)")), 
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(flex: 2, child: TextField(controller: _tagController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag (Trending, Action, Romance...)"))), 
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _selectedColor, 
+                  decoration: _inputDeco("Color"), 
+                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)), fontSize: 13)))).toList(), 
+                  onChanged: (v) => setState(() => _selectedColor = v!)
+                )
+              )
+            ]
+          ), 
           const SizedBox(height: 24),
-
           SizedBox(
             width: double.infinity, 
             height: 52, 
             child: ElevatedButton.icon(
               icon: const Icon(Icons.add, color: Colors.white), 
-              label: const Text("Deploy Banner", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+              label: const Text("Add to Hero Slider", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
               onPressed: _addHero
             )
           ),
@@ -1883,7 +1941,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Active Server Banners", style: TextStyle(color: adminPurple, fontSize: 16, fontWeight: FontWeight.bold)),
+              const Text("Current Hero Banners", style: TextStyle(color: adminPurple, fontSize: 16, fontWeight: FontWeight.bold)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
@@ -1908,8 +1966,8 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(item['image_url'], width: 80, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 80, color: bgDark, child: const Icon(Icons.broken_image, color: Colors.white54))),
                   ),
-                  title: Text(item['is_custom'] ? "COMING SOON PROMO" : "ANIME PLAYBACK LINKED", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)), 
-                  subtitle: const Text("Custom Banner Format (Full Image Width Used in User app)", style: TextStyle(color: Colors.white54, fontSize: 10)), 
+                  title: Text(item['title'] ?? "No Title", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+                  subtitle: Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: Colors.white54, fontSize: 12)), 
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -1923,6 +1981,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
                         decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
                         child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 20), onPressed: () => _deleteHeroDialog(item['id']), constraints: const BoxConstraints(minWidth: 40, minHeight: 40)),
                       ),
+                      const Icon(Icons.drag_indicator, color: Colors.white38)
                     ],
                   )
                 )
@@ -2361,10 +2420,12 @@ class AppSettingsScreen extends StatefulWidget {
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _urlController = TextEditingController();
   final _logoController = TextEditingController();
-  final _telegramController = TextEditingController();
+  final _telegramController = TextEditingController(); // This works as "Contact" Telegram
+  final _telegramGroupController = TextEditingController(); // Dedicated Field For Telecom "Group" added newly. 
   final _youtubeController = TextEditingController();
   final _whatsappController = TextEditingController();
-  final _instagramController = TextEditingController(); // Added Insta setup in Admin DB Control now !
+  final _instagramController = TextEditingController();
+  final _supportEmailController = TextEditingController(); // Gmail dedicated address added 
   final _qrUrlController = TextEditingController();
   final _upiIdController = TextEditingController();
   
@@ -2382,9 +2443,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           _urlController.text = res['website_url'] ?? "";
           _logoController.text = res['app_logo_url'] ?? "";
           _telegramController.text = res['telegram_url'] ?? "";
+          _telegramGroupController.text = res['telegram_group_url'] ?? ""; 
           _youtubeController.text = res['youtube_url'] ?? "";
           _whatsappController.text = res['whatsapp_url'] ?? "";
           _instagramController.text = res['instagram_url'] ?? "";
+          _supportEmailController.text = res['support_email'] ?? ""; 
           _qrUrlController.text = res['payment_qr_url'] ?? "";
           _upiIdController.text = res['upi_id'] ?? "";
         });
@@ -2394,17 +2457,18 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   Future<void> _saveSettings() async {
     try {
-      await Supabase.instance.client.from('app_settings').upsert({
-        'id': 1, 
+      await Supabase.instance.client.from('app_settings').update({
         'website_url': _urlController.text.trim(), 
         'app_logo_url': _logoController.text.trim(),
         'telegram_url': _telegramController.text.trim(),
+        'telegram_group_url': _telegramGroupController.text.trim(),
         'youtube_url': _youtubeController.text.trim(),
         'whatsapp_url': _whatsappController.text.trim(),
         'instagram_url': _instagramController.text.trim(),
+        'support_email': _supportEmailController.text.trim(),
         'payment_qr_url': _qrUrlController.text.trim(),
         'upi_id': _upiIdController.text.trim()
-      });
+      }).eq('id', 1);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Links Updated Successfully!"), backgroundColor: Colors.green));
     } catch(e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
@@ -2439,13 +2503,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           const Text("Social Media & Support Controls", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
           const SizedBox(height: 16),
           
-          _buildTextField("Telegram Link", "https://t.me/yourgroup", _telegramController, Icons.telegram, Colors.blueAccent),
+          _buildTextField("Telegram Link (Contact Admin)", "https://t.me/admin", _telegramController, Icons.person, Colors.blueAccent),
+          const SizedBox(height: 16),
+          _buildTextField("Telegram Link (Join Group)", "https://t.me/yourgroup", _telegramGroupController, Icons.groups, Colors.blueAccent),
           const SizedBox(height: 16),
           _buildTextField("Instagram Link", "https://instagram.com/user", _instagramController, Icons.camera_alt, Colors.pinkAccent),
           const SizedBox(height: 16),
           _buildTextField("YouTube Link", "https://youtube.com/@channel", _youtubeController, Icons.play_circle_filled, Colors.redAccent),
           const SizedBox(height: 16),
           _buildTextField("WhatsApp Link", "https://wa.me/number", _whatsappController, Icons.chat, Colors.greenAccent),
+          const SizedBox(height: 16),
+          _buildTextField("Support Gmail", "admin@gmail.com", _supportEmailController, Icons.mail_outline, Colors.white),
           const SizedBox(height: 36),
 
           SizedBox(
