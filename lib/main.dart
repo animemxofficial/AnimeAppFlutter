@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart'; // Naya package notification ke liye
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 
@@ -449,8 +449,17 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _requestNotificationPermission(); // Initialize Notification Permission
     _fetchStats();
     _initRealtime();
+  }
+
+  // Request Android 13+ Notification Permission
+  Future<void> _requestNotificationPermission() async {
+    final androidImplementation = flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+    }
   }
 
   // Push Notification Method
@@ -460,7 +469,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       channelDescription: 'Notifications for new user payments',
       importance: Importance.max,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher'
+      icon: '@mipmap/ic_launcher',
+      enableVibration: true,
+      playSound: true,
     );
     const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
     await flutterLocalNotificationsPlugin.show(
@@ -479,11 +490,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           table: 'user_preferences',
           callback: (payload) => _fetchStats())
       ..onPostgresChanges(
-          event: PostgresChangeEvent.insert, // Specially listen for new inserts
+          event: PostgresChangeEvent.insert, // Listens only for new payments
           schema: 'public',
           table: 'payment_requests',
           callback: (payload) {
-             _showPaymentNotification(); // Fire Notification
+             _showPaymentNotification(); // Triggers Pop-Up Notification
              _fetchStats();
           })
       ..onPostgresChanges(
@@ -1799,7 +1810,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
     try {
       await Supabase.instance.client.from('hero_slider').insert({
         'image_url': _imageController.text, 
-        'is_custom': true, // Keep it purely custom since we removed linking
+        'is_custom': true, 
         'tag': _tagController.text.isEmpty ? "NEW" : _tagController.text, 
         'tag_color': _selectedColor
       });
