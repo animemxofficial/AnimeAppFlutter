@@ -3155,11 +3155,12 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
         String botToken = "8946949205:AAF-6Z6ppJARoXwI-ek4JPh7TaWgQKB18ds"; 
         String chatId = "8461822905";
         
-        String message = "🚨 *New Payment Received!*\n\n"
-                         "👤 *User:* $currentUserName\n"
-                         "🆔 *UID:* $currentUserUid\n"
-                         "📦 *Plan:* ${widget.planName}\n"
-                         "💰 *Amount:* ₹$amount\n\n"
+        // Removed Markdown styling to prevent underscore errors in telegram API
+        String message = "🚨 New Payment Received!\n\n"
+                         "👤 User: $currentUserName\n"
+                         "🆔 UID: $currentUserUid\n"
+                         "📦 Plan: ${widget.planName}\n"
+                         "💰 Amount: ₹$amount\n\n"
                          "⚡ Check Admin Panel to Approve/Reject.";
 
         String tgUrl = "https://api.telegram.org/bot$botToken/sendMessage";
@@ -3169,7 +3170,6 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
           body: {
             "chat_id": chatId,
             "text": message,
-            "parse_mode": "Markdown",
           }
         );
       } catch (e) {
