@@ -449,12 +449,12 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _requestNotificationPermission(); // Initialize Notification Permission
+    _requestNotificationPermission(); // Request Notification Permission
     _fetchStats();
     _initRealtime();
   }
 
-  // Request Android 13+ Notification Permission
+  // Push Notification Setup
   Future<void> _requestNotificationPermission() async {
     final androidImplementation = flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     if (androidImplementation != null) {
@@ -462,7 +462,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     }
   }
 
-  // Push Notification Method
+  // Actual Push Notification triggering
   Future<void> _showPaymentNotification() async {
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       'admin_payment_alerts', 'Payment Alerts',
@@ -490,11 +490,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           table: 'user_preferences',
           callback: (payload) => _fetchStats())
       ..onPostgresChanges(
-          event: PostgresChangeEvent.insert, // Listens only for new payments
+          event: PostgresChangeEvent.insert, // Listener for new payments
           schema: 'public',
           table: 'payment_requests',
           callback: (payload) {
-             _showPaymentNotification(); // Triggers Pop-Up Notification
+             _showPaymentNotification(); // Call the Notification
              _fetchStats();
           })
       ..onPostgresChanges(
@@ -1245,7 +1245,6 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     }
   }
 
-  // --- UPDATED EDIT ANIME METHOD (Dropdown ADDED) ---
   Future<void> _editAnime(Map<String, dynamic> anime) async {
     _titleController.text = anime['title'] ?? '';
     _descController.text = anime['description'] ?? '';
@@ -1767,7 +1766,7 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
 }
 
 // ==========================================
-// 5. MANAGE HERO SECTION (Text Input Removed)
+// 5. MANAGE HERO SECTION (Restored Custom/Linked Layout)
 // ==========================================
 class ManageHeroScreen extends StatefulWidget {
   const ManageHeroScreen({super.key});
@@ -1777,8 +1776,12 @@ class ManageHeroScreen extends StatefulWidget {
 }
 
 class _ManageHeroScreenState extends State<ManageHeroScreen> {
+  final _titleController = TextEditingController(); 
   final _imageController = TextEditingController(); 
   final _tagController = TextEditingController(); 
+  List<dynamic> _animeList = []; 
+  String? _selectedAnimeId; 
+  bool _isCustom = false; 
   String _selectedColor = "FF8A2BE2"; 
   List<dynamic> _heroItems = []; 
   
@@ -1799,8 +1802,10 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
 
   Future<void> _fetchData() async {
     try {
+      final animes = await Supabase.instance.client.from('anime_list').select('id, title');
       final heroes = await Supabase.instance.client.from('hero_slider').select().order('created_at', ascending: false);
       setState(() { 
+        _animeList = animes; 
         _heroItems = heroes; 
       });
     } catch (e) {}
@@ -1809,12 +1814,15 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   Future<void> _addHero() async {
     try {
       await Supabase.instance.client.from('hero_slider').insert({
+        'title': _titleController.text, 
         'image_url': _imageController.text, 
-        'is_custom': true, 
+        'anime_id': _isCustom ? null : _selectedAnimeId, 
+        'is_custom': _isCustom, 
         'tag': _tagController.text.isEmpty ? "NEW" : _tagController.text, 
         'tag_color': _selectedColor
       });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Hero Added!"), backgroundColor: Colors.green));
+      _titleController.clear(); 
       _imageController.clear(); 
       _tagController.clear(); 
       _fetchData();
@@ -1848,6 +1856,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   }
 
   Future<void> _editHeroDialog(Map<String, dynamic> item) async {
+    TextEditingController editTitle = TextEditingController(text: item['title'] ?? '');
     TextEditingController editImage = TextEditingController(text: item['image_url'] ?? '');
     TextEditingController editTag = TextEditingController(text: item['tag'] ?? '');
     String editColor = item['tag_color'] ?? "FF8A2BE2";
@@ -1863,6 +1872,8 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                TextField(controller: editTitle, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")),
+                const SizedBox(height: 12),
                 TextField(controller: editImage, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL")),
                 const SizedBox(height: 12),
                 TextField(controller: editTag, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag")),
@@ -1882,6 +1893,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             ElevatedButton(
               onPressed: () async {
                 await Supabase.instance.client.from('hero_slider').update({
+                  'title': editTitle.text,
                   'image_url': editImage.text,
                   'tag': editTag.text,
                   'tag_color': editColor
@@ -1928,6 +1940,30 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
           ),
           const SizedBox(height: 20),
 
+          Container(
+            decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12)),
+            child: SwitchListTile(
+              title: const Text("Custom Banner (Not linked to Anime)", style: TextStyle(color: Colors.white, fontSize: 14)), 
+              activeColor: adminPurple, 
+              value: _isCustom, 
+              onChanged: (val) => setState(() => _isCustom = val)
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (!_isCustom) ...[
+            DropdownButtonFormField<String>(
+              dropdownColor: cardDark, 
+              value: _selectedAnimeId, 
+              hint: const Text("Link to Existing Anime", style: TextStyle(color: Colors.white54)), 
+              style: const TextStyle(color: Colors.white), 
+              decoration: _inputDeco("Select Anime"), 
+              items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), 
+              onChanged: (v) => setState(() => _selectedAnimeId = v)
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")), 
+          const SizedBox(height: 12),
           TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL (Landscape)")), 
           const SizedBox(height: 12),
           Row(
@@ -1985,8 +2021,8 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(item['image_url'], width: 80, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 80, color: bgDark, child: const Icon(Icons.broken_image, color: Colors.white54))),
                   ),
-                  title: Text(item['tag'] ?? "Banner", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
-                  subtitle: const Text("Custom Banner", style: TextStyle(color: Colors.white54, fontSize: 12)), 
+                  title: Text(item['title'] ?? "No Title", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+                  subtitle: Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: Colors.white54, fontSize: 12)), 
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -2026,7 +2062,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
 }
 
 // ==========================================
-// 6. MANAGE USERS (COMPLETELY UPGRADED)
+// 6. MANAGE USERS
 // ==========================================
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
