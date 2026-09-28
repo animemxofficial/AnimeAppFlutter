@@ -3152,7 +3152,7 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
       // TELEGRAM BOT NOTIFICATION LOGIC ADDED HERE
       // ==========================================
       try {
-        String botToken = "8946949205:AAF-6Z6ppJARoXwI-ek4JPh7TaWgQKB18ds"; 
+        String botToken = "8946949205:AAF-6Z6ppJARoXwI-ek4JPh7TaWgQKBl8ds"; 
         String chatId = "8461822905";
         
         // Removed Markdown styling to prevent underscore errors in telegram API
