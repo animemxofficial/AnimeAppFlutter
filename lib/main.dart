@@ -321,7 +321,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   _buildDrawerItem(Icons.dashboard_rounded, "Dashboard", const AdminHomeScreen(), 0),
                   const SizedBox(height: 12),
                   _buildDrawerItem(Icons.payments_rounded, "Manage Payments", const ManagePaymentsScreen(), 1),
-                  _buildDrawerItem(Icons.workspace_premium, "Active Subscriptions", const ActiveSubscriptionsScreen(), 1), // NAYA OPTION
+                  _buildDrawerItem(Icons.workspace_premium, "Active Subscriptions", const ActiveSubscriptionsScreen(), 1),
                   _buildDrawerItem(Icons.people_alt_rounded, "Manage Users", const UsersListScreen(), 1),
                   const SizedBox(height: 12),
                   _buildDrawerItem(Icons.movie_rounded, "Manage Anime", const ManageAnimeScreen(), 2),
@@ -443,7 +443,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
   void initState() {
     super.initState();
-    _requestNotificationPermission();
+    _requestNotificationPermission(); 
     _fetchStats();
     _initRealtime();
   }
@@ -839,10 +839,17 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   Future<void> _fetchRequests() async {
     setState(() => _isLoading = true);
     try {
-      final data = await Supabase.instance.client.from('payment_requests').select().order('created_at', ascending: false);
+      final data = await Supabase.instance.client.from('payment_requests').select();
+      
+      List<dynamic> sortedData = List.from(data);
+      sortedData.sort((a, b) {
+        if (a['created_at'] == null || b['created_at'] == null) return 0;
+        return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
+      });
+
       setState(() {
-        _requests = data;
-        _filteredRequests = data;
+        _requests = sortedData;
+        _filteredRequests = sortedData;
       });
     } catch (e) {
     } finally { 
@@ -1217,13 +1224,13 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
 
   DateTime? _getExpiry(String createdAt, String planName) {
     DateTime start = DateTime.parse(createdAt).toLocal();
-    return start.add(const Duration(days: 30)); // Based on user app logic
+    return start.add(const Duration(days: 30)); 
   }
 
   Future<void> _fetchSubscriptions() async {
     setState(() => _isLoading = true);
     try {
-      final data = await Supabase.instance.client.from('payment_requests').select().eq('status', 'Approved').order('created_at', ascending: false);
+      final data = await Supabase.instance.client.from('payment_requests').select().eq('status', 'Approved');
       
       List<dynamic> activeOnly = [];
       DateTime now = DateTime.now();
@@ -1237,6 +1244,11 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
             }
          }
       }
+      
+      activeOnly.sort((a, b) {
+        if (a['created_at'] == null || b['created_at'] == null) return 0;
+        return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
+      });
       
       setState(() {
         _allSubs = activeOnly;
@@ -1270,7 +1282,7 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("Extend Plan Expiry", style: TextStyle(color: Colors.white)),
+        title: const Text("Modify Plan Expiry", style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1279,10 +1291,10 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: daysController, 
-              keyboardType: TextInputType.number,
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
               style: const TextStyle(color: Colors.white), 
               decoration: InputDecoration(
-                labelText: "Add extra Days (e.g. 5, 10)", 
+                labelText: "Add/Remove Days (e.g. 10 or -5)", 
                 labelStyle: const TextStyle(color: adminPurple), 
                 filled: true, fillColor: bgDark, 
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
@@ -1295,18 +1307,19 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
           ElevatedButton(
             onPressed: () async {
               int? extraDays = int.tryParse(daysController.text);
-              if (extraDays != null && extraDays > 0) {
+              if (extraDays != null && extraDays != 0) {
                  try {
                     DateTime currentCreated = DateTime.parse(sub['created_at']);
-                    DateTime newCreated = currentCreated.add(Duration(days: extraDays)); // Shift created_at forward
+                    DateTime newCreated = currentCreated.add(Duration(days: extraDays)); 
                     await Supabase.instance.client.from('payment_requests').update({'created_at': newCreated.toIso8601String()}).eq('id', sub['id']);
                     if(mounted) Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Added $extraDays days to the plan!"), backgroundColor: Colors.green));
+                    String actionMsg = extraDays > 0 ? "Added $extraDays days" : "Removed ${extraDays.abs()} days";
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$actionMsg to the plan!"), backgroundColor: Colors.green));
                     _fetchSubscriptions();
                  } catch(e) {}
               }
             },
-            child: const Text("Extend Plan")
+            child: const Text("Update Plan")
           )
         ]
       )
@@ -1432,8 +1445,8 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
                                 ),
                                 onPressed: () => _extendPlanDialog(sub), 
-                                icon: const Icon(Icons.add, color: Colors.white, size: 16),
-                                label: const Text("Add Days", style: TextStyle(color: Colors.white, fontSize: 12))
+                                icon: const Icon(Icons.edit_calendar, color: Colors.white, size: 16),
+                                label: const Text("Edit Days", style: TextStyle(color: Colors.white, fontSize: 12))
                               )
                             ],
                           )
@@ -1532,7 +1545,6 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     }
   }
 
-  // --- UPDATED EDIT ANIME METHOD (Full Access) ---
   Future<void> _editAnime(Map<String, dynamic> anime) async {
     _titleController.text = anime['title'] ?? '';
     _descController.text = anime['description'] ?? '';
@@ -1541,7 +1553,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     _subCategoryController.text = anime['sub_category'] ?? '';
     
     String editDub = anime['dub_status'] ?? 'Z DUB';
-    if (editDub == 'ZTV-DUB') editDub = 'Z DUB'; // Auto-fix old records
+    if (editDub == 'ZTV-DUB') editDub = 'Z DUB'; 
     if (!['Z DUB', 'FAN DUB', 'MIX O/D'].contains(editDub)) editDub = 'Z DUB';
 
     await showDialog(
@@ -1866,7 +1878,6 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
     }
   }
 
-  // --- UPDATED EDIT EPISODE METHOD (Full Access) ---
   Future<void> _editEpisodeDialog(Map<String, dynamic> ep) async {
     TextEditingController titleCtrl = TextEditingController(text: ep['episode_title'] ?? '');
     TextEditingController urlCtrl = TextEditingController(text: ep['video_url'] ?? '');
