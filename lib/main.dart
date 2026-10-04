@@ -3134,6 +3134,3 @@ class _AppUpdateScreenState extends State<AppUpdateScreen> {
     );
   }
 }
-
-Jaldi se copy karke save karo aur check karke batao! Sab kuch ekdum smooth
-chalega. 😎🚀
