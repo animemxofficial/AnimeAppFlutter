@@ -12,7 +12,7 @@ import 'package:uuid/uuid.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
-import 'package:http/http.dart' as http; // Naya package notification ke liye add kiya
+import 'package:http/http.dart' as http;
 
 // ZYNOX FINAL SYNC VERSION
 const String CURRENT_APP_VERSION = "1.0.2"; 
@@ -92,7 +92,7 @@ String formatViewsCount(int views) {
 // Z DUB / FAN DUB LOGIC FORMATTER
 String formatDubStatus(String input) {
   String clean = input.toUpperCase().trim();
-  if (clean == "DUB") return "Z DUB";
+  if (clean == "DUB" || clean == "ZTV-DUB" || clean == "ZTV DUB") return "Z DUB";
   return clean;
 }
 
@@ -1118,7 +1118,7 @@ class _SimpleHeroSliderState extends State<SimpleHeroSlider> {
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: animeMxPurple.withOpacity(0.5), width: 1.5),
+                      border: Border.all(color: Colors.white24, width: 1.5),
                       boxShadow: [
                         BoxShadow(color: animeMxPurple.withOpacity(0.2), blurRadius: 15, spreadRadius: 1)
                       ],
@@ -1211,7 +1211,65 @@ class HomeScreen extends StatefulWidget {
 }
 class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMixin {
 
+  bool _trialPopupShown = false;
+
   @override bool get wantKeepAlive => true;
+
+  Future<void> _checkAndShowFreeTrial() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool hasSeen = prefs.getBool('free_trial_shown_$currentUserId') ?? false;
+    
+    if (!hasSeen && globalCurrentPlan.toLowerCase() == "free") {
+       double savedSec = prefs.getDouble('watch_sec_$currentUserId') ?? 0.0;
+       if (savedSec == 0.0) {
+          await prefs.setBool('free_trial_shown_$currentUserId', true);
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => Dialog(
+              backgroundColor: const Color(0xFF13131A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: const BorderSide(color: Colors.white24)),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: animeMxPurple.withOpacity(0.2), shape: BoxShape.circle),
+                      child: const Icon(Icons.card_giftcard, color: goldenColor, size: 40),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text("Free Trial Unlocked!", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    const Text("Welcome to Zynox TV! You are currently on the Free Plan. Enjoy 3 Minutes of FREE streaming daily to test our premium quality.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 14, height: 1.5)),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 45,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text("Start Watching", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(context, SmoothPageRoute(page: const SubscriptionPage()));
+                      },
+                      child: const Text("View Premium Plans", style: TextStyle(color: goldenColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                    )
+                  ],
+                ),
+              ),
+            )
+          );
+       }
+    }
+  }
 
   void _showNotifications(BuildContext context, List<LatestEpisodeItem> recentEps) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -1315,7 +1373,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: animeMxPurple.withOpacity(0.6), width: 1.5),
+                            border: Border.all(color: Colors.white24, width: 1.5),
                             boxShadow: [
                               BoxShadow(color: animeMxPurple.withOpacity(0.35), blurRadius: 12, spreadRadius: 1)
                             ]
@@ -1357,6 +1415,13 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
   Widget build(BuildContext context) {
     super.build(context);
     
+    if (!widget.isDataLoading && !_trialPopupShown) {
+       _trialPopupShown = true;
+       WidgetsBinding.instance.addPostFrameCallback((_) {
+           _checkAndShowFreeTrial();
+       });
+    }
+
     int newNotificationCount = 0;
     List<LatestEpisodeItem> latestList = [];
     for (var anime in animeListNotifier.value) {
@@ -1415,19 +1480,22 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                 if (allAnime.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("No Content found in Database", style: TextStyle(color: Colors.white54))));
                 
                 final trendingList = allAnime.where((a) => a.category.trim().toLowerCase().contains("trending")).toList();
-                final actionList = allAnime.where((a) => a.category.trim().toLowerCase().contains("action") || a.subCategory.trim().toLowerCase().contains("action")).toList();
-                final romanceList = allAnime.where((a) => a.category.trim().toLowerCase().contains("romance") || a.subCategory.trim().toLowerCase().contains("romance")).toList();
-                final comedyList = allAnime.where((a) => a.category.trim().toLowerCase().contains("comedy") || a.subCategory.trim().toLowerCase().contains("comedy")).toList();
-                final mysteryList = allAnime.where((a) => a.category.trim().toLowerCase().contains("mystery") || a.subCategory.trim().toLowerCase().contains("mystery")).toList();
-                final horrorList = allAnime.where((a) => a.category.trim().toLowerCase().contains("horror") || a.subCategory.trim().toLowerCase().contains("horror")).toList();
                 
-                List<Anime> popularList = List.from(allAnime);
-                popularList.sort((a, b) {
-                  int viewsA = globalAnimeViewsNotifier.value[a.title] ?? 0; int viewsB = globalAnimeViewsNotifier.value[b.title] ?? 0;
-                  return viewsB.compareTo(viewsA); 
-                });
+                List<Anime> popularList = allAnime.where((a) {
+                  int v = globalAnimeViewsNotifier.value[a.title] ?? 0;
+                  return v >= 50;
+                }).toList();
+                popularList.sort((a, b) => (globalAnimeViewsNotifier.value[b.title] ?? 0).compareTo(globalAnimeViewsNotifier.value[a.title] ?? 0));
 
                 if (latestList.length > 20) latestList = latestList.sublist(0, 20); 
+
+                Set<String> uniqueCategories = {};
+                for (var a in allAnime) {
+                  String cat = a.category.trim();
+                  if (cat.isNotEmpty && !cat.toLowerCase().contains("trending")) {
+                    uniqueCategories.add(cat);
+                  }
+                }
 
                 return Column(
                   children: [
@@ -1446,13 +1514,11 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                     
                     if (latestList.isNotEmpty) _buildLatestEpisodesSection(context, "Latest Episodes", animeMxPurple, latestList),
                     
-                    _buildPortraitSection(context, "Recently Added", null, null, allAnime), 
-
-                    if (actionList.isNotEmpty) _buildPortraitSection(context, "Action", null, null, actionList),
-                    if (romanceList.isNotEmpty) _buildPortraitSection(context, "Romance", null, null, romanceList),
-                    if (comedyList.isNotEmpty) _buildPortraitSection(context, "Comedy", null, null, comedyList),
-                    if (mysteryList.isNotEmpty) _buildPortraitSection(context, "Mystery", null, null, mysteryList),
-                    if (horrorList.isNotEmpty) _buildPortraitSection(context, "Horror", null, null, horrorList),
+                    ...uniqueCategories.map((categoryName) {
+                      final categoryAnimes = allAnime.where((a) => a.category.trim() == categoryName).toList();
+                      if (categoryAnimes.isEmpty) return const SizedBox.shrink();
+                      return _buildPortraitSection(context, categoryName, null, null, categoryAnimes);
+                    }).toList(),
                   ],
                 );
               }
@@ -1535,7 +1601,7 @@ class _HomeScreenState extends State<HomeScreen> with AutomaticKeepAliveClientMi
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(10), 
-                            border: Border.all(color: animeMxPurple.withOpacity(0.6), width: 1.5),
+                            border: Border.all(color: Colors.white24, width: 1.5),
                             boxShadow: [
                               BoxShadow(color: animeMxPurple.withOpacity(0.35), blurRadius: 12, spreadRadius: 1)
                             ]
@@ -1625,7 +1691,7 @@ class ThumbnailLatestCard extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10), 
-                  border: Border.all(color: animeMxPurple.withOpacity(0.6), width: 1.5),
+                  border: Border.all(color: Colors.white24, width: 1.5),
                   boxShadow: [
                     BoxShadow(color: animeMxPurple.withOpacity(0.35), blurRadius: 12, spreadRadius: 1)
                   ]
@@ -1754,7 +1820,7 @@ class SearchListCard extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8), 
-                border: Border.all(color: animeMxPurple.withOpacity(0.6), width: 1.5),
+                border: Border.all(color: Colors.white24, width: 1.5),
                 boxShadow: [
                   BoxShadow(color: animeMxPurple.withOpacity(0.35), blurRadius: 12, spreadRadius: 1)
                 ]
@@ -2060,7 +2126,7 @@ class ExploreAnimeCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: animeMxPurple.withOpacity(0.6), width: 1.5),
+          border: Border.all(color: Colors.white24, width: 1.5),
           boxShadow: [
             BoxShadow(color: animeMxPurple.withOpacity(0.35), blurRadius: 12, spreadRadius: 1)
           ]
@@ -3149,13 +3215,12 @@ class _UnifiedPaymentScreenState extends State<UnifiedPaymentScreen> {
       });
 
       // ==========================================
-      // TELEGRAM BOT NOTIFICATION LOGIC ADDED HERE
+      // TELEGRAM BOT NOTIFICATION LOGIC
       // ==========================================
       try {
         String botToken = "8946949205:AAF-6Z6ppJARoXwI-ek4JPh7TaWgQKBl8ds"; 
         String chatId = "8461822905";
         
-        // Removed Markdown styling to prevent underscore errors in telegram API
         String message = "🚨 New Payment Received!\n\n"
                          "👤 User: $currentUserName\n"
                          "🆔 UID: $currentUserUid\n"
