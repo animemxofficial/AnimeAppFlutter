@@ -83,6 +83,12 @@ final List<Color> avatarColors = [Colors.redAccent, Colors.blueAccent, Colors.gr
 Color getAvatarColor(String input) => input.isEmpty ? Colors.grey : avatarColors[input.codeUnitAt(0) % avatarColors.length];
 String getAvatarLetter(String input) => input.isEmpty ? "?" : input[0].toUpperCase();
 
+ImageProvider? getAvatarImageProvider(String path) {
+  if (path.isEmpty) return null;
+  if (path.startsWith('http')) return NetworkImage(path);
+  return FileImage(File(path));
+}
+
 String formatViewsCount(int views) {
   if (views >= 1000000) return "${(views / 1000000).toStringAsFixed(1)}M";
   if (views >= 1000) return "${(views / 1000).toStringAsFixed(1)}k";
@@ -2344,14 +2350,18 @@ class EditProfileScreen extends StatefulWidget {
   @override State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 class _EditProfileScreenState extends State<EditProfileScreen> {
-  File? _selectedImage;
-
-  @override void initState() {
-    super.initState();
-    if(localProfileImagePath.isNotEmpty) {
-      _selectedImage = File(localProfileImagePath);
-    }
-  }
+  
+  final List<String> presetAvatars = [
+    "https://api.dicebear.com/7.x/adventurer/png?seed=Felix",
+    "https://api.dicebear.com/7.x/adventurer/png?seed=Aneka",
+    "https://api.dicebear.com/7.x/adventurer/png?seed=Mimi",
+    "https://api.dicebear.com/7.x/adventurer/png?seed=Jack",
+    "https://api.dicebear.com/7.x/adventurer/png?seed=Jude",
+    "https://api.dicebear.com/7.x/adventurer/png?seed=Lily",
+    "https://api.dicebear.com/7.x/bottts/png?seed=Zynox1",
+    "https://api.dicebear.com/7.x/bottts/png?seed=Zynox2",
+    "https://api.dicebear.com/7.x/bottts/png?seed=Zynox3",
+  ];
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); 
@@ -2359,7 +2369,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('local_avatar_path', pickedFile.path);
       setState(() { 
-        _selectedImage = File(pickedFile.path); 
         localProfileImagePath = pickedFile.path;
       }); 
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Photo Updated Successfully!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
@@ -2370,19 +2379,72 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('local_avatar_path');
     setState(() { 
-      _selectedImage = null; 
       localProfileImagePath = "";
     }); 
+  }
+
+  Future<void> _confirmAvatar(String url) async {
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: const Color(0xFF13131A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white24)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              CircleAvatar(radius: 40, backgroundColor: Colors.white10, backgroundImage: NetworkImage(url)),
+              const SizedBox(height: 20),
+              const Text("Choose this Avatar?", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              const Text("Do you want to set this icon as your new profile picture?", textAlign: TextAlign.center, style: TextStyle(color: Colors.white54, fontSize: 14)),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white38), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text("Cancel", style: TextStyle(color: Colors.white70)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: animeMxPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text("Set Avatar", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  )
+                ],
+              )
+            ],
+          ),
+        ),
+      )
+    );
+
+    if (confirm == true) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('local_avatar_path', url);
+      setState(() {
+        localProfileImagePath = url;
+      });
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Avatar Updated Successfully!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
+    }
   }
 
   @override Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(title: const Text("My Profile", style: TextStyle(color: Colors.white)), backgroundColor: Colors.black, bottom: appbarBottomLine()),
-      body: Center(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 40),
             Stack(
               children: [
                 Container(
@@ -2390,15 +2452,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   child: CircleAvatar(
                     radius: 60, 
                     backgroundColor: getAvatarColor(currentUserName), 
-                    backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
-                    child: _selectedImage == null ? Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)) : null
+                    backgroundImage: getAvatarImageProvider(localProfileImagePath),
+                    child: localProfileImagePath.isEmpty ? Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold)) : null
                   )
                 ),
                 Positioned(
                   bottom: 0, right: 0,
                   child: GestureDetector(
                     onTap: _pickImage,
-                    child: Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle), child: const Icon(Icons.edit, color: Colors.white, size: 20)),
+                    child: Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Colors.blueAccent, shape: BoxShape.circle), child: const Icon(Icons.photo_library, color: Colors.white, size: 20)),
                   ),
                 )
               ],
@@ -2407,14 +2469,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             Text(currentUserName, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text("UID: $currentUserUid", style: const TextStyle(color: Colors.white54, fontSize: 14)),
-            const SizedBox(height: 40),
-            if(_selectedImage != null)
+            const SizedBox(height: 30),
+            if(localProfileImagePath.isNotEmpty)
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent)),
                 onPressed: _removeImage, 
                 icon: const Icon(Icons.delete, color: Colors.redAccent),
                 label: const Text("Remove Photo", style: TextStyle(color: Colors.redAccent))
-              )
+              ),
+              
+            const SizedBox(height: 40),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 20),
+            
+            const Align(alignment: Alignment.centerLeft, child: Text("Choose Your Avatar Icon", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+            const SizedBox(height: 8),
+            const Align(alignment: Alignment.centerLeft, child: Text("Select from our preset cool avatars for your profile.", style: TextStyle(color: Colors.white54, fontSize: 13))),
+            const SizedBox(height: 24),
+            
+            Wrap(
+              spacing: 16, runSpacing: 16,
+              alignment: WrapAlignment.center,
+              children: presetAvatars.map((url) {
+                bool isSelected = localProfileImagePath == url;
+                return GestureDetector(
+                  onTap: () => _confirmAvatar(url),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: isSelected ? animeMxPurple : Colors.transparent, width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 35,
+                      backgroundColor: Colors.white10,
+                      backgroundImage: NetworkImage(url),
+                    ),
+                  ),
+                );
+              }).toList(),
+            )
           ],
         ),
       ),
@@ -2534,7 +2628,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: animeMxPurple, width: 2), boxShadow: [BoxShadow(color: animeMxPurple.withOpacity(0.3), blurRadius: 20)]), 
                       child: CircleAvatar(
                         radius: 40, backgroundColor: getAvatarColor(currentUserName), 
-                        backgroundImage: localProfileImagePath.isNotEmpty ? FileImage(File(localProfileImagePath)) : null,
+                        backgroundImage: getAvatarImageProvider(localProfileImagePath),
                         child: localProfileImagePath.isEmpty ? Text(getAvatarLetter(currentUserName), style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold)) : null
                       )
                     ),
@@ -2718,7 +2812,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
         updatedOrders.add(order);
       }
       
-      // Fixed Sorting Logic: Newest payment at the TOP
       updatedOrders.sort((a, b) {
          if (a['created_at'] == null || b['created_at'] == null) return 0;
          return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
@@ -4261,7 +4354,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   void _toggleControls() { 
     setState(() {
       _showControls = !_showControls;
-      if (!_showControls) _isSpeedMenuVisible = false; 
+      if (!_showControls) _isSpeedMenuVisible = false; // Hide menu when hiding controls
     }); 
     if (_showControls) {
       _startHideTimer();
