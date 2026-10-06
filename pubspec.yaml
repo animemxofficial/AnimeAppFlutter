@@ -49,7 +49,7 @@ dependencies:
   device_info_plus: any
   open_filex: any
   share_plus: ^7.2.2
-  screen_protector: ^3.2.0
+  screen_protector: ^1.5.3   # <--- BAS YAHAN VERSION BADALNA HAI
 
 dev_dependencies:
   flutter_test:
