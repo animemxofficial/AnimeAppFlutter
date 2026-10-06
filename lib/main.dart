@@ -781,6 +781,7 @@ class _MainScreenState extends State<MainScreen> {
           schema: 'public',
           table: 'anime_list',
           callback: (payload) {
+             // Silently fetch without loader
              _fetchDatabaseCatalog();
              if(payload.eventType == PostgresChangeEvent.insert) {
                 _showInAppNotification("New Anime Added!", "A new anime was just added to Zynox TV. Check it out now!");
@@ -865,11 +866,10 @@ class _MainScreenState extends State<MainScreen> {
     await _fetchGlobalPlan();
     await fetchGlobalAnimeViews(); 
     
-    // YAHAN CACHING LOGIC LAGA HAI 
     if (animeListNotifier.value.isEmpty) {
       await _fetchDatabaseCatalog(); 
     } else {
-      _fetchDatabaseCatalog(); // Load silently in background without showing loader
+      _fetchDatabaseCatalog(); 
     }
     
     await _fetchUserPreferences(); 
@@ -893,7 +893,7 @@ class _MainScreenState extends State<MainScreen> {
         if(res['upi_id'] != null) globalUpiId = res['upi_id'];
         if(res['support_email'] != null) globalSupportEmail = res['support_email'];
         
-        // ADMIN FLAG SECURE CONTROLLER (REPLACED WITH NEW PACKAGE)
+        // ADMIN FLAG SECURE CONTROLLER
         try {
           if (res['block_screenshots'] != null) {
              globalBlockScreenshots = res['block_screenshots'] == true;
@@ -928,6 +928,12 @@ class _MainScreenState extends State<MainScreen> {
         List<Season> parsedSeasons = []; 
         var seasonsData = item['anime_seasons'] as List<dynamic>? ?? [];
         
+        seasonsData.sort((a, b) {
+          int idA = int.tryParse(a['id'].toString()) ?? 0;
+          int idB = int.tryParse(b['id'].toString()) ?? 0;
+          return idA.compareTo(idB);
+        });
+        
         for (var s in seasonsData) {
           List<Episode> parsedEps = []; 
           var epData = s['anime_episodes'] as List<dynamic>? ?? [];
@@ -936,6 +942,16 @@ class _MainScreenState extends State<MainScreen> {
             if (hasEpDate && e['created_at'] != null) epDate = DateTime.tryParse(e['created_at'].toString()) ?? animeDate;
             parsedEps.add(Episode(id: e['id'].toString(), title: e['episode_title']?.toString() ?? "Episode", image: e['image_url']?.toString() ?? item['image_url'], duration: e['duration']?.toString() ?? "24m", videoUrl: e['video_url']?.toString() ?? "", createdAt: epDate));
           }
+          
+          // STRICT SORTING LOGIC ADDED: Ensure episodes are always in chronological or ID order
+          parsedEps.sort((a, b) {
+            int dateCmp = a.createdAt.compareTo(b.createdAt);
+            if (dateCmp != 0 && hasEpDate) return dateCmp;
+            int idA = int.tryParse(a.id) ?? 0;
+            int idB = int.tryParse(b.id) ?? 0;
+            return idA.compareTo(idB);
+          });
+
           parsedSeasons.add(Season(id: s['id'].toString(), name: s['season_name'].toString(), episodes: parsedEps));
         }
         
@@ -2833,7 +2849,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
         updatedOrders.add(order);
       }
       
-      // SORTING FIX: Latest payment always at the top
       updatedOrders.sort((a, b) {
          if (a['created_at'] == null || b['created_at'] == null) return 0;
          return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
@@ -4376,7 +4391,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   void _toggleControls() { 
     setState(() {
       _showControls = !_showControls;
-      if (!_showControls) _isSpeedMenuVisible = false; // Hide menu when hiding controls
+      if (!_showControls) _isSpeedMenuVisible = false; 
     }); 
     if (_showControls) {
       _startHideTimer();
