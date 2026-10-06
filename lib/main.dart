@@ -13,7 +13,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
 import 'package:http/http.dart' as http;
-import 'package:screen_protector/screen_protector.dart'; // ANTI-SCREENSHOT PACKAGE
+import 'package:screen_protector/screen_protector.dart';
 
 // ZYNOX FINAL SYNC VERSION
 const String CURRENT_APP_VERSION = "1.0.2"; 
@@ -46,7 +46,7 @@ String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2x
 
 String globalPrivacyPolicy = "At Zynox TV, your privacy and security are our highest priorities...";
 String globalTermsConditions = "Terms and Conditions will be updated soon."; 
-bool globalBlockScreenshots = false; // ADMIN CONTROLLED SCREENSHOT BLOCKER
+bool globalBlockScreenshots = false;
 
 // UPDATE SYSTEM VARIABLES 
 String globalLatestAppVersion = "1.0.2";
@@ -845,21 +845,33 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
     
-    // ADMIN FLAG SECURE CONTROLLER
-        try {
-          if (res['block_screenshots'] != null) {
-             globalBlockScreenshots = res['block_screenshots'] == true;
-             if (globalBlockScreenshots) {
-               await ScreenProtector.preventScreenshotOn();
-             } else {
-               await ScreenProtector.preventScreenshotOff();
-             }
-          }
-        } catch(e) {}
+    try {
+      final updateRes = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
+      if(updateRes != null) {
+         String dbVersion = updateRes['version']?.toString().trim() ?? "";
+         if(dbVersion.isNotEmpty && dbVersion != CURRENT_APP_VERSION) {
+            globalLatestAppVersion = dbVersion;
+            globalAppApkUrl = updateRes['apk_url']?.toString().trim() ?? "https://google.com";
+            String featuresRaw = updateRes['whats_new']?.toString() ?? "";
+            if(featuresRaw.isNotEmpty) globalUpdateFeatures = featuresRaw.split('\n');
+            if(mounted) {
+              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AppUpdateScreen()));
+              return;
+            }
+         }
+      }
+    } catch(e) {}
 
     await _fetchGlobalPlan();
     await fetchGlobalAnimeViews(); 
-    await _fetchDatabaseCatalog(); 
+    
+    // YAHAN CACHING LOGIC LAGA HAI 
+    if (animeListNotifier.value.isEmpty) {
+      await _fetchDatabaseCatalog(); 
+    } else {
+      _fetchDatabaseCatalog(); // Load silently in background without showing loader
+    }
+    
     await _fetchUserPreferences(); 
     
     if(mounted) setState(() => _isDataLoading = false);
@@ -881,14 +893,14 @@ class _MainScreenState extends State<MainScreen> {
         if(res['upi_id'] != null) globalUpiId = res['upi_id'];
         if(res['support_email'] != null) globalSupportEmail = res['support_email'];
         
-        // ADMIN FLAG SECURE CONTROLLER
+        // ADMIN FLAG SECURE CONTROLLER (REPLACED WITH NEW PACKAGE)
         try {
           if (res['block_screenshots'] != null) {
              globalBlockScreenshots = res['block_screenshots'] == true;
              if (globalBlockScreenshots) {
-               await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+               await ScreenProtector.preventScreenshotOn();
              } else {
-               await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+               await ScreenProtector.preventScreenshotOff();
              }
           }
         } catch(e) {}
@@ -2821,6 +2833,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
         updatedOrders.add(order);
       }
       
+      // SORTING FIX: Latest payment always at the top
       updatedOrders.sort((a, b) {
          if (a['created_at'] == null || b['created_at'] == null) return 0;
          return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
