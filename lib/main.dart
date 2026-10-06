@@ -13,7 +13,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
 import 'package:http/http.dart' as http;
-import 'package:flutter_windowmanager/flutter_windowmanager.dart'; // ANTI-SCREENSHOT PACKAGE
+import 'package:screen_protector/screen_protector.dart'; // ANTI-SCREENSHOT PACKAGE
 
 // ZYNOX FINAL SYNC VERSION
 const String CURRENT_APP_VERSION = "1.0.2"; 
@@ -845,22 +845,17 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadEverything() async {
     await _fetchSettings(); 
     
-    try {
-      final updateRes = await Supabase.instance.client.from('app_updates').select().order('created_at', ascending: false).limit(1).maybeSingle();
-      if(updateRes != null) {
-         String dbVersion = updateRes['version']?.toString().trim() ?? "";
-         if(dbVersion.isNotEmpty && dbVersion != CURRENT_APP_VERSION) {
-            globalLatestAppVersion = dbVersion;
-            globalAppApkUrl = updateRes['apk_url']?.toString().trim() ?? "https://google.com";
-            String featuresRaw = updateRes['whats_new']?.toString() ?? "";
-            if(featuresRaw.isNotEmpty) globalUpdateFeatures = featuresRaw.split('\n');
-            if(mounted) {
-              Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AppUpdateScreen()));
-              return;
-            }
-         }
-      }
-    } catch(e) {}
+    // ADMIN FLAG SECURE CONTROLLER
+        try {
+          if (res['block_screenshots'] != null) {
+             globalBlockScreenshots = res['block_screenshots'] == true;
+             if (globalBlockScreenshots) {
+               await ScreenProtector.preventScreenshotOn();
+             } else {
+               await ScreenProtector.preventScreenshotOff();
+             }
+          }
+        } catch(e) {}
 
     await _fetchGlobalPlan();
     await fetchGlobalAnimeViews(); 
