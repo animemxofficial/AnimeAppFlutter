@@ -49,7 +49,7 @@ dependencies:
   device_info_plus: any
   open_filex: any
   share_plus: ^7.2.2
-  flutter_windowmanager: ^2.0.2
+  flutter_windowmanager: ^0.2.0
 
 dev_dependencies:
   flutter_test:
