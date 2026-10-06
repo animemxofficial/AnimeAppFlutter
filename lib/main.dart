@@ -13,6 +13,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:crypto/crypto.dart';
 import 'package:image_picker/image_picker.dart'; 
 import 'package:http/http.dart' as http;
+import 'package:flutter_windowmanager/flutter_windowmanager.dart'; // ANTI-SCREENSHOT PACKAGE
 
 // ZYNOX FINAL SYNC VERSION
 const String CURRENT_APP_VERSION = "1.0.2"; 
@@ -45,6 +46,7 @@ String globalPaymentQrUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2x
 
 String globalPrivacyPolicy = "At Zynox TV, your privacy and security are our highest priorities...";
 String globalTermsConditions = "Terms and Conditions will be updated soon."; 
+bool globalBlockScreenshots = false; // ADMIN CONTROLLED SCREENSHOT BLOCKER
 
 // UPDATE SYSTEM VARIABLES 
 String globalLatestAppVersion = "1.0.2";
@@ -883,6 +885,18 @@ class _MainScreenState extends State<MainScreen> {
         if(res['payment_qr_url'] != null) globalPaymentQrUrl = res['payment_qr_url'];
         if(res['upi_id'] != null) globalUpiId = res['upi_id'];
         if(res['support_email'] != null) globalSupportEmail = res['support_email'];
+        
+        // ADMIN FLAG SECURE CONTROLLER
+        try {
+          if (res['block_screenshots'] != null) {
+             globalBlockScreenshots = res['block_screenshots'] == true;
+             if (globalBlockScreenshots) {
+               await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+             } else {
+               await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
+             }
+          }
+        } catch(e) {}
       }
     } catch(e) { }
   }
@@ -5040,24 +5054,34 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                   ),
                   const SizedBox(height: 20),
 
+                  // EXACTLY 5 EPISODES PER ROW (USING GRIDVIEW)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Wrap(
-                        spacing: 12, runSpacing: 16,
-                        children: List.generate(displayedEpisodes.length, (index) {
-                          bool isActive = index == _currentEpisodeIndex;
-                          String epId = "${widget.anime.title}_${_currentSeasonIndex}_$index";
-                          int specificEpViews = globalEpisodeViewsNotifier.value[epId] ?? 0;
-                          String formattedViews = formatViewsCount(specificEpViews);
+                    child: GridView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 5,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.75, // Adjust for box + text height
+                      ),
+                      itemCount: displayedEpisodes.length,
+                      itemBuilder: (context, index) {
+                        bool isActive = index == _currentEpisodeIndex;
+                        String epId = "${widget.anime.title}_${_currentSeasonIndex}_$index";
+                        int specificEpViews = globalEpisodeViewsNotifier.value[epId] ?? 0;
+                        String formattedViews = formatViewsCount(specificEpViews);
 
-                          return BouncingCard(
-                            onTap: () => _changeEpisode(index),
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 60, height: 60,
+                        return BouncingCard(
+                          onTap: () => _changeEpisode(index),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AspectRatio(
+                                aspectRatio: 1,
+                                child: Container(
                                   decoration: BoxDecoration(
                                     color: isActive ? animeMxPurple : const Color(0xFF13131A),
                                     borderRadius: BorderRadius.circular(12),
@@ -5070,20 +5094,23 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
                                     )
                                   ),
                                 ),
-                                const SizedBox(height: 8),
-                                Row(
+                              ),
+                              const SizedBox(height: 6),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(Icons.remove_red_eye, color: Colors.white54, size: 10),
                                     const SizedBox(width: 4),
                                     Text(formattedViews, style: const TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold)),
                                   ],
-                                )
-                              ],
-                            ),
-                          );
-                        }),
-                      ),
+                                ),
+                              )
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 40),
