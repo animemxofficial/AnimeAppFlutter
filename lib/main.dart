@@ -329,9 +329,24 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 
   Future<void> _showPaymentNotification() async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails('admin_payment_alerts', 'Payment Alerts', channelDescription: 'Notifications for new user payments', importance: Importance.max, priority: Priority.high, icon: '@mipmap/ic_launcher', enableVibration: true, playSound: true);
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-    await flutterLocalNotificationsPlugin.show(DateTime.now().millisecond, "New Payment Received! 💰", "A user has just submitted a new payment proof. Please review it.", platformDetails);
+    // Yahan maine 'const' ki jagah 'final' kar diya hai
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'admin_payment_alerts', 'Payment Alerts',
+      channelDescription: 'Notifications for new user payments',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      enableVibration: true,
+      playSound: true,
+    );
+    final NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+    
+    await flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecond, 
+      "New Payment Received! 💰", 
+      "A user has just submitted a new payment proof. Please review it.", 
+      platformDetails
+    );
   }
 
   void _initRealtime() {
