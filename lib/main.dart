@@ -447,7 +447,7 @@ class AppUpdateScreen extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Image.network(
-                      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi5xXtmlCe-0Kwff9NukiWGaJlrFq83SlfDQGMyuTLJQWBzXxIIaAxN8J0ltje6lLtfXqNKgjkM3aWvrYCUJ_lW7HnTXbMPAa4ObqaJgcP_ntDTmzKrG4heSUQDwkfIYE1MO2ZwzR-bRCZT-2Boq1WZ5ViHJs1A24mnpIPwBtxqjsuB0KsCh8bEDrDPOmU/s1254/1790418407475.png",
+                      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh_gSU8bVNnDdR8xyPlOmEvtD1-Dv6llkolJU3gso11Ljqf4T-2sfpDVVS5tyQMQHJaeZTCsyFyQ8yS4qL6IJca6ikDeJrw40zRpCWdc_lCqGxRs0yiE51qh9L1rn7ztiqcDWzIy_YoEcs3a1aXio2cszUKyAVR1jW8pa0nrZRRNNprtwNGbmj1Oe1c1X8/s512/ic_launcher.png",
                       fit: BoxFit.cover,
                       errorBuilder: (c,e,s) => Container(color: animeMxPurple, child: const Icon(Icons.tv, color: Colors.white, size: 50))
                     ),
