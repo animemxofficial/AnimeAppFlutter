@@ -55,9 +55,9 @@ dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/zynox_logo.png"
-  adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/icon/zynox_logo.png"
+  image_path: "assets/icon/app_logo.png"
+  adaptive_icon_background: "#000000" # Yeh tumhare background ko black kar dega
+  adaptive_icon_foreground: "assets/icon/app_logo.png" # Yeh tumhara Z wala transparent logo lagayega
 
 dev_dependencies:
   flutter_test:
