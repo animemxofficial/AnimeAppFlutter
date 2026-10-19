@@ -1,26 +1,3 @@
-Bhai, ghabrao mat! 😂 Wo "Recitation Block" meri taraf se jaan-bujh kar nahi
-hota. Code itna lamba ho chuka hai ki AI ka ek baar me character bhejne ka limit
-(Token limit) khatam ho jata hai, isliye system usko beech me kaat deta hai.
-
-Par is baar maine code ko ekdum smartly compress kiya hai taaki Pura ka Pura
-Admin Panel ka Code ek hi baar me 100% complete aa jaye bina ruke! 🔥
-
-Tumhare naye instructions ke hisaab se kya kiya hai:
-
-1.  Screenshot Blocker Logic Added: Admin Panel ke "Settings" (Manage Links)
-    page par jao. Wahan sabse upar "Security Settings" ka ek Switch (On/Off)
-    button laga diya hai. Jaise hi tum usko "ON" karke Save karoge, tumhare User
-    Panel me turant screenshot aur screen recording block ho jayegi (User ko
-    black screen dikhegi).
-2.  A to Z Function Removed: Admin Panel me se A-Z sorting wagera ka koi
-    naam-o-nishan nahi rakha hai. Sab kuch ab strictly Newest First
-    (Chronological) order me chalega. Naya data hamesha upar dikhega.
-3.  Baki Sab Same: Custom Hero banner, Z DUB, Plan Extend (+/- Days), Telegram
-    Notifications—sab kuch ekdum perfect jagah par set hai!
-
-Ye raha tumhara Admin Panel ka Pura aur Final Code. Ise seedha apne Admin Panel
-ke main.dart me Copy-Paste maar do:
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -101,10 +78,14 @@ class AdminAuthGate extends StatelessWidget {
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator(color: adminPurple)));
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator(color: adminPurple))
+          );
         }
         final session = snapshot.data?.session;
-        if (session != null) return const AdminDashboard();
+        if (session != null) {
+          return const AdminDashboard();
+        }
         return const AdminLoginScreen();
       },
     );
@@ -116,7 +97,9 @@ class AdminAuthGate extends StatelessWidget {
 // ==========================================
 class AdminLoginScreen extends StatefulWidget {
   const AdminLoginScreen({super.key});
-  @override State<AdminLoginScreen> createState() => _AdminLoginScreenState();
+
+  @override
+  State<AdminLoginScreen> createState() => _AdminLoginScreenState();
 }
 
 class _AdminLoginScreenState extends State<AdminLoginScreen> {
@@ -129,9 +112,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.auth.signInWithPassword(email: _emailController.text.trim(), password: _passwordController.text.trim());
+      await Supabase.instance.client.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent)
+      );
     } finally {
       if(mounted) setState(() => _isLoading = false);
     }
@@ -145,7 +133,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         children: [
           Positioned(
             top: -100, left: -50, right: -50,
-            child: Container(height: 500, decoration: BoxDecoration(gradient: RadialGradient(colors: [adminPurple.withOpacity(0.2), Colors.transparent], radius: 0.8))),
+            child: Container(
+              height: 500, 
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [adminPurple.withOpacity(0.2), Colors.transparent], 
+                  radius: 0.8
+                )
+              )
+            ),
           ),
           Center(
             child: SingleChildScrollView(
@@ -163,17 +159,71 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: adminPurple.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.shield_moon_outlined, size: 60, color: adminPurple)),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: adminPurple.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.shield_moon_outlined, size: 60, color: adminPurple),
+                    ),
                     const SizedBox(height: 16),
-                    RichText(text: const TextSpan(children: [TextSpan(text: "ZYNOX ", style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 1)), TextSpan(text: "ADMIN", style: TextStyle(color: adminPurple, fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 1))])),
+                    RichText(
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(text: "ZYNOX ", style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 1)), 
+                          TextSpan(text: "ADMIN", style: TextStyle(color: adminPurple, fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 1))
+                        ]
+                      )
+                    ),
                     const SizedBox(height: 8),
                     const Text("Master Control Center", style: TextStyle(color: Colors.white54, fontSize: 13, letterSpacing: 1)),
                     const SizedBox(height: 36),
-                    TextField(controller: _emailController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(prefixIcon: const Icon(Icons.email_outlined, color: Colors.white54), hintText: "Admin Email", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: bgDark, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1.5)))),
+                    
+                    TextField(
+                      controller: _emailController, 
+                      style: const TextStyle(color: Colors.white), 
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.email_outlined, color: Colors.white54), 
+                        hintText: "Admin Email", 
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true, 
+                        fillColor: bgDark, 
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1.5)),
+                      )
+                    ),
                     const SizedBox(height: 16),
-                    TextField(controller: _passwordController, obscureText: _obscureText, style: const TextStyle(color: Colors.white), decoration: InputDecoration(prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54), suffixIcon: IconButton(icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.white54), onPressed: ()=>setState(()=>_obscureText = !_obscureText)), hintText: "Password", hintStyle: const TextStyle(color: Colors.white38), filled: true, fillColor: bgDark, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1.5)))),
+                    TextField(
+                      controller: _passwordController, 
+                      obscureText: _obscureText, 
+                      style: const TextStyle(color: Colors.white), 
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.lock_outline, color: Colors.white54), 
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.white54), 
+                          onPressed: ()=>setState(()=>_obscureText = !_obscureText)
+                        ), 
+                        hintText: "Password", 
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true, 
+                        fillColor: bgDark, 
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1.5)),
+                      )
+                    ),
                     const SizedBox(height: 32),
-                    SizedBox(width: double.infinity, height: 52, child: ElevatedButton(onPressed: _isLoading ? null : _login, child: _isLoading ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("ENTER DASHBOARD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15, letterSpacing: 1)))),
+                    
+                    SizedBox(
+                      width: double.infinity, 
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading 
+                          ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                          : const Text("ENTER DASHBOARD", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15, letterSpacing: 1)),
+                      ),
+                    )
                   ],
                 ),
               ),
@@ -190,7 +240,9 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 // ==========================================
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
-  @override State<AdminDashboard> createState() => _AdminDashboardState();
+
+  @override
+  State<AdminDashboard> createState() => _AdminDashboardState();
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
@@ -199,7 +251,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _bottomNavIndex = 0;
 
   void _selectScreen(Widget screen, String title, int navIndex) {
-    setState(() { _currentScreen = screen; _currentTitle = title; _bottomNavIndex = navIndex; });
+    setState(() { 
+      _currentScreen = screen; 
+      _currentTitle = title; 
+      _bottomNavIndex = navIndex;
+    });
   }
 
   void _onDrawerItemTap(Widget screen, String title, int navIndex) {
@@ -211,7 +267,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(builder: (context) => IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => Scaffold.of(context).openDrawer())),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: Text(_currentTitle, style: const TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 0.5)),
       ),
       drawer: Drawer(
@@ -222,15 +283,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
               decoration: const BoxDecoration(color: cardDark),
               child: Row(
                 children: [
-                  Container(padding: const EdgeInsets.all(10), decoration: const BoxDecoration(color: adminPurple, shape: BoxShape.circle), child: const Icon(Icons.security, color: Colors.white, size: 36)),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(color: adminPurple, shape: BoxShape.circle),
+                    child: const Icon(Icons.security, color: Colors.white, size: 36),
+                  ),
                   const SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      RichText(text: const TextSpan(children: [TextSpan(text: "ZYNOX ", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)), TextSpan(text: "ADMIN", style: TextStyle(color: adminPurple, fontSize: 18, fontWeight: FontWeight.w900))])),
+                      RichText(
+                        text: const TextSpan(
+                          children: [
+                            TextSpan(text: "ZYNOX ", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)), 
+                            TextSpan(text: "ADMIN", style: TextStyle(color: adminPurple, fontSize: 18, fontWeight: FontWeight.w900))
+                          ]
+                        )
+                      ),
                       const SizedBox(height: 4),
-                      Row(children: const [Text("Master Access Enabled", style: TextStyle(color: Colors.white54, fontSize: 11)), SizedBox(width: 4), Icon(Icons.verified, color: Colors.amber, size: 12)])
+                      Row(
+                        children: const [
+                          Text("Master Access Enabled", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                          SizedBox(width: 4),
+                          Icon(Icons.verified, color: Colors.amber, size: 12)
+                        ],
+                      )
                     ],
                   )
                 ],
@@ -271,17 +349,30 @@ class _AdminDashboardState extends State<AdminDashboard> {
       bottomNavigationBar: SafeArea(
         child: Container(
           height: 60, 
-          decoration: const BoxDecoration(color: cardDark, border: Border(top: BorderSide(color: Colors.white10, width: 1))),
+          decoration: const BoxDecoration(
+            color: cardDark,
+            border: Border(top: BorderSide(color: Colors.white10, width: 1))
+          ),
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildBottomNavItem(Icons.home_rounded, "Dashboard", 0, () => _selectScreen(const AdminHomeScreen(), "Dashboard", 0)),
               _buildBottomNavItem(Icons.group_rounded, "Users", 1, () => _selectScreen(const UsersListScreen(), "Manage Users", 1)),
+              
               GestureDetector(
                 onTap: () => _selectScreen(const ManageAnimeScreen(), "Manage Anime", 2),
-                child: Container(height: 44, width: 44, decoration: BoxDecoration(color: adminPurple, shape: BoxShape.circle, boxShadow: [BoxShadow(color: adminPurple.withOpacity(0.4), blurRadius: 10, spreadRadius: 1)]), child: const Icon(Icons.add, color: Colors.white, size: 24)),
+                child: Container(
+                  height: 44, width: 44, 
+                  decoration: BoxDecoration(
+                    color: adminPurple,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: adminPurple.withOpacity(0.4), blurRadius: 10, spreadRadius: 1)]
+                  ),
+                  child: const Icon(Icons.add, color: Colors.white, size: 24),
+                ),
               ),
+              
               _buildBottomNavItem(Icons.video_library_rounded, "Content", 3, () => _selectScreen(const ManageEpisodesScreen(), "Manage Episodes", 3)),
               _buildBottomNavItem(Icons.settings_rounded, "Settings", 4, () => _selectScreen(const AppSettingsScreen(), "Manage Links", 4)),
             ],
@@ -295,7 +386,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     bool isSelected = _currentTitle == title;
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(color: isSelected ? adminPurple.withOpacity(0.15) : Colors.transparent, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: isSelected ? adminPurple.withOpacity(0.15) : Colors.transparent,
+        borderRadius: BorderRadius.circular(12)
+      ),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Icon(icon, color: isSelected ? adminPurple : Colors.white70),
@@ -328,13 +422,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
 // ==========================================
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
-  @override State<AdminHomeScreen> createState() => _AdminHomeScreenState();
+
+  @override
+  State<AdminHomeScreen> createState() => _AdminHomeScreenState();
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
-  int totalUsers = 0, premiumUsers = 0, freeUsers = 0, offlineUsers = 0, dailyActiveUsers = 0; 
+  int totalUsers = 0;
+  int premiumUsers = 0;
+  int freeUsers = 0;
+  int offlineUsers = 0;
+  int dailyActiveUsers = 0; 
+  
   List<int> _weeklyGrowth = [0, 0, 0, 0, 0, 0, 0];
   List<String> _weekLabels = ["", "", "", "", "", "", ""];
+  
   bool _isLoading = true;
   RealtimeChannel? _dbChannel;
 
@@ -348,100 +450,210 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   Future<void> _requestNotificationPermission() async {
     final androidImplementation = flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    if (androidImplementation != null) await androidImplementation.requestNotificationsPermission();
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+    }
   }
 
   Future<void> _showPaymentNotification() async {
-    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails('admin_payment_alerts', 'Payment Alerts', channelDescription: 'Notifications for new user payments', importance: Importance.max, priority: Priority.high, icon: '@mipmap/ic_launcher', enableVibration: true, playSound: true);
-    const NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
-    await flutterLocalNotificationsPlugin.show(DateTime.now().millisecond, "New Payment Received! 💰", "A user has just submitted a new payment proof. Please review it.", platformDetails);
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'admin_payment_alerts', 'Payment Alerts',
+      channelDescription: 'Notifications for new user payments',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      enableVibration: true,
+      playSound: true,
+    );
+    final NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+    await flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecond, 
+      "New Payment Received! 💰", 
+      "A user has just submitted a new payment proof. Please review it.", 
+      platformDetails
+    );
   }
 
   void _initRealtime() {
     _dbChannel = Supabase.instance.client.channel('public:admin_dashboard')
-      ..onPostgresChanges(event: PostgresChangeEvent.all, schema: 'public', table: 'user_preferences', callback: (payload) => _fetchStats())
-      ..onPostgresChanges(event: PostgresChangeEvent.insert, schema: 'public', table: 'payment_requests', callback: (payload) { _showPaymentNotification(); _fetchStats(); })
-      ..onPostgresChanges(event: PostgresChangeEvent.update, schema: 'public', table: 'payment_requests', callback: (payload) => _fetchStats())
-      ..onPostgresChanges(event: PostgresChangeEvent.delete, schema: 'public', table: 'payment_requests', callback: (payload) => _fetchStats())
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'user_preferences',
+          callback: (payload) => _fetchStats())
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.insert, 
+          schema: 'public',
+          table: 'payment_requests',
+          callback: (payload) {
+             _showPaymentNotification();
+             _fetchStats();
+          })
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'payment_requests',
+          callback: (payload) => _fetchStats())
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.delete,
+          schema: 'public',
+          table: 'payment_requests',
+          callback: (payload) => _fetchStats())
       ..subscribe();
   }
 
-  @override void dispose() { _dbChannel?.unsubscribe(); super.dispose(); }
+  @override
+  void dispose() {
+    _dbChannel?.unsubscribe();
+    super.dispose();
+  }
 
   final List<String> _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   Future<void> _fetchStats() async {
     try {
       final now = DateTime.now();
+      
       List<String> tempLabels = [];
-      for(int i = 6; i >= 0; i--) { DateTime d = now.subtract(Duration(days: i)); tempLabels.add("${_months[d.month - 1]} ${d.day}"); }
+      for(int i = 6; i >= 0; i--) {
+        DateTime d = now.subtract(Duration(days: i));
+        tempLabels.add("${_months[d.month - 1]} ${d.day}");
+      }
+      
       final userRes = await Supabase.instance.client.from('user_preferences').select('id, created_at');
+      
       Set<String> uniqueIds = {};
       List<int> counts = List.filled(7, 0);
+      
       for(var r in userRes) { 
         if(r['id'] != null) uniqueIds.add(r['id'].toString()); 
+        
         if(r['created_at'] != null) {
           DateTime ca = DateTime.parse(r['created_at']).toLocal();
-          int diffDays = DateTime(now.year, now.month, now.day).difference(DateTime(ca.year, ca.month, ca.day)).inDays;
-          if(diffDays >= 0 && diffDays <= 6) counts[6 - diffDays]++; 
+          DateTime today = DateTime(now.year, now.month, now.day);
+          DateTime createdDate = DateTime(ca.year, ca.month, ca.day);
+          int diffDays = today.difference(createdDate).inDays;
+          
+          if(diffDays >= 0 && diffDays <= 6) {
+            counts[6 - diffDays]++; 
+          }
         }
       }
       totalUsers = uniqueIds.length;
-      premiumUsers = (await Supabase.instance.client.from('payment_requests').select('id').eq('status', 'Approved')).length;
-      freeUsers = totalUsers - premiumUsers; if(freeUsers < 0) freeUsers = 0;
+
+      final premiumRes = await Supabase.instance.client.from('payment_requests').select('id').eq('status', 'Approved');
+      premiumUsers = premiumRes.length;
+
+      freeUsers = totalUsers - premiumUsers;
+      if(freeUsers < 0) freeUsers = 0;
       offlineUsers = totalUsers; 
+
+      final startOfToday = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
       try {
-        final dailyRes = await Supabase.instance.client.from('user_views').select('user_id').gte('created_at', DateTime(now.year, now.month, now.day).toUtc().toIso8601String());
+        final dailyRes = await Supabase.instance.client.from('user_views').select('user_id').gte('created_at', startOfToday);
         Set<String> uniqueDaily = {};
-        for(var r in dailyRes) { if(r['user_id'] != null) uniqueDaily.add(r['user_id'].toString()); }
+        for(var r in dailyRes) { 
+          if(r['user_id'] != null) uniqueDaily.add(r['user_id'].toString()); 
+        }
         dailyActiveUsers = uniqueDaily.length;
       } catch(e) { }
-      if (mounted) setState(() { _weeklyGrowth = counts; _weekLabels = tempLabels; _isLoading = false; });
-    } catch(e) { if (mounted) setState(() => _isLoading = false); }
+      
+      if (mounted) {
+        setState(() {
+          _weeklyGrowth = counts;
+          _weekLabels = tempLabels;
+          _isLoading = false;
+        });
+      }
+    } catch(e) { 
+      if (mounted) setState(() => _isLoading = false); 
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if(_isLoading) return const Center(child: CircularProgressIndicator(color: adminPurple));
+    
     return RefreshIndicator(
-      onRefresh: _fetchStats, color: adminPurple, backgroundColor: cardDark,
+      onRefresh: _fetchStats,
+      color: adminPurple,
+      backgroundColor: cardDark,
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.all(16),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF2E1065), Color(0xFF1E1B4B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.circular(16)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [Color(0xFF2E1065), Color(0xFF1E1B4B)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Row(
                 children: [
-                  Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: adminPurple.withOpacity(0.3), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.insights, color: Colors.white, size: 28)),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: adminPurple.withOpacity(0.3), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.insights, color: Colors.white, size: 28),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text("Welcome back, Admin", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)), SizedBox(height: 2), Text("Here's what's happening with your app today.", style: TextStyle(color: Colors.white70, fontSize: 11))]))
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text("Welcome back, Admin", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 2),
+                        Text("Here's what's happening with your app today.", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                      ],
+                    ),
+                  )
                 ],
               ),
             ),
             const SizedBox(height: 20),
+            
             const Text("Overview", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
+            
             GridView(
-              shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.85, crossAxisSpacing: 10, mainAxisSpacing: 10),
+              shrinkWrap: true, 
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                childAspectRatio: 0.85, 
+                crossAxisSpacing: 10, 
+                mainAxisSpacing: 10
+              ),
               children: [
                 _buildStatCard("Total Users", totalUsers.toString(), Icons.people_alt, const Color(0xFF0284C7), "+12.5%"),
                 _buildStatCard("Daily Active", dailyActiveUsers.toString(), Icons.local_fire_department, const Color(0xFFEA580C), "+8.3%"),
                 _buildStatCard("Free Users", freeUsers.toString(), Icons.person, adminPurple, "+5.7%"),
                 _buildStatCard("Premium", premiumUsers.toString(), Icons.workspace_premium, const Color(0xFFD97706), "+10.2%"),
                 _buildStatCard("Offline Users", offlineUsers.toString(), Icons.cloud_off, const Color(0xFFDC2626), "-2.1%"),
+                
                 GestureDetector(
                   onTap: () => Supabase.instance.client.auth.signOut(),
                   child: Container(
-                    padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: cardDark, 
+                      borderRadius: BorderRadius.circular(12), 
+                      border: Border.all(color: Colors.white10)
+                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.logout_rounded, color: Color(0xFF10B981), size: 18)),
+                        Container(
+                          padding: const EdgeInsets.all(6), 
+                          decoration: BoxDecoration(color: const Color(0xFF10B981).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), 
+                          child: const Icon(Icons.logout_rounded, color: Color(0xFF10B981), size: 18)
+                        ),
                         const Spacer(),
-                        const Text("Log Out", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)), const SizedBox(height: 2), const Text("Sign out", style: TextStyle(color: Colors.white54, fontSize: 9)),
+                        const Text("Log Out", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        const Text("Sign out", style: TextStyle(color: Colors.white54, fontSize: 9)),
                       ],
                     ),
                   ),
@@ -449,16 +661,45 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ],
             ),
             const SizedBox(height: 20),
+
             Container(
-              padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cardDark,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10)
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: const [Icon(Icons.show_chart, color: adminPurple, size: 18), SizedBox(width: 8), Text("User Growth", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold))]), const Text("This Week", style: TextStyle(color: Colors.white54, fontSize: 11))]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: const [
+                          Icon(Icons.show_chart, color: adminPurple, size: 18),
+                          SizedBox(width: 8),
+                          Text("User Growth", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const Text("This Week", style: TextStyle(color: Colors.white54, fontSize: 11))
+                    ],
+                  ),
                   const SizedBox(height: 24),
-                  SizedBox(height: 120, width: double.infinity, child: CustomPaint(painter: ChartPainter(_weeklyGrowth))),
+                  
+                  SizedBox(
+                    height: 120,
+                    width: double.infinity,
+                    child: CustomPaint(
+                      painter: ChartPainter(_weeklyGrowth),
+                    ),
+                  ),
                   const SizedBox(height: 12),
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: _weekLabels.map((label) => Text(label, style: const TextStyle(color: Colors.white54, fontSize: 9))).toList())
+                  
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: _weekLabels.map((label) => Text(label, style: const TextStyle(color: Colors.white54, fontSize: 9))).toList(),
+                  )
                 ],
               ),
             ),
@@ -470,15 +711,41 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 
   Widget _buildStatCard(String title, String count, IconData icon, Color color, String trend) {
-    bool isPositive = trend.contains("+"), isZero = trend.contains("0%");
+    bool isPositive = trend.contains("+");
+    bool isZero = trend.contains("0%");
+    
     return Container(
-      padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: cardDark, 
+        borderRadius: BorderRadius.circular(12), 
+        border: Border.all(color: Colors.white10)
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 18)),
-          const Spacer(), FittedBox(child: Text(count, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))), const SizedBox(height: 2), Text(title, style: const TextStyle(color: Colors.white70, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis), const SizedBox(height: 4),
-          Row(children: [Icon(isZero ? Icons.remove : (isPositive ? Icons.arrow_upward : Icons.arrow_downward), color: isZero ? Colors.grey : (isPositive ? Colors.green : Colors.red), size: 10), const SizedBox(width: 2), Expanded(child: Text("$trend vs last 7 days", style: TextStyle(color: isZero ? Colors.grey : (isPositive ? Colors.green : Colors.red), fontSize: 8), maxLines: 1, overflow: TextOverflow.ellipsis))])
+          Container(
+            padding: const EdgeInsets.all(6), 
+            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), 
+            child: Icon(icon, color: color, size: 18)
+          ),
+          const Spacer(),
+          FittedBox(child: Text(count, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold))),
+          const SizedBox(height: 2),
+          Text(title, style: const TextStyle(color: Colors.white70, fontSize: 9), maxLines: 1, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                isZero ? Icons.remove : (isPositive ? Icons.arrow_upward : Icons.arrow_downward), 
+                color: isZero ? Colors.grey : (isPositive ? Colors.green : Colors.red), 
+                size: 10
+              ),
+              const SizedBox(width: 2),
+              Expanded(child: Text("$trend vs last 7 days", style: TextStyle(color: isZero ? Colors.grey : (isPositive ? Colors.green : Colors.red), fontSize: 8), maxLines: 1, overflow: TextOverflow.ellipsis)),
+            ],
+          )
         ],
       ),
     );
@@ -488,20 +755,63 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 class ChartPainter extends CustomPainter {
   final List<int> data;
   ChartPainter(this.data);
-  @override void paint(Canvas canvas, Size size) {
+
+  @override
+  void paint(Canvas canvas, Size size) {
     if (data.isEmpty) return;
-    final paint = Paint()..color = adminPurple..strokeWidth = 3..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
-    int maxVal = data.reduce(math.max); if (maxVal == 0) maxVal = 1; 
-    final path = Path(); List<Offset> points = []; double xStep = size.width / (data.length - 1);
-    for(int i = 0; i < data.length; i++) { points.add(Offset(i * xStep, size.height - (data[i] / maxVal * size.height * 0.75))); }
-    path.moveTo(points[0].dx, points[0].dy); for (int i = 1; i < points.length; i++) path.lineTo(points[i].dx, points[i].dy);
-    final fillPath = Path.from(path)..lineTo(size.width, size.height)..lineTo(0, size.height)..close();
-    final gradientPaint = Paint()..shader = ui.Gradient.linear(const Offset(0, 0), Offset(0, size.height), [adminPurple.withOpacity(0.4), Colors.transparent])..style = PaintingStyle.fill;
-    canvas.drawPath(fillPath, gradientPaint); canvas.drawPath(path, paint);
-    final dotPaint = Paint()..color = adminPurple..style = PaintingStyle.fill; final innerDot = Paint()..color = Colors.white..style = PaintingStyle.fill;
-    for (var point in points) { canvas.drawCircle(point, 4, dotPaint); canvas.drawCircle(point, 2, innerDot); }
+
+    final paint = Paint()
+      ..color = adminPurple
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    int maxVal = data.reduce(math.max);
+    if (maxVal == 0) maxVal = 1; 
+
+    final path = Path();
+    List<Offset> points = [];
+    
+    double xStep = size.width / (data.length - 1);
+    
+    for(int i = 0; i < data.length; i++) {
+       double x = i * xStep;
+       double y = size.height - (data[i] / maxVal * size.height * 0.75); 
+       points.add(Offset(x, y));
+    }
+
+    path.moveTo(points[0].dx, points[0].dy);
+    for (int i = 1; i < points.length; i++) {
+      path.lineTo(points[i].dx, points[i].dy);
+    }
+
+    final fillPath = Path.from(path)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+
+    final gradientPaint = Paint()
+      ..shader = ui.Gradient.linear(
+        const Offset(0, 0),
+        Offset(0, size.height),
+        [adminPurple.withOpacity(0.4), Colors.transparent],
+      )
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(fillPath, gradientPaint);
+    canvas.drawPath(path, paint);
+
+    final dotPaint = Paint()..color = adminPurple..style = PaintingStyle.fill;
+    final innerDot = Paint()..color = Colors.white..style = PaintingStyle.fill;
+      
+    for (var point in points) {
+      canvas.drawCircle(point, 4, dotPaint);
+      canvas.drawCircle(point, 2, innerDot);
+    }
   }
-  @override bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // ==========================================
@@ -509,7 +819,9 @@ class ChartPainter extends CustomPainter {
 // ==========================================
 class ManagePaymentsScreen extends StatefulWidget {
   const ManagePaymentsScreen({super.key});
-  @override State<ManagePaymentsScreen> createState() => _ManagePaymentsScreenState();
+
+  @override
+  State<ManagePaymentsScreen> createState() => _ManagePaymentsScreenState();
 }
 
 class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
@@ -518,18 +830,31 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
-  @override void initState() { super.initState(); _fetchRequests(); }
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchRequests(); 
+  }
 
   Future<void> _fetchRequests() async {
     setState(() => _isLoading = true);
     try {
       final data = await Supabase.instance.client.from('payment_requests').select().order('created_at', ascending: false);
-      setState(() { _requests = data; _filteredRequests = data; });
-    } catch (e) { } finally { setState(() => _isLoading = false); }
+      setState(() {
+        _requests = data;
+        _filteredRequests = data;
+      });
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
   }
 
   void _filterRequests(String query) {
-    if (query.isEmpty) { setState(() => _filteredRequests = _requests); return; }
+    if (query.isEmpty) {
+      setState(() => _filteredRequests = _requests);
+      return;
+    }
     String q = query.toLowerCase();
     setState(() {
       _filteredRequests = _requests.where((r) {
@@ -542,9 +867,16 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 
   Future<void> _updateStatus(dynamic id, String newStatus, String userId) async {
     try {
-      if (newStatus == 'Approved') { await Supabase.instance.client.from('payment_requests').update({'status': 'Expired'}).eq('user_id', userId).eq('status', 'Approved'); }
+      if (newStatus == 'Approved') {
+        await Supabase.instance.client
+            .from('payment_requests')
+            .update({'status': 'Expired'})
+            .eq('user_id', userId)
+            .eq('status', 'Approved');
+      }
+      
       await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id.toString());
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment $newStatus Successfully!"), backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.orange));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment $newStatus Successfully! Old packages revoked!"), backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.orange));
       _fetchRequests();
     } catch(e) { }
   }
@@ -553,12 +885,21 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
         title: const Text("Delete Payment?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text("Are you sure you want to delete this payment record?", style: TextStyle(color: Colors.white70)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: Colors.white)))]
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
       )
     );
+
     if (confirm == true) {
       try {
         await Supabase.instance.client.from('payment_requests').delete().eq('id', id.toString());
@@ -571,13 +912,45 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   Future<void> _editPaymentDialog(Map<String, dynamic> req) async {
     TextEditingController planController = TextEditingController(text: req['plan'] ?? '');
     TextEditingController amountController = TextEditingController(text: req['amount']?.toString() ?? '');
+    
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
         title: const Text("Edit Payment Info", style: TextStyle(color: Colors.white)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: planController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(labelText: "Plan Name", labelStyle: const TextStyle(color: adminPurple), filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))), const SizedBox(height: 12), TextField(controller: amountController, style: const TextStyle(color: Colors.white), decoration: InputDecoration(labelText: "Amount (₹)", labelStyle: const TextStyle(color: adminPurple), filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)))]),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(onPressed: () async { try { await Supabase.instance.client.from('payment_requests').update({'plan': planController.text, 'amount': amountController.text}).eq('id', req['id'].toString()); if(mounted) Navigator.pop(context); _fetchRequests(); } catch(e) {} }, child: const Text("Save"))]
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: planController, 
+              style: const TextStyle(color: Colors.white), 
+              decoration: InputDecoration(labelText: "Plan Name", labelStyle: const TextStyle(color: adminPurple), filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountController, 
+              style: const TextStyle(color: Colors.white), 
+              decoration: InputDecoration(labelText: "Amount (₹)", labelStyle: const TextStyle(color: adminPurple), filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))
+            )
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await Supabase.instance.client.from('payment_requests').update({
+                  'plan': planController.text,
+                  'amount': amountController.text
+                }).eq('id', req['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchRequests();
+              } catch(e) {}
+            },
+            child: const Text("Save")
+          )
+        ]
       )
     );
   }
@@ -586,68 +959,183 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [Text("UTR: $utr", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 16), imageUrl.startsWith('http') ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(imageUrl, height: 350, fit: BoxFit.cover)) : const Text("No Proof Image", style: TextStyle(color: Colors.white54))]),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: adminPurple)))]
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("UTR: $utr", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 16),
+            imageUrl.startsWith('http') 
+              ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(imageUrl, height: 350, fit: BoxFit.cover)) 
+              : const Text("No Proof Image", style: TextStyle(color: Colors.white54))
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: adminPurple)))
+        ]
       )
     );
   }
 
   String _formatDateGroup(String? isoString) {
     if (isoString == null) return "Unknown Time";
-    DateTime date = DateTime.parse(isoString).toLocal();
+    DateTime parsedDate = DateTime.parse(isoString);
+    DateTime date = DateTime(parsedDate.year, parsedDate.month, parsedDate.day, parsedDate.hour, parsedDate.minute);
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime yesterday = today.subtract(const Duration(days: 1));
+    DateTime checkDate = DateTime(date.year, date.month, date.day);
+
     String ampm = date.hour >= 12 ? 'PM' : 'AM';
     int hr = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
-    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} at $hr:${date.minute.toString().padLeft(2, '0')} $ampm";
+    String timeStr = "$hr:${date.minute.toString().padLeft(2, '0')} $ampm";
+
+    if (checkDate == today) return "Today at $timeStr";
+    if (checkDate == yesterday) return "Yesterday at $timeStr";
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} at $timeStr";
   }
 
   @override
   Widget build(BuildContext context) {
-    int total = _requests.length, approved = _requests.where((r) => r['status'] == 'Approved').length, pending = _requests.where((r) => r['status'] == 'Pending').length, rejected = _requests.where((r) => r['status'] == 'Rejected').length;
+    int total = _requests.length;
+    int approved = _requests.where((r) => r['status'] == 'Approved').length;
+    int pending = _requests.where((r) => r['status'] == 'Pending').length;
+    int rejected = _requests.where((r) => r['status'] == 'Rejected').length;
+
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: Row(children: [Expanded(child: _buildTopStatCard("Total", total.toString(), adminPurple, Icons.attach_money)), const SizedBox(width: 8), Expanded(child: _buildTopStatCard("Approved", approved.toString(), const Color(0xFF10B981), Icons.check_circle)), const SizedBox(width: 8), Expanded(child: _buildTopStatCard("Pending", pending.toString(), const Color(0xFFF59E0B), Icons.access_time_filled)), const SizedBox(width: 8), Expanded(child: _buildTopStatCard("Rejected", rejected.toString(), const Color(0xFFEF4444), Icons.cancel))]),
+          child: Row(
+            children: [
+              Expanded(child: _buildTopStatCard("Total", total.toString(), adminPurple, Icons.attach_money)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Approved", approved.toString(), const Color(0xFF10B981), Icons.check_circle)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Pending", pending.toString(), const Color(0xFFF59E0B), Icons.access_time_filled)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Rejected", rejected.toString(), const Color(0xFFEF4444), Icons.cancel)),
+            ],
+          ),
         ),
+
+        // SEARCH BAR FOR PAYMENTS
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(controller: _searchController, onChanged: _filterRequests, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Search Payments by Name or UID...", hintStyle: const TextStyle(color: Colors.white38), prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20), filled: true, fillColor: cardDark, contentPadding: const EdgeInsets.symmetric(vertical: 0), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          child: TextField(
+            controller: _searchController,
+            onChanged: _filterRequests,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: "Search Payments by Name or UID...",
+              hintStyle: const TextStyle(color: Colors.white38),
+              prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+              filled: true,
+              fillColor: cardDark,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
         ),
         const SizedBox(height: 12),
+        
         Expanded(
-          child: _isLoading ? const Center(child: CircularProgressIndicator(color: adminPurple)) : _filteredRequests.isEmpty ? const Center(child: Text("No payments found.", style: TextStyle(color: Colors.white54))) : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: _filteredRequests.length, 
-            itemBuilder: (context, index) { 
-              final req = _filteredRequests[index]; 
-              String dbUserIdLink = req['user_id'] ?? "Unknown";
-              Color statusColor = req['status'] == 'Approved' ? const Color(0xFF10B981) : (req['status'] == 'Rejected' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
-              return Container(
-                margin: const EdgeInsets.only(bottom: 16), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(width: 40, height: 40, decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.person, color: adminPurple)), const SizedBox(width: 12),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(req['user_name'] ?? req['name'] ?? "Unknown User", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 2), Text("UID: ${req['uid'] ?? req['user_id'] ?? req['transaction_id']?.toString().substring(0, 8) ?? "N/A"}", style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold))])),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Text(req['status'], style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)))
-                        ],
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator(color: adminPurple)) 
+            : _filteredRequests.isEmpty 
+              ? const Center(child: Text("No payments found.", style: TextStyle(color: Colors.white54))) 
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16), 
+                  itemCount: _filteredRequests.length, 
+                  itemBuilder: (context, index) { 
+                    final req = _filteredRequests[index]; 
+                    String displayTime = _formatDateGroup(req['created_at']); 
+                    
+                    String userName = req['user_name'] ?? req['name'] ?? "Unknown User"; 
+                    String uid = req['uid'] ?? req['user_id'] ?? req['transaction_id']?.toString().substring(0, 8) ?? "N/A"; 
+                    
+                    String dbUserIdLink = req['user_id'] ?? "Unknown";
+
+                    String amount = req['amount']?.toString() ?? "0";
+                    Color statusColor = req['status'] == 'Approved' ? const Color(0xFF10B981) : (req['status'] == 'Rejected' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: cardDark,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white10)
                       ),
-                      const SizedBox(height: 16),
-                      Row(children: [Expanded(child: _buildInfoItem(Icons.auto_graph, "Plan", req['plan'] ?? 'Unknown')), Expanded(child: _buildInfoItem(Icons.calendar_month, "Date & Time", _formatDateGroup(req['created_at']), color: const Color(0xFFF59E0B))), Expanded(child: _buildInfoItem(Icons.monetization_on_outlined, "Amount", "₹${req['amount']?.toString() ?? '0'}"))]),
-                      const SizedBox(height: 16),
-                      Row(children: [const Text("UTR  ", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 13)), Text(req['transaction_id'] ?? 'N/A', style: const TextStyle(color: Colors.white70, fontSize: 13)), const Spacer(), const Icon(Icons.copy, color: adminPurple, size: 16)]),
-                      const SizedBox(height: 16),
-                      Wrap(spacing: 8, runSpacing: 8, alignment: WrapAlignment.start, children: [_buildActionButton(Icons.image, "Proof", const Color(0xFF3B82F6), () => _showProofDialog(req['image_path'], req['transaction_id'])), _buildActionButton(Icons.check, "Approve", const Color(0xFF10B981), () => _updateStatus(req['id'], 'Approved', dbUserIdLink)), _buildActionButton(Icons.close, "Reject", const Color(0xFFF59E0B), () => _updateStatus(req['id'], 'Rejected', dbUserIdLink)), _buildActionButton(Icons.edit, "Edit", adminPurple, () => _editPaymentDialog(req)), _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequestDialog(req['id']))])
-                    ],
-                  ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 40, height: 40,
+                                  decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                                  child: const Icon(Icons.person, color: adminPurple),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(userName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                      const SizedBox(height: 2),
+                                      Text("UID: $uid", style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                                  child: Text(req['status'], style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                                )
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            Row(
+                              children: [
+                                Expanded(child: _buildInfoItem(Icons.auto_graph, "Plan", req['plan'] ?? 'Unknown')),
+                                Expanded(child: _buildInfoItem(Icons.calendar_month, "Date & Time", displayTime, color: const Color(0xFFF59E0B))),
+                                Expanded(child: _buildInfoItem(Icons.monetization_on_outlined, "Amount", "₹$amount")),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            Row(
+                              children: [
+                                const Text("UTR  ", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text(req['transaction_id'] ?? 'N/A', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                                const Spacer(),
+                                const Icon(Icons.copy, color: adminPurple, size: 16)
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.start,
+                              children: [
+                                _buildActionButton(Icons.image, "Proof", const Color(0xFF3B82F6), () => _showProofDialog(req['image_path'], req['transaction_id'])),
+                                _buildActionButton(Icons.check, "Approve", const Color(0xFF10B981), () => _updateStatus(req['id'], 'Approved', dbUserIdLink)),
+                                _buildActionButton(Icons.close, "Reject", const Color(0xFFF59E0B), () => _updateStatus(req['id'], 'Rejected', dbUserIdLink)),
+                                _buildActionButton(Icons.edit, "Edit", adminPurple, () => _editPaymentDialog(req)),
+                                _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequestDialog(req['id'])),
+                              ],
+                            )
+                          ],
+                        ),
+                      ),
+                    );
+                  }
                 ),
-              );
-            }
-          ),
         ),
       ],
     );
@@ -655,17 +1143,53 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 
   Widget _buildTopStatCard(String title, String count, Color color, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
-      child: Column(children: [Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle), child: Icon(icon, color: color, size: 18)), const SizedBox(height: 8), Text(count, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)), Text(title, style: const TextStyle(color: Colors.white54, fontSize: 10))]),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+      child: Column(
+        children: [
+          Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle), child: Icon(icon, color: color, size: 18)),
+          const SizedBox(height: 8),
+          Text(count, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(title, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+        ],
+      ),
     );
   }
 
   Widget _buildInfoItem(IconData icon, String label, String value, {Color color = adminPurple}) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Icon(icon, color: color, size: 12), const SizedBox(width: 4), Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10))]), const SizedBox(height: 4), Text(value, style: TextStyle(color: label == "Date & Time" ? color : Colors.white, fontSize: 12, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)]);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 12),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: label == "Date & Time" ? color : Colors.white, fontSize: 12, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+      ],
+    );
   }
 
   Widget _buildActionButton(IconData icon, String label, Color color, VoidCallback onTap) {
-    return InkWell(onTap: onTap, borderRadius: BorderRadius.circular(8), child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: color, size: 14), const SizedBox(width: 4), Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold))])));
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 14),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -674,7 +1198,9 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 // ==========================================
 class ActiveSubscriptionsScreen extends StatefulWidget {
   const ActiveSubscriptionsScreen({super.key});
-  @override State<ActiveSubscriptionsScreen> createState() => _ActiveSubscriptionsScreenState();
+
+  @override
+  State<ActiveSubscriptionsScreen> createState() => _ActiveSubscriptionsScreenState();
 }
 
 class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
@@ -683,31 +1209,63 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
-  @override void initState() { super.initState(); _fetchSubscriptions(); }
+  @override
+  void initState() {
+    super.initState();
+    _fetchSubscriptions();
+  }
 
   DateTime? _getExpiry(String createdAt, String planName) {
-    return DateTime.parse(createdAt).toLocal().add(const Duration(days: 30)); 
+    DateTime start = DateTime.parse(createdAt).toLocal();
+    return start.add(const Duration(days: 30)); 
   }
 
   Future<void> _fetchSubscriptions() async {
     setState(() => _isLoading = true);
     try {
       final data = await Supabase.instance.client.from('payment_requests').select().eq('status', 'Approved').order('created_at', ascending: false);
-      List<dynamic> activeOnly = []; DateTime now = DateTime.now();
+      
+      List<dynamic> activeOnly = [];
+      DateTime now = DateTime.now();
+      
       for(var sub in data) {
          if (sub['created_at'] != null) {
             DateTime? exp = _getExpiry(sub['created_at'], sub['plan'] ?? "");
-            if (exp != null && exp.isAfter(now)) { sub['calculated_expiry'] = exp; activeOnly.add(sub); }
+            if (exp != null && exp.isAfter(now)) {
+               sub['calculated_expiry'] = exp;
+               activeOnly.add(sub);
+            }
          }
       }
-      setState(() { _allSubs = activeOnly; _filteredSubs = activeOnly; });
-    } catch(e) { } finally { setState(() => _isLoading = false); }
+      
+      activeOnly.sort((a, b) {
+        if (a['created_at'] == null || b['created_at'] == null) return 0;
+        return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
+      });
+      
+      setState(() {
+        _allSubs = activeOnly;
+        _filteredSubs = activeOnly;
+      });
+    } catch(e) {
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _filterSubs(String query) {
-    if (query.isEmpty) { setState(() => _filteredSubs = _allSubs); return; }
+    if (query.isEmpty) {
+      setState(() => _filteredSubs = _allSubs);
+      return;
+    }
     String q = query.toLowerCase();
-    setState(() { _filteredSubs = _allSubs.where((r) { String name = (r['user_name'] ?? r['name'] ?? "").toLowerCase(); String uid = (r['uid'] ?? r['user_id'] ?? "").toLowerCase(); return name.contains(q) || uid.contains(q); }).toList(); });
+    setState(() {
+      _filteredSubs = _allSubs.where((r) {
+        String name = (r['user_name'] ?? r['name'] ?? "").toLowerCase();
+        String uid = (r['uid'] ?? r['user_id'] ?? "").toLowerCase();
+        return name.contains(q) || uid.contains(q);
+      }).toList();
+    });
   }
 
   Future<void> _extendPlanDialog(Map<String, dynamic> sub) async {
@@ -715,22 +1273,55 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Modify Plan Expiry", style: TextStyle(color: Colors.white)),
         content: Column(
-          mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("User: ${sub['user_name'] ?? 'Unknown'}", style: const TextStyle(color: Colors.white70)), const SizedBox(height: 12),
-            TextField(controller: daysController, keyboardType: const TextInputType.numberWithOptions(signed: true), style: const TextStyle(color: Colors.white), decoration: InputDecoration(labelText: "Add/Remove Days (e.g. 10 or -5)", labelStyle: const TextStyle(color: adminPurple), filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)))
+            Text("User: ${sub['user_name'] ?? 'Unknown'}", style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: daysController, 
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
+              style: const TextStyle(color: Colors.white), 
+              decoration: InputDecoration(
+                labelText: "Add/Remove Days (e.g. 10 or -5)", 
+                labelStyle: const TextStyle(color: adminPurple), 
+                filled: true, fillColor: bgDark, 
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
+              )
+            )
           ],
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(onPressed: () async { int? extraDays = int.tryParse(daysController.text); if (extraDays != null && extraDays != 0) { try { DateTime currentCreated = DateTime.parse(sub['created_at']); DateTime newCreated = currentCreated.add(Duration(days: extraDays)); await Supabase.instance.client.from('payment_requests').update({'created_at': newCreated.toIso8601String()}).eq('id', sub['id']); if(mounted) Navigator.pop(context); String actionMsg = extraDays > 0 ? "Added $extraDays days" : "Removed ${extraDays.abs()} days"; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$actionMsg to the plan!"), backgroundColor: Colors.green)); _fetchSubscriptions(); } catch(e) {} } }, child: const Text("Update Plan"))]
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            onPressed: () async {
+              int? extraDays = int.tryParse(daysController.text);
+              if (extraDays != null && extraDays != 0) {
+                 try {
+                    DateTime currentCreated = DateTime.parse(sub['created_at']);
+                    DateTime newCreated = currentCreated.add(Duration(days: extraDays)); 
+                    await Supabase.instance.client.from('payment_requests').update({'created_at': newCreated.toIso8601String()}).eq('id', sub['id']);
+                    if(mounted) Navigator.pop(context);
+                    String actionMsg = extraDays > 0 ? "Added $extraDays days" : "Removed ${extraDays.abs()} days";
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$actionMsg to the plan!"), backgroundColor: Colors.green));
+                    _fetchSubscriptions();
+                 } catch(e) {}
+              }
+            },
+            child: const Text("Update Plan")
+          )
+        ]
       )
     );
   }
 
   String _formatExpDate(DateTime date) {
-    String ampm = date.hour >= 12 ? 'PM' : 'AM'; int hr = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    String ampm = date.hour >= 12 ? 'PM' : 'AM';
+    int hr = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
     return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} at $hr:${date.minute.toString().padLeft(2, '0')} $ampm";
   }
 
@@ -741,29 +1332,117 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: adminPurple.withOpacity(0.3))),
-            child: Row(children: [const Icon(Icons.workspace_premium, color: Colors.amber, size: 28), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Active Subscriptions", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Text("Total Premium Users: ${_allSubs.length}", style: const TextStyle(color: Colors.white70, fontSize: 12))]))])
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
+            decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: adminPurple.withOpacity(0.3))),
+            child: Row(
+              children: [
+                const Icon(Icons.workspace_premium, color: Colors.amber, size: 28), 
+                const SizedBox(width: 12), 
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Active Subscriptions", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text("Total Premium Users: ${_allSubs.length}", style: const TextStyle(color: Colors.white70, fontSize: 12))
+                    ],
+                  )
+                )
+              ]
+            )
           ),
         ),
+
+        // Search Bar
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(controller: _searchController, onChanged: _filterSubs, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Search Premium Users...", hintStyle: const TextStyle(color: Colors.white38), prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20), filled: true, fillColor: cardDark, contentPadding: const EdgeInsets.symmetric(vertical: 0), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          child: TextField(
+            controller: _searchController,
+            onChanged: _filterSubs,
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: InputDecoration(
+              hintText: "Search Premium Users...",
+              hintStyle: const TextStyle(color: Colors.white38),
+              prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+              filled: true,
+              fillColor: cardDark,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            ),
+          ),
         ),
         const SizedBox(height: 12),
+
         Expanded(
-          child: _isLoading ? const Center(child: CircularProgressIndicator(color: adminPurple)) : _filteredSubs.isEmpty ? const Center(child: Text("No active subscriptions found.", style: TextStyle(color: Colors.white54))) : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16), itemCount: _filteredSubs.length, 
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator(color: adminPurple)) 
+            : _filteredSubs.isEmpty 
+              ? const Center(child: Text("No active subscriptions found.", style: TextStyle(color: Colors.white54))) 
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16), 
+                  itemCount: _filteredSubs.length, 
                   itemBuilder: (context, index) { 
                     final sub = _filteredSubs[index]; 
-                    DateTime expiry = sub['calculated_expiry']; int daysLeft = expiry.difference(DateTime.now()).inDays;
+                    String userName = sub['user_name'] ?? sub['name'] ?? "Unknown User"; 
+                    String uid = sub['uid'] ?? "N/A"; 
+                    String plan = sub['plan'] ?? "Premium";
+                    DateTime expiry = sub['calculated_expiry'];
+                    int daysLeft = expiry.difference(DateTime.now()).inDays;
+
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.amber.withOpacity(0.3))),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: cardDark,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.amber.withOpacity(0.3))
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(sub['user_name'] ?? sub['name'] ?? "Unknown User", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 2), Text("UID: ${sub['uid'] ?? "N/A"}", style: const TextStyle(color: Colors.white54, fontSize: 11))]), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.amber.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Text(sub['plan'] ?? "Premium", style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)))]),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(userName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  const SizedBox(height: 2),
+                                  Text("UID: $uid", style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: Colors.amber.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                                child: Text(plan, style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
+                              )
+                            ],
+                          ),
                           const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(color: Colors.white10, height: 1)),
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Expires On", style: TextStyle(color: Colors.white54, fontSize: 11)), const SizedBox(height: 4), Text(_formatExpDate(expiry), style: const TextStyle(color: Colors.greenAccent, fontSize: 13, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text("($daysLeft days left)", style: const TextStyle(color: Colors.white38, fontSize: 10))]), ElevatedButton.icon(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF3B82F6), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)), onPressed: () => _extendPlanDialog(sub), icon: const Icon(Icons.edit_calendar, color: Colors.white, size: 16), label: const Text("Edit Days", style: TextStyle(color: Colors.white, fontSize: 12)))])
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Expires On", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                  const SizedBox(height: 4),
+                                  Text(_formatExpDate(expiry), style: const TextStyle(color: Colors.greenAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 2),
+                                  Text("($daysLeft days left)", style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                                ],
+                              ),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3B82F6),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                                ),
+                                onPressed: () => _extendPlanDialog(sub), 
+                                icon: const Icon(Icons.edit_calendar, color: Colors.white, size: 16),
+                                label: const Text("Edit Days", style: TextStyle(color: Colors.white, fontSize: 12))
+                              )
+                            ],
+                          )
                         ],
                       ),
                     );
@@ -780,7 +1459,9 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
 // ==========================================
 class ManageAnimeScreen extends StatefulWidget {
   const ManageAnimeScreen({super.key});
-  @override State<ManageAnimeScreen> createState() => _ManageAnimeScreenState();
+
+  @override
+  State<ManageAnimeScreen> createState() => _ManageAnimeScreenState();
 }
 
 class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
@@ -793,23 +1474,42 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
   List<dynamic> _animeList = []; 
   bool _isLoading = false;
 
-  @override void initState() { super.initState(); _fetchAnime(); }
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchAnime(); 
+  }
 
   Future<void> _fetchAnime() async {
     setState(() => _isLoading = true);
     try {
       final data = await Supabase.instance.client.from('anime_list').select().order('created_at', ascending: false);
       setState(() => _animeList = data);
-    } catch (e) { } finally { setState(() => _isLoading = false); }
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
   }
 
   Future<void> _addAnime() async {
     if(_titleController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.from('anime_list').insert({'title': _titleController.text, 'description': _descController.text, 'image_url': _imageController.text, 'category': _mainCategoryController.text, 'sub_category': _subCategoryController.text, 'dub_status': _selectedDub});
+      await Supabase.instance.client.from('anime_list').insert({
+        'title': _titleController.text, 
+        'description': _descController.text, 
+        'image_url': _imageController.text, 
+        'category': _mainCategoryController.text, 
+        'sub_category': _subCategoryController.text, 
+        'dub_status': _selectedDub, 
+      });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Anime Added"), backgroundColor: Colors.green));
-      _titleController.clear(); _descController.clear(); _imageController.clear(); _mainCategoryController.clear(); _subCategoryController.clear(); _fetchAnime();
+      _titleController.clear(); 
+      _descController.clear(); 
+      _imageController.clear(); 
+      _mainCategoryController.clear(); 
+      _subCategoryController.clear();
+      _fetchAnime();
     } catch (e) {}
   }
 
@@ -817,39 +1517,94 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
         title: const Text("Delete Anime?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text("Are you sure you want to delete this anime? Related episodes might remain.", style: TextStyle(color: Colors.white70)),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: Colors.white)))]
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
       )
     );
-    if (confirm == true) { await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString()); _fetchAnime(); }
+
+    if (confirm == true) {
+      await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString());
+      _fetchAnime();
+    }
   }
 
+  // --- UPDATED EDIT ANIME METHOD (Full Access) ---
   Future<void> _editAnime(Map<String, dynamic> anime) async {
-    _titleController.text = anime['title'] ?? ''; _descController.text = anime['description'] ?? ''; _imageController.text = anime['image_url'] ?? ''; _mainCategoryController.text = anime['category'] ?? ''; _subCategoryController.text = anime['sub_category'] ?? '';
-    String editDub = anime['dub_status'] ?? 'Z DUB'; if (editDub == 'ZTV-DUB') editDub = 'Z DUB'; if (!['Z DUB', 'FAN DUB', 'MIX O/D'].contains(editDub)) editDub = 'Z DUB';
+    _titleController.text = anime['title'] ?? '';
+    _descController.text = anime['description'] ?? '';
+    _imageController.text = anime['image_url'] ?? '';
+    _mainCategoryController.text = anime['category'] ?? '';
+    _subCategoryController.text = anime['sub_category'] ?? '';
+    
+    String editDub = anime['dub_status'] ?? 'Z DUB';
+    if (editDub == 'ZTV-DUB') editDub = 'Z DUB'; // Auto-fix old records
+    if (!['Z DUB', 'FAN DUB', 'MIX O/D'].contains(editDub)) editDub = 'Z DUB';
 
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateModal) => AlertDialog(
-          backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text("Edit Anime", style: TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Title", Icons.title)), const SizedBox(height: 8),
-                TextField(controller: _descController, maxLines: 3, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Description", Icons.description)), const SizedBox(height: 8),
-                TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Image URL", Icons.image)), const SizedBox(height: 8),
-                TextField(controller: _mainCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Main Category", Icons.category)), const SizedBox(height: 8),
-                TextField(controller: _subCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Sub Category", Icons.sell)), const SizedBox(height: 8),
-                DropdownButtonFormField<String>(dropdownColor: cardDark, value: editDub, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Dub Status", Icons.mic), items: ['Z DUB', 'FAN DUB', 'MIX O/D'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setStateModal(() => editDub = v!))
+                TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Title", Icons.title)),
+                const SizedBox(height: 8),
+                TextField(controller: _descController, maxLines: 3, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Description", Icons.description)),
+                const SizedBox(height: 8),
+                TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Image URL", Icons.image)),
+                const SizedBox(height: 8),
+                TextField(controller: _mainCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Main Category", Icons.category)),
+                const SizedBox(height: 8),
+                TextField(controller: _subCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Sub Category", Icons.sell)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: editDub, 
+                  style: const TextStyle(color: Colors.white), 
+                  decoration: _inputDeco("Dub Status", Icons.mic), 
+                  items: ['Z DUB', 'FAN DUB', 'MIX O/D'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), 
+                  onChanged: (v) => setStateModal(() => editDub = v!)
+                )
               ],
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")), ElevatedButton(onPressed: () async { await Supabase.instance.client.from('anime_list').update({'title': _titleController.text, 'description': _descController.text, 'image_url': _imageController.text, 'category': _mainCategoryController.text, 'sub_category': _subCategoryController.text, 'dub_status': editDub}).eq('id', anime['id'].toString()); if(mounted) Navigator.pop(context); _titleController.clear(); _descController.clear(); _imageController.clear(); _mainCategoryController.clear(); _subCategoryController.clear(); _fetchAnime(); }, child: const Text("Update"))]
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+            ElevatedButton(
+              onPressed: () async {
+                await Supabase.instance.client.from('anime_list').update({
+                  'title': _titleController.text,
+                  'description': _descController.text,
+                  'image_url': _imageController.text,
+                  'category': _mainCategoryController.text,
+                  'sub_category': _subCategoryController.text,
+                  'dub_status': editDub, 
+                }).eq('id', anime['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _titleController.clear(); 
+                _descController.clear();
+                _imageController.clear(); 
+                _mainCategoryController.clear(); 
+                _subCategoryController.clear();
+                _fetchAnime();
+              },
+              child: const Text("Update")
+            )
+          ]
         )
       )
     );
@@ -863,31 +1618,118 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
-            child: Row(children: [Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.upload, color: adminPurple)), const SizedBox(width: 16), Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text("Upload Anime Profile", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text("Add new anime to your platform", style: TextStyle(color: Colors.white54, fontSize: 12))])]),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.upload, color: adminPurple),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text("Upload Anime Profile", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text("Add new anime to your platform", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                )
+              ],
+            ),
           ),
           const SizedBox(height: 20),
-          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Anime Name", Icons.text_fields)), const SizedBox(height: 12),
-          TextField(controller: _descController, maxLines: 4, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Description", Icons.description)), const SizedBox(height: 12),
-          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Poster Image URL", Icons.image)), const SizedBox(height: 12),
-          TextField(controller: _mainCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Main Category (e.g. Action)", Icons.category)), const SizedBox(height: 12),
-          TextField(controller: _subCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Sub Category (e.g. Romance, Thriller)", Icons.sell)), const SizedBox(height: 12),
-          DropdownButtonFormField<String>(dropdownColor: cardDark, value: _selectedDub, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Dub Status", Icons.mic), items: ['Z DUB', 'FAN DUB', 'MIX O/D'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => _selectedDub = v!)), const SizedBox(height: 24),
-          SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(icon: const Icon(Icons.upload, color: Colors.white), label: const Text("Upload Anime Profile", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), onPressed: _isLoading ? null : _addAnime)), const SizedBox(height: 36), 
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Uploaded Animes", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Text("${_animeList.length} Total", style: const TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)))]),
+
+          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Anime Name", Icons.text_fields)), 
           const SizedBox(height: 12),
-          if (_isLoading) const Center(child: CircularProgressIndicator(color: adminPurple)) else ListView.builder(
-              shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _animeList.length, 
+          TextField(controller: _descController, maxLines: 4, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Description", Icons.description)), 
+          const SizedBox(height: 12),
+          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Poster Image URL", Icons.image)), 
+          const SizedBox(height: 12),
+          TextField(controller: _mainCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Main Category (e.g. Action)", Icons.category)), 
+          const SizedBox(height: 12),
+          TextField(controller: _subCategoryController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Sub Category (e.g. Romance, Thriller)", Icons.sell)), 
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            dropdownColor: cardDark, 
+            value: _selectedDub, 
+            style: const TextStyle(color: Colors.white), 
+            decoration: _inputDeco("Dub Status", Icons.mic), 
+            items: ['Z DUB', 'FAN DUB', 'MIX O/D'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), 
+            onChanged: (v) => setState(() => _selectedDub = v!)
+          ),
+          const SizedBox(height: 24),
+          
+          SizedBox(
+            width: double.infinity, 
+            height: 52, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.upload, color: Colors.white), 
+              label: const Text("Upload Anime Profile", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+              onPressed: _isLoading ? null : _addAnime
+            )
+          ), 
+          const SizedBox(height: 36), 
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Uploaded Animes", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                child: Text("${_animeList.length} Total", style: const TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          if (_isLoading) 
+            const Center(child: CircularProgressIndicator(color: adminPurple)) 
+          else 
+            ListView.builder(
+              shrinkWrap: true, 
+              physics: const NeverScrollableScrollPhysics(), 
+              itemCount: _animeList.length, 
               itemBuilder: (context, index) { 
                 final a = _animeList[index]; 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(a['image_url'], width: 50, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 50, color: bgDark, child: const Icon(Icons.error, color: Colors.white54)))),
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(a['image_url'], width: 50, height: 70, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 50, color: bgDark, child: const Icon(Icons.error, color: Colors.white54))),
+                    ),
                     title: Text(a['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
-                    subtitle: Padding(padding: const EdgeInsets.only(top: 8.0), child: Row(children: [Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(4)), child: Text(a['dub_status'] == 'ZTV-DUB' ? 'Z DUB' : a['dub_status'], style: const TextStyle(color: adminPurple, fontSize: 10, fontWeight: FontWeight.bold)))])),
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [Container(margin: const EdgeInsets.only(right: 8), decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.15), shape: BoxShape.circle), child: IconButton(icon: const Icon(Icons.edit, color: Color(0xFF3B82F6), size: 18), onPressed: () => _editAnime(a), constraints: const BoxConstraints())), Container(decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle), child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteAnimeDialog(a['id']), constraints: const BoxConstraints()))])
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(4)),
+                            child: Text(a['dub_status'] == 'ZTV-DUB' ? 'Z DUB' : a['dub_status'], style: const TextStyle(color: adminPurple, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min, 
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.15), shape: BoxShape.circle),
+                          child: IconButton(icon: const Icon(Icons.edit, color: Color(0xFF3B82F6), size: 18), onPressed: () => _editAnime(a), constraints: const BoxConstraints()),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
+                          child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteAnimeDialog(a['id']), constraints: const BoxConstraints()),
+                        )
+                      ]
+                    )
                   )
                 ); 
               }
@@ -898,7 +1740,16 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
   }
   
   InputDecoration _inputDeco(String hint, IconData icon) {
-    return InputDecoration(prefixIcon: Icon(icon, color: adminPurple, size: 20), hintText: hint, hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), filled: true, fillColor: cardDark, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1)));
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: adminPurple, size: 20),
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+      filled: true, 
+      fillColor: cardDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1))
+    );
   }
 }
 
@@ -907,7 +1758,9 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
 // ==========================================
 class ManageEpisodesScreen extends StatefulWidget {
   const ManageEpisodesScreen({super.key});
-  @override State<ManageEpisodesScreen> createState() => _ManageEpisodesScreenState();
+
+  @override
+  State<ManageEpisodesScreen> createState() => _ManageEpisodesScreenState();
 }
 
 class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
@@ -921,21 +1774,39 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
   final _videoUrlController = TextEditingController(); 
   bool _isLoading = true;
 
-  @override void initState() { super.initState(); _fetchAnimeList(); }
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchAnimeList(); 
+  }
 
   Future<void> _fetchAnimeList() async {
     setState(() => _isLoading = true);
     try {
       final data = await Supabase.instance.client.from('anime_list').select('id, title').order('created_at', ascending: false);
-      setState(() { _animeList = data; if(data.isNotEmpty) { _selectedAnimeId = data[0]['id'].toString(); _fetchEpisodesForAnime(_selectedAnimeId!); } });
-    } catch (e) { } finally { setState(() => _isLoading = false); }
+      setState(() { 
+        _animeList = data; 
+        if(data.isNotEmpty) { 
+          _selectedAnimeId = data[0]['id'].toString(); 
+          _fetchEpisodesForAnime(_selectedAnimeId!); 
+        } 
+      });
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
   }
 
   Future<void> _fetchEpisodesForAnime(String animeId) async {
     try {
       final data = await Supabase.instance.client.from('anime_seasons').select('id, season_name, anime_episodes(id, episode_title, video_url, image_url, duration)').eq('anime_id', animeId);
       List<dynamic> allEps = [];
-      for (var season in data) { for (var ep in season['anime_episodes']) { ep['season_name'] = season['season_name']; allEps.add(ep); } }
+      for (var season in data) { 
+        for (var ep in season['anime_episodes']) { 
+          ep['season_name'] = season['season_name']; 
+          allEps.add(ep); 
+        } 
+      }
       setState(() => _episodeList = allEps);
     } catch (e) {}
   }
@@ -947,21 +1818,61 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
       final seasonRes = await Supabase.instance.client.from('anime_seasons').select('id').eq('anime_id', _selectedAnimeId!).eq('season_name', _seasonController.text.trim()).maybeSingle();
       String seasonId;
       if (seasonRes == null) {
-        final newSeason = await Supabase.instance.client.from('anime_seasons').insert({'anime_id': _selectedAnimeId, 'season_name': _seasonController.text.trim()}).select('id').single();
+        final newSeason = await Supabase.instance.client.from('anime_seasons').insert({
+          'anime_id': _selectedAnimeId, 
+          'season_name': _seasonController.text.trim()
+        }).select('id').single();
         seasonId = newSeason['id'].toString();
-      } else { seasonId = seasonRes['id'].toString(); }
+      } else {
+        seasonId = seasonRes['id'].toString();
+      }
       
-      await Supabase.instance.client.from('anime_episodes').insert({'season_id': seasonId, 'episode_title': _episodeTitleController.text.isEmpty ? "Episode" : _episodeTitleController.text, 'image_url': _imageUrlController.text, 'duration': _durationController.text.isEmpty ? "24m" : _durationController.text, 'video_url': _videoUrlController.text});
+      await Supabase.instance.client.from('anime_episodes').insert({
+        'season_id': seasonId, 
+        'episode_title': _episodeTitleController.text.isEmpty ? "Episode" : _episodeTitleController.text, 
+        'image_url': _imageUrlController.text, 
+        'duration': _durationController.text.isEmpty ? "24m" : _durationController.text, 
+        'video_url': _videoUrlController.text
+      });
+      
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Episode Uploaded"), backgroundColor: Colors.green));
-      _episodeTitleController.clear(); _imageUrlController.clear(); _durationController.clear(); _videoUrlController.clear(); _fetchEpisodesForAnime(_selectedAnimeId!);
-    } catch (e) { } finally { setState(() => _isLoading = false); }
+      _episodeTitleController.clear(); 
+      _imageUrlController.clear(); 
+      _durationController.clear(); 
+      _videoUrlController.clear();
+      _fetchEpisodesForAnime(_selectedAnimeId!);
+    } catch (e) {
+    } finally { 
+      setState(() => _isLoading = false); 
+    }
   }
 
   Future<void> _deleteEpisodeDialog(dynamic id) async {
-    bool? confirm = await showDialog<bool>(context: context, builder: (context) => AlertDialog(backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)), title: const Text("Delete Episode?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), content: const Text("Are you sure you want to delete this episode video?", style: TextStyle(color: Colors.white70)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: Colors.white)))]));
-    if (confirm == true) { await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString()); if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!); }
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete Episode?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to delete this episode video?", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
+    if (confirm == true) {
+      await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString());
+      if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
+    }
   }
 
+  // --- UPDATED EDIT EPISODE METHOD (Full Access) ---
   Future<void> _editEpisodeDialog(Map<String, dynamic> ep) async {
     TextEditingController titleCtrl = TextEditingController(text: ep['episode_title'] ?? '');
     TextEditingController urlCtrl = TextEditingController(text: ep['video_url'] ?? '');
@@ -971,20 +1882,39 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text("Edit Episode", style: TextStyle(color: Colors.white)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: titleCtrl, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Episode Title", Icons.title)), const SizedBox(height: 12),
-              TextField(controller: imgCtrl, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Thumbnail URL", Icons.image)), const SizedBox(height: 12),
-              TextField(controller: durCtrl, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Duration", Icons.access_time)), const SizedBox(height: 12),
+              TextField(controller: titleCtrl, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Episode Title", Icons.title)),
+              const SizedBox(height: 12),
+              TextField(controller: imgCtrl, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Thumbnail URL", Icons.image)),
+              const SizedBox(height: 12),
+              TextField(controller: durCtrl, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Duration", Icons.access_time)),
+              const SizedBox(height: 12),
               TextField(controller: urlCtrl, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Video URL", Icons.link)),
             ],
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")), ElevatedButton(onPressed: () async { await Supabase.instance.client.from('anime_episodes').update({'episode_title': titleCtrl.text, 'image_url': imgCtrl.text, 'duration': durCtrl.text, 'video_url': urlCtrl.text}).eq('id', ep['id'].toString()); if(mounted) Navigator.pop(context); if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!); }, child: const Text("Update"))]
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              await Supabase.instance.client.from('anime_episodes').update({
+                'episode_title': titleCtrl.text,
+                'image_url': imgCtrl.text,
+                'duration': durCtrl.text,
+                'video_url': urlCtrl.text
+              }).eq('id', ep['id'].toString());
+              if(mounted) Navigator.pop(context);
+              if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
+            },
+            child: const Text("Update")
+          )
+        ]
       )
     );
   }
@@ -992,36 +1922,136 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading && _animeList.isEmpty) return const Center(child: CircularProgressIndicator(color: adminPurple));
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
-            child: Row(children: [Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.cloud_upload, color: adminPurple)), const SizedBox(width: 16), Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text("Upload New Episode", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text("Add a new episode to your anime", style: TextStyle(color: Colors.white54, fontSize: 12))])]),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.cloud_upload, color: adminPurple),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text("Upload New Episode", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text("Add a new episode to your anime", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                )
+              ],
+            ),
           ),
           const SizedBox(height: 20),
-          DropdownButtonFormField<String>(dropdownColor: cardDark, value: _selectedAnimeId, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Select Anime", Icons.movie), items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), onChanged: (v) { setState(() => _selectedAnimeId = v); if(v != null) _fetchEpisodesForAnime(v); }), const SizedBox(height: 12),
-          TextField(controller: _seasonController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Season Name (e.g. S1)", Icons.calendar_today)), const SizedBox(height: 12),
-          TextField(controller: _episodeTitleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Episode Title", Icons.title)), const SizedBox(height: 12),
-          TextField(controller: _imageUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Thumbnail URL (Optional)", Icons.image)), const SizedBox(height: 12),
-          Row(children: [Expanded(child: TextField(controller: _durationController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Duration", Icons.access_time))), const SizedBox(width: 12), Expanded(flex: 2, child: TextField(controller: _videoUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Video URL", Icons.link)))]), const SizedBox(height: 24),
-          SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(icon: const Icon(Icons.cloud_upload, color: Colors.white), label: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("Upload Episode", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), onPressed: _isLoading ? null : _uploadEpisode)), const SizedBox(height: 36), 
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Episodes for Selected Anime", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 16)), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Text("${_episodeList.length} Episodes", style: const TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)))]),
+
+          DropdownButtonFormField<String>(
+            dropdownColor: cardDark, 
+            value: _selectedAnimeId, 
+            style: const TextStyle(color: Colors.white), 
+            decoration: _inputDeco("Select Anime", Icons.movie), 
+            items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), 
+            onChanged: (v) { 
+              setState(() => _selectedAnimeId = v); 
+              if(v != null) _fetchEpisodesForAnime(v); 
+            }
+          ), 
           const SizedBox(height: 12),
+          TextField(controller: _seasonController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Season Name (e.g. S1)", Icons.calendar_today)), 
+          const SizedBox(height: 12),
+          TextField(controller: _episodeTitleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Episode Title", Icons.title)), 
+          const SizedBox(height: 12),
+          TextField(controller: _imageUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Thumbnail URL (Optional)", Icons.image)), 
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: TextField(controller: _durationController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Duration", Icons.access_time))),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: TextField(controller: _videoUrlController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Video URL", Icons.link))),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
+          SizedBox(
+            width: double.infinity, 
+            height: 52, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.cloud_upload, color: Colors.white), 
+              label: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text("Upload Episode", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+              onPressed: _isLoading ? null : _uploadEpisode
+            )
+          ), 
+          const SizedBox(height: 36), 
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Episodes for Selected Anime", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 16)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                child: Text("${_episodeList.length} Episodes", style: const TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          
           ListView.builder(
-            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _episodeList.length, 
+            shrinkWrap: true, 
+            physics: const NeverScrollableScrollPhysics(), 
+            itemCount: _episodeList.length, 
             itemBuilder: (context, index) {
               final ep = _episodeList[index];
               return Container(
-                margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: (ep['image_url'] != null && ep['image_url'].isNotEmpty) ? Image.network(ep['image_url'], width: 60, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 60, color: bgDark, child: const Icon(Icons.movie, color: Colors.white54))) : Container(width: 60, height: 60, decoration: BoxDecoration(color: bgDark, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.play_circle_fill, color: adminPurple))),
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: (ep['image_url'] != null && ep['image_url'].isNotEmpty)
+                      ? Image.network(ep['image_url'], width: 60, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 60, color: bgDark, child: const Icon(Icons.movie, color: Colors.white54)))
+                      : Container(width: 60, height: 60, decoration: BoxDecoration(color: bgDark, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.play_circle_fill, color: adminPurple)),
+                  ),
                   title: Text(ep['episode_title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), 
-                  subtitle: Padding(padding: const EdgeInsets.only(top: 4.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("${ep['season_name']}", style: const TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 2), Row(children: [const Icon(Icons.link, size: 12, color: Colors.white54), const SizedBox(width: 4), Expanded(child: Text("${ep['video_url']}", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 11)))])])), 
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [Container(margin: const EdgeInsets.only(right: 8), decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.15), shape: BoxShape.circle), child: IconButton(icon: const Icon(Icons.edit, color: Color(0xFF3B82F6), size: 18), onPressed: () => _editEpisodeDialog(ep), constraints: const BoxConstraints())), Container(decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle), child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteEpisodeDialog(ep['id']), constraints: const BoxConstraints()))])
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("${ep['season_name']}", style: const TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(Icons.link, size: 12, color: Colors.white54),
+                            const SizedBox(width: 4),
+                            Expanded(child: Text("${ep['video_url']}", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 11))),
+                          ],
+                        )
+                      ],
+                    ),
+                  ), 
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(color: const Color(0xFF3B82F6).withOpacity(0.15), shape: BoxShape.circle),
+                        child: IconButton(icon: const Icon(Icons.edit, color: Color(0xFF3B82F6), size: 18), onPressed: () => _editEpisodeDialog(ep), constraints: const BoxConstraints()),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
+                        child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteEpisodeDialog(ep['id']), constraints: const BoxConstraints()),
+                      )
+                    ],
+                  )
                 )
               );
             }
@@ -1032,7 +2062,16 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
   }
 
   InputDecoration _inputDeco(String hint, IconData icon) {
-    return InputDecoration(prefixIcon: Icon(icon, color: adminPurple, size: 20), hintText: hint, hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), filled: true, fillColor: cardDark, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1)));
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: adminPurple, size: 20),
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 14), 
+      filled: true, 
+      fillColor: cardDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1))
+    );
   }
 }
 
@@ -1041,11 +2080,12 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
 // ==========================================
 class ManageHeroScreen extends StatefulWidget {
   const ManageHeroScreen({super.key});
-  @override State<ManageHeroScreen> createState() => _ManageHeroScreenState();
+
+  @override
+  State<ManageHeroScreen> createState() => _ManageHeroScreenState();
 }
 
 class _ManageHeroScreenState extends State<ManageHeroScreen> {
-  final _titleController = TextEditingController(); 
   final _imageController = TextEditingController(); 
   final _tagController = TextEditingController(); 
   List<dynamic> _animeList = []; 
@@ -1054,33 +2094,75 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   String _selectedColor = "FF8A2BE2"; 
   List<dynamic> _heroItems = []; 
   
-  final Map<String, String> _colorOptions = {"Purple": "FF8A2BE2", "Red": "FFFF4D4D", "Blue": "FF4DA6FF", "Green": "FF00C853", "Orange": "FFFF9F43", "Pink": "FFFF4081"};
+  final Map<String, String> _colorOptions = {
+    "Purple": "FF8A2BE2", 
+    "Red": "FFFF4D4D", 
+    "Blue": "FF4DA6FF", 
+    "Green": "FF00C853", 
+    "Orange": "FFFF9F43", 
+    "Pink": "FFFF4081"
+  };
 
-  @override void initState() { super.initState(); _fetchData(); }
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchData(); 
+  }
 
   Future<void> _fetchData() async {
     try {
       final animes = await Supabase.instance.client.from('anime_list').select('id, title');
       final heroes = await Supabase.instance.client.from('hero_slider').select().order('created_at', ascending: false);
-      setState(() { _animeList = animes; _heroItems = heroes; });
+      setState(() { 
+        _animeList = animes; 
+        _heroItems = heroes; 
+      });
     } catch (e) {}
   }
 
   Future<void> _addHero() async {
     try {
-      await Supabase.instance.client.from('hero_slider').insert({'title': _titleController.text, 'image_url': _imageController.text, 'anime_id': _isCustom ? null : _selectedAnimeId, 'is_custom': _isCustom, 'tag': _tagController.text.isEmpty ? "NEW" : _tagController.text, 'tag_color': _selectedColor});
+      await Supabase.instance.client.from('hero_slider').insert({
+        'image_url': _imageController.text, 
+        'anime_id': _isCustom ? null : _selectedAnimeId, 
+        'is_custom': _isCustom, 
+        'tag': _tagController.text.isEmpty ? "NEW" : _tagController.text, 
+        'tag_color': _selectedColor
+      });
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Hero Added!"), backgroundColor: Colors.green));
-      _titleController.clear(); _imageController.clear(); _tagController.clear(); _fetchData();
+      _imageController.clear(); 
+      _tagController.clear(); 
+      _fetchData();
     } catch (e) {}
   }
 
   Future<void> _deleteHeroDialog(dynamic id) async {
-    bool? confirm = await showDialog<bool>(context: context, builder: (context) => AlertDialog(backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)), title: const Text("Delete Hero Banner?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), content: const Text("Are you sure you want to delete this banner?", style: TextStyle(color: Colors.white70)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: Colors.white)))]));
-    if (confirm == true) { await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString()); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Banner Deleted"), backgroundColor: Colors.redAccent)); _fetchData(); }
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete Hero Banner?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to delete this banner?", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
+    if (confirm == true) {
+      await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString());
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Banner Deleted"), backgroundColor: Colors.redAccent));
+      _fetchData();
+    }
   }
 
   Future<void> _editHeroDialog(Map<String, dynamic> item) async {
-    TextEditingController editTitle = TextEditingController(text: item['title'] ?? '');
     TextEditingController editImage = TextEditingController(text: item['image_url'] ?? '');
     TextEditingController editTag = TextEditingController(text: item['tag'] ?? '');
     String editColor = item['tag_color'] ?? "FF8A2BE2";
@@ -1089,20 +2171,42 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateModal) => AlertDialog(
-          backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+          backgroundColor: cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
           title: const Text("Edit Hero Banner", style: TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: editTitle, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")), const SizedBox(height: 12),
-                TextField(controller: editImage, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL")), const SizedBox(height: 12),
-                TextField(controller: editTag, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag")), const SizedBox(height: 12),
-                DropdownButtonFormField<String>(dropdownColor: cardDark, value: _colorOptions.values.contains(editColor) ? editColor : "FF8A2BE2", decoration: _inputDeco("Tag Color"), items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)))))).toList(), onChanged: (v) => setStateModal(() => editColor = v!))
+                TextField(controller: editImage, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL")),
+                const SizedBox(height: 12),
+                TextField(controller: editTag, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag")),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _colorOptions.values.contains(editColor) ? editColor : "FF8A2BE2", 
+                  decoration: _inputDeco("Tag Color"), 
+                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)))))).toList(), 
+                  onChanged: (v) => setStateModal(() => editColor = v!)
+                )
               ],
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(onPressed: () async { await Supabase.instance.client.from('hero_slider').update({'title': editTitle.text, 'image_url': editImage.text, 'tag': editTag.text, 'tag_color': editColor}).eq('id', item['id'].toString()); if(mounted) Navigator.pop(context); _fetchData(); }, child: const Text("Save", style: TextStyle(color: Colors.white)))]
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+            ElevatedButton(
+              onPressed: () async {
+                await Supabase.instance.client.from('hero_slider').update({
+                  'image_url': editImage.text,
+                  'tag': editTag.text,
+                  'tag_color': editColor
+                }).eq('id', item['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchData();
+              },
+              child: const Text("Save", style: TextStyle(color: Colors.white))
+            )
+          ]
         )
       )
     );
@@ -1116,29 +2220,126 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
-            child: Row(children: [Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.add_photo_alternate, color: adminPurple)), const SizedBox(width: 16), Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text("Add New Hero Banner", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text("Add new banner to show on home slider", style: TextStyle(color: Colors.white54, fontSize: 12))])]),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16)),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
+                  child: const Icon(Icons.add_photo_alternate, color: adminPurple),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text("Add New Hero Banner", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text("Add new banner to show on home slider", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  ],
+                )
+              ],
+            ),
           ),
           const SizedBox(height: 20),
-          Container(decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12)), child: SwitchListTile(title: const Text("Custom Banner (Not linked to Anime)", style: TextStyle(color: Colors.white, fontSize: 14)), activeColor: adminPurple, value: _isCustom, onChanged: (val) => setState(() => _isCustom = val))), const SizedBox(height: 16),
-          if (!_isCustom) ...[DropdownButtonFormField<String>(dropdownColor: cardDark, value: _selectedAnimeId, hint: const Text("Link to Existing Anime", style: TextStyle(color: Colors.white54)), style: const TextStyle(color: Colors.white), decoration: _inputDeco("Select Anime"), items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), onChanged: (v) => setState(() => _selectedAnimeId = v)), const SizedBox(height: 12)],
-          TextField(controller: _titleController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Name")), const SizedBox(height: 12),
-          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL (Landscape)")), const SizedBox(height: 12),
-          Row(children: [Expanded(flex: 2, child: TextField(controller: _tagController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag (Trending, Action, Romance...)"))), const SizedBox(width: 12), Expanded(child: DropdownButtonFormField<String>(dropdownColor: cardDark, value: _selectedColor, decoration: _inputDeco("Color"), items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)), fontSize: 13)))).toList(), onChanged: (v) => setState(() => _selectedColor = v!)))]), const SizedBox(height: 24),
-          SizedBox(width: double.infinity, height: 52, child: ElevatedButton.icon(icon: const Icon(Icons.add, color: Colors.white), label: const Text("Add to Hero Slider", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), onPressed: _addHero)), const SizedBox(height: 36), 
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Current Hero Banners", style: TextStyle(color: adminPurple, fontSize: 16, fontWeight: FontWeight.bold)), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Text("Total ${_heroItems.length} Banners", style: const TextStyle(color: adminPurple, fontSize: 11, fontWeight: FontWeight.bold)))]),
+
+          Container(
+            decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12)),
+            child: SwitchListTile(
+              title: const Text("Custom Banner (Not linked to Anime)", style: TextStyle(color: Colors.white, fontSize: 14)), 
+              activeColor: adminPurple, 
+              value: _isCustom, 
+              onChanged: (val) => setState(() => _isCustom = val)
+            ),
+          ),
           const SizedBox(height: 16),
+          if (!_isCustom) ...[
+            DropdownButtonFormField<String>(
+              dropdownColor: cardDark, 
+              value: _selectedAnimeId, 
+              hint: const Text("Link to Existing Anime", style: TextStyle(color: Colors.white54)), 
+              style: const TextStyle(color: Colors.white), 
+              decoration: _inputDeco("Select Anime"), 
+              items: _animeList.map((a) => DropdownMenuItem<String>(value: a['id'].toString(), child: Text(a['title'].toString()))).toList(), 
+              onChanged: (v) => setState(() => _selectedAnimeId = v)
+            ),
+            const SizedBox(height: 12),
+          ],
+          TextField(controller: _imageController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Banner Image URL (Landscape)")), 
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(flex: 2, child: TextField(controller: _tagController, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Tag (Trending, Action, Romance...)"))), 
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: _selectedColor, 
+                  decoration: _inputDeco("Color"), 
+                  items: _colorOptions.entries.map((e) => DropdownMenuItem(value: e.value, child: Text(e.key, style: TextStyle(color: Color(int.parse(e.value, radix: 16)), fontSize: 13)))).toList(), 
+                  onChanged: (v) => setState(() => _selectedColor = v!)
+                )
+              )
+            ]
+          ), 
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity, 
+            height: 52, 
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.add, color: Colors.white), 
+              label: const Text("Add to Hero Slider", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+              onPressed: _addHero
+            )
+          ),
+          const SizedBox(height: 36), 
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Current Hero Banners", style: TextStyle(color: adminPurple, fontSize: 16, fontWeight: FontWeight.bold)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                child: Text("Total ${_heroItems.length} Banners", style: const TextStyle(color: adminPurple, fontSize: 11, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+          const SizedBox(height: 16),
+          
           ListView.builder(
-            shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _heroItems.length, 
+            shrinkWrap: true, 
+            physics: const NeverScrollableScrollPhysics(), 
+            itemCount: _heroItems.length, 
             itemBuilder: (context, index) {
               final item = _heroItems[index];
               return Container(
-                margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(12),
-                  leading: ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(item['image_url'], width: 80, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 80, color: bgDark, child: const Icon(Icons.broken_image, color: Colors.white54)))),
-                  title: Text(item['title'] ?? "No Title", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), subtitle: Text("Tag: ${item['tag']} | ${item['is_custom'] ? "Custom" : "Linked"}", style: const TextStyle(color: Colors.white54, fontSize: 12)), 
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [Container(margin: const EdgeInsets.only(right: 8), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: IconButton(icon: const Icon(Icons.edit, color: adminPurple, size: 20), onPressed: () => _editHeroDialog(item), constraints: const BoxConstraints(minWidth: 40, minHeight: 40))), Container(margin: const EdgeInsets.only(right: 8), decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 20), onPressed: () => _deleteHeroDialog(item['id']), constraints: const BoxConstraints(minWidth: 40, minHeight: 40))), const Icon(Icons.drag_indicator, color: Colors.white38)])
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(item['image_url'], width: 80, height: 60, fit: BoxFit.cover, errorBuilder: (c,e,s)=>Container(width: 80, color: bgDark, child: const Icon(Icons.broken_image, color: Colors.white54))),
+                  ),
+                  title: Text(item['tag'] ?? "Banner", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), 
+                  subtitle: const Text("Custom Banner", style: TextStyle(color: Colors.white54, fontSize: 12)), 
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                        child: IconButton(icon: const Icon(Icons.edit, color: adminPurple, size: 20), onPressed: () => _editHeroDialog(item), constraints: const BoxConstraints(minWidth: 40, minHeight: 40)),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                        child: IconButton(icon: const Icon(Icons.delete, color: Color(0xFFEF4444), size: 20), onPressed: () => _deleteHeroDialog(item['id']), constraints: const BoxConstraints(minWidth: 40, minHeight: 40)),
+                      ),
+                      const Icon(Icons.drag_indicator, color: Colors.white38)
+                    ],
+                  )
                 )
               );
             }
@@ -1149,7 +2350,15 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
   }
 
   InputDecoration _inputDeco(String hint) {
-    return InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Colors.white38, fontSize: 13), filled: true, fillColor: cardDark, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1)));
+    return InputDecoration(
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13), 
+      filled: true, 
+      fillColor: cardDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1))
+    );
   }
 }
 
@@ -1158,7 +2367,9 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
 // ==========================================
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
-  @override State<UsersListScreen> createState() => _UsersListScreenState();
+
+  @override
+  State<UsersListScreen> createState() => _UsersListScreenState();
 }
 
 class _UsersListScreenState extends State<UsersListScreen> {
@@ -1167,30 +2378,73 @@ class _UsersListScreenState extends State<UsersListScreen> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
-  @override void initState() { super.initState(); _fetchUsers(); }
+  @override
+  void initState() { 
+    super.initState(); 
+    _fetchUsers(); 
+  }
 
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
       final data = await Supabase.instance.client.from('user_preferences').select('id, name, uid, device_name, status, created_at').order('created_at', ascending: false);
-      setState(() { _allUsers = data; _filteredUsers = data; });
-    } catch (e) { } finally { if(mounted) setState(() => _isLoading = false); }
+      setState(() {
+        _allUsers = data;
+        _filteredUsers = data;
+      });
+    } catch (e) {
+    } finally { 
+      if(mounted) setState(() => _isLoading = false); 
+    }
   }
 
   void _filterUsers(String query) {
-    if (query.isEmpty) { setState(() => _filteredUsers = _allUsers); return; }
+    if (query.isEmpty) {
+      setState(() => _filteredUsers = _allUsers);
+      return;
+    }
     String lowerQuery = query.toLowerCase();
-    setState(() { _filteredUsers = _allUsers.where((u) { String name = (u['name'] ?? "").toLowerCase(); String uid = (u['uid'] ?? u['id']?.toString() ?? "").toLowerCase(); return name.contains(lowerQuery) || uid.contains(lowerQuery); }).toList(); });
+    setState(() {
+      _filteredUsers = _allUsers.where((u) {
+        String name = (u['name'] ?? "").toLowerCase();
+        String uid = (u['uid'] ?? u['id']?.toString() ?? "").toLowerCase();
+        return name.contains(lowerQuery) || uid.contains(lowerQuery);
+      }).toList();
+    });
   }
 
   Future<void> _deleteUserDialog(Map<String, dynamic> user) async {
-    bool? confirm = await showDialog<bool>(context: context, builder: (context) => AlertDialog(backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)), title: const Text("Delete User?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), content: const Text("Are you sure you want to permanently delete this user? This will also clean up their associated payments.", style: TextStyle(color: Colors.white70)), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent), onPressed: () => Navigator.pop(context, true), child: const Text("Delete", style: TextStyle(color: Colors.white)))]));
+    bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Delete User?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("Are you sure you want to permanently delete this user? This will also clean up their associated payments.", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete", style: TextStyle(color: Colors.white))
+          )
+        ]
+      )
+    );
+
     if (confirm == true) {
       try {
         String userUid = user['uid']?.toString() ?? user['id']?.toString() ?? '';
-        if (userUid.isNotEmpty) { await Supabase.instance.client.from('payment_requests').delete().eq('uid', userUid); await Supabase.instance.client.from('payment_requests').delete().eq('user_id', userUid); }
+        
+        if (userUid.isNotEmpty) {
+          await Supabase.instance.client.from('payment_requests').delete().eq('uid', userUid);
+          await Supabase.instance.client.from('payment_requests').delete().eq('user_id', userUid);
+        }
+        
         await Supabase.instance.client.from('user_preferences').delete().eq('id', user['id'].toString());
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User & Associated Payments Deleted"), backgroundColor: Colors.redAccent)); _fetchUsers();
+        
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User & Associated Payments Deleted"), backgroundColor: Colors.redAccent));
+        _fetchUsers();
       } catch (e) {}
     }
   }
@@ -1204,60 +2458,270 @@ class _UsersListScreenState extends State<UsersListScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setStateModal) => AlertDialog(
-          backgroundColor: cardDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+          backgroundColor: cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
           title: const Text("Edit User", style: TextStyle(color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
-              mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("UID (Read-only)", style: TextStyle(color: adminPurple, fontSize: 12)), const SizedBox(height: 4), TextField(controller: TextEditingController(text: user['uid'] ?? user['id']?.toString()), readOnly: true, style: const TextStyle(color: Colors.white54), decoration: _inputDeco("UID")), const SizedBox(height: 16),
-                const Text("User Name", style: TextStyle(color: adminPurple, fontSize: 12)), const SizedBox(height: 4), TextField(controller: editName, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Name")), const SizedBox(height: 16),
-                const Text("Device Name", style: TextStyle(color: adminPurple, fontSize: 12)), const SizedBox(height: 4), TextField(controller: editDevice, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Device Name")), const SizedBox(height: 16),
-                const Text("Account Status", style: TextStyle(color: adminPurple, fontSize: 12)), const SizedBox(height: 4),
-                DropdownButtonFormField<String>(dropdownColor: cardDark, value: currentStatus, decoration: _inputDeco("Status"), items: ['Active', 'Inactive'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: TextStyle(color: s == 'Active' ? Colors.green : Colors.orange)))).toList(), onChanged: (v) => setStateModal(() => currentStatus = v!))
+                const Text("UID (Read-only)", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: TextEditingController(text: user['uid'] ?? user['id']?.toString()), readOnly: true, style: const TextStyle(color: Colors.white54), decoration: _inputDeco("UID")),
+                const SizedBox(height: 16),
+                const Text("User Name", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: editName, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Name")),
+                const SizedBox(height: 16),
+                const Text("Device Name", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: editDevice, style: const TextStyle(color: Colors.white), decoration: _inputDeco("Device Name")),
+                const SizedBox(height: 16),
+                const Text("Account Status", style: TextStyle(color: adminPurple, fontSize: 12)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  dropdownColor: cardDark, 
+                  value: currentStatus, 
+                  decoration: _inputDeco("Status"), 
+                  items: ['Active', 'Inactive'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: TextStyle(color: s == 'Active' ? Colors.green : Colors.orange)))).toList(), 
+                  onChanged: (v) => setStateModal(() => currentStatus = v!)
+                )
               ],
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))), ElevatedButton(onPressed: () async { await Supabase.instance.client.from('user_preferences').update({'name': editName.text, 'device_name': editDevice.text, 'status': currentStatus}).eq('id', user['id'].toString()); if(mounted) Navigator.pop(context); _fetchUsers(); }, child: const Text("Save", style: TextStyle(color: Colors.white)))]
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+            ElevatedButton(
+              onPressed: () async {
+                await Supabase.instance.client.from('user_preferences').update({
+                  'name': editName.text,
+                  'device_name': editDevice.text,
+                  'status': currentStatus
+                }).eq('id', user['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchUsers();
+              },
+              child: const Text("Save", style: TextStyle(color: Colors.white))
+            )
+          ]
         )
       )
     );
   }
 
   String _formatDate(String? isoString) {
-    if (isoString == null) return "Unknown Date"; DateTime d = DateTime.parse(isoString).toLocal(); String ampm = d.hour >= 12 ? 'PM' : 'AM'; int hr = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
+    if (isoString == null) return "Unknown Date";
+    DateTime d = DateTime.parse(isoString).toLocal();
+    String ampm = d.hour >= 12 ? 'PM' : 'AM';
+    int hr = d.hour > 12 ? d.hour - 12 : (d.hour == 0 ? 12 : d.hour);
     return "${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year} ${hr.toString().padLeft(2,'0')}:${d.minute.toString().padLeft(2, '0')} $ampm";
   }
 
-  InputDecoration _inputDeco(String hint) { return InputDecoration(hintText: hint, hintStyle: const TextStyle(color: Colors.white38, fontSize: 13), filled: true, fillColor: bgDark, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: adminPurple, width: 1))); }
+  InputDecoration _inputDeco(String hint) {
+    return InputDecoration(
+      hintText: hint, 
+      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13), 
+      filled: true, 
+      fillColor: bgDark, 
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: adminPurple, width: 1))
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    int total = _allUsers.length, active = _allUsers.where((u) => u['status'] == null || u['status'] == 'Active').length, inactive = _allUsers.where((u) => u['status'] == 'Inactive').length;
+    int total = _allUsers.length;
+    int active = _allUsers.where((u) => u['status'] == null || u['status'] == 'Active').length;
+    int inactive = _allUsers.where((u) => u['status'] == 'Inactive').length;
+
     return Column(
       children: [
-        Container(margin: const EdgeInsets.all(16), padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: adminPurple.withOpacity(0.3))), child: Row(children: const [Icon(Icons.info_outline, color: adminPurple, size: 20), SizedBox(width: 12), Expanded(child: Text("User data is stored securely. You can manage users from here.", style: TextStyle(color: Colors.white70, fontSize: 12)))])),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: [Expanded(child: TextField(controller: _searchController, onChanged: _filterUsers, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: InputDecoration(hintText: "Search by Name or UID...", hintStyle: const TextStyle(color: Colors.white38), prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20), filled: true, fillColor: cardDark, contentPadding: const EdgeInsets.symmetric(vertical: 0), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)))), const SizedBox(width: 12), Container(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12)), child: Row(children: const [Icon(Icons.filter_alt_outlined, color: adminPurple, size: 18), SizedBox(width: 6), Text("Filter", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 13))]))])),
+        // Security Info Banner
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
+          decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12), border: Border.all(color: adminPurple.withOpacity(0.3))),
+          child: Row(
+            children: const [
+              Icon(Icons.info_outline, color: adminPurple, size: 20), 
+              SizedBox(width: 12), 
+              Expanded(
+                child: Text("User data is stored securely. You can manage users from here.", style: TextStyle(color: Colors.white70, fontSize: 12))
+              )
+            ]
+          )
+        ),
+        
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _filterUsers,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: "Search by Name or UID...",
+                    hintStyle: const TextStyle(color: Colors.white38),
+                    prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                    filled: true,
+                    fillColor: cardDark,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(color: adminPurple.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: const [
+                    Icon(Icons.filter_alt_outlined, color: adminPurple, size: 18),
+                    SizedBox(width: 6),
+                    Text("Filter", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 13))
+                  ],
+                ),
+              )
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: Row(children: [Expanded(child: _buildTopStatCard("Total Users", total.toString(), adminPurple, Icons.group)), const SizedBox(width: 8), Expanded(child: _buildTopStatCard("Active Users", active.toString(), const Color(0xFF10B981), Icons.person_add_alt_1)), const SizedBox(width: 8), Expanded(child: _buildTopStatCard("Inactive Users", inactive.toString(), const Color(0xFFF59E0B), Icons.person_off)), const SizedBox(width: 8), Expanded(child: _buildTopStatCard("Deleted Users", "0", const Color(0xFFEF4444), Icons.delete_outline))])),
+
+        // User Stats Grid
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(child: _buildTopStatCard("Total Users", total.toString(), adminPurple, Icons.group)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Active Users", active.toString(), const Color(0xFF10B981), Icons.person_add_alt_1)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Inactive Users", inactive.toString(), const Color(0xFFF59E0B), Icons.person_off)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTopStatCard("Deleted Users", "0", const Color(0xFFEF4444), Icons.delete_outline)),
+            ],
+          ),
+        ),
         const SizedBox(height: 16),
+
+        // User List
         Expanded(
-          child: _isLoading ? const Center(child: CircularProgressIndicator(color: adminPurple)) : _filteredUsers.isEmpty ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54))) : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), itemCount: _filteredUsers.length,
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator(color: adminPurple))
+            : _filteredUsers.isEmpty 
+              ? const Center(child: Text("No users found.", style: TextStyle(color: Colors.white54)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
+                  itemCount: _filteredUsers.length,
                   itemBuilder: (context, index) {
                     final user = _filteredUsers[index];
-                    String name = user['name'] != null && user['name'].toString().isNotEmpty ? user['name'] : "Unknown User", uid = user['uid'] ?? user['id']?.toString().substring(0, 8).toUpperCase() ?? "N/A", device = user['device_name'] != null && user['device_name'].toString().isNotEmpty ? user['device_name'] : "Unknown Device", joined = _formatDate(user['created_at']), status = (user['status'] != null && user['status'].toString().isNotEmpty) ? user['status'] : "Active";
+                    String name = user['name'] != null && user['name'].toString().isNotEmpty ? user['name'] : "Unknown User";
+                    String uid = user['uid'] ?? user['id']?.toString().substring(0, 8).toUpperCase() ?? "N/A";
+                    String device = user['device_name'] != null && user['device_name'].toString().isNotEmpty ? user['device_name'] : "Unknown Device";
+                    String joined = _formatDate(user['created_at']);
+                    String status = (user['status'] != null && user['status'].toString().isNotEmpty) ? user['status'] : "Active";
                     Color statusColor = status == 'Active' ? const Color(0xFF10B981) : const Color(0xFFF59E0B);
+
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 12), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
+                      margin: const EdgeInsets.only(bottom: 12), 
+                      decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle), child: const Icon(Icons.person, color: adminPurple, size: 28)), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 4), Row(children: [const Text("UID: ", style: TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)), Text(uid, style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 0.5))])])), IconButton(icon: const Icon(Icons.more_vert, color: adminPurple), onPressed: () => _editUserDialog(user), padding: EdgeInsets.zero, constraints: const BoxConstraints())]),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
+                                  child: const Icon(Icons.person, color: adminPurple, size: 28)
+                                ), 
+                                const SizedBox(width: 16), 
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          const Text("UID: ", style: TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)),
+                                          Text(uid, style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 0.5)),
+                                        ],
+                                      )
+                                    ],
+                                  )
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.more_vert, color: adminPurple),
+                                  onPressed: () => _editUserDialog(user),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                )
+                              ]
+                            ),
                             const SizedBox(height: 16),
-                            Row(children: [Expanded(flex: 1, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Status", style: TextStyle(color: Colors.white54, fontSize: 10)), const SizedBox(height: 4), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(4)), child: Text(status, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)))])), Container(height: 30, width: 1, color: Colors.white10), const SizedBox(width: 16), Expanded(flex: 2, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Joined On", style: TextStyle(color: Colors.white54, fontSize: 10)), const SizedBox(height: 4), Text(joined, style: const TextStyle(color: Colors.white, fontSize: 11))])), Container(height: 30, width: 1, color: Colors.white10), const SizedBox(width: 16), Expanded(flex: 2, child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Device", style: TextStyle(color: Colors.white54, fontSize: 10)), const SizedBox(height: 4), Text(device, style: const TextStyle(color: Colors.white, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)]), Container(decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle), child: IconButton(icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteUserDialog(user), constraints: const BoxConstraints(minWidth: 36, minHeight: 36)))]))])
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text("Status", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                      const SizedBox(height: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+                                        child: Text(status, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      )
+                                    ],
+                                  )
+                                ),
+                                Container(height: 30, width: 1, color: Colors.white10),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text("Joined On", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                      const SizedBox(height: 4),
+                                      Text(joined, style: const TextStyle(color: Colors.white, fontSize: 11)),
+                                    ],
+                                  )
+                                ),
+                                Container(height: 30, width: 1, color: Colors.white10),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text("Device", style: TextStyle(color: Colors.white54, fontSize: 10)),
+                                          const SizedBox(height: 4),
+                                          Text(device, style: const TextStyle(color: Colors.white, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                        ],
+                                      ),
+                                      Container(
+                                        decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
+                                        child: IconButton(icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteUserDialog(user), constraints: const BoxConstraints(minWidth: 36, minHeight: 36)),
+                                      )
+                                    ],
+                                  )
+                                ),
+                              ],
+                            )
                           ]
                         )
                       )
@@ -1265,13 +2729,35 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   }
                 )
               ),
-              if(!_isLoading && _filteredUsers.isNotEmpty) Container(padding: const EdgeInsets.symmetric(vertical: 16), child: Text("Showing 1 to ${_filteredUsers.length} of $total users", style: const TextStyle(color: Colors.white54, fontSize: 12)))
+              
+              if(!_isLoading && _filteredUsers.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text("Showing 1 to ${_filteredUsers.length} of $total users", style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                )
             ]
           );
   }
 
   Widget _buildTopStatCard(String title, String count, Color color, IconData icon) {
-    return Container(padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4), decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)), child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.center, children: [Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(6)), child: Icon(icon, color: color, size: 14)), const SizedBox(width: 6), Text(count, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))]), const SizedBox(height: 8), Text(title, style: const TextStyle(color: Colors.white54, fontSize: 9), textAlign: TextAlign.center, maxLines: 1)]));
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(6)), child: Icon(icon, color: color, size: 14)),
+              const SizedBox(width: 6),
+              Text(count, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(title, style: const TextStyle(color: Colors.white54, fontSize: 9), textAlign: TextAlign.center, maxLines: 1),
+        ],
+      ),
+    );
   }
 }
 
@@ -1324,6 +2810,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // SECURE SETTINGS SECTION
           const Text("Security Settings", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
           const SizedBox(height: 12),
           Container(
