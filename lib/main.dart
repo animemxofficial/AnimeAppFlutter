@@ -597,6 +597,7 @@ class _AuthGateState extends State<AuthGate> {
       currentHardwareId = await getHardwareDeviceId(); 
       currentDeviceName = await getActualDeviceName();
 
+      // 1. Check in Database
       final existingUser = await Supabase.instance.client
           .from('user_preferences')
           .select()
@@ -617,10 +618,7 @@ class _AuthGateState extends State<AuthGate> {
         return;
       }
 
-      // Naya Session Banane Ki Koshish
-      await Supabase.instance.client.auth.signOut();
-      await Supabase.instance.client.auth.signInAnonymously().timeout(const Duration(seconds: 10));
-      
+      // 2. Agar Admin ne account delete kar diya hai (existingUser null hai)
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear(); 
       
@@ -628,20 +626,28 @@ class _AuthGateState extends State<AuthGate> {
       continueWatchingNotifier.value.clear();
       myListNotifier.value.clear();
 
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) { throw Exception("Failed to create user session"); }
+      // Check karo ki phone me pehle se token hai ya nahi
+      var user = Supabase.instance.client.auth.currentUser;
+      
+      // Agar phone bilkul naya hai aur token nahi hai, sirf tab naya account banao
+      if (user == null) {
+        await Supabase.instance.client.auth.signInAnonymously().timeout(const Duration(seconds: 10));
+        user = Supabase.instance.client.auth.currentUser;
+      }
+      
+      if (user == null) { throw Exception("Failed to create User Session."); }
       
       currentUserId = user.id;
 
+      // Seedha Name Entry Screen par bhej do (Database me wapas data dalne ke liye)
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
 
     } catch (e) { 
-      // YAHAN HAME ASLI ERROR DIKHEGA SCREEN PAR
       debugPrint("Auth Flow Error: $e");
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SecurityBlockScreen(
-          title: "Supabase Error", 
-          message: "Reason: ${e.toString()}\n\n1. Agar 'Anonymous Auth Disabled' likha hai, toh Supabase settings me use ON karo.\n2. Agar 'Rate Limit' likha hai, toh 1 Ghante ka wait karo."
+          title: "Connection Error", 
+          message: "Unable to connect. Tap Retry.\n(Error: ${e.toString().split('\n')[0]})"
         )));
       }
     }
