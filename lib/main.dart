@@ -17,20 +17,34 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterL
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await Supabase.initialize(
-    url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
-    anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
-  );
+  // 1. Supabase Initialization with Try-Catch
+  try {
+    await Supabase.initialize(
+      url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
+      anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
+    );
+  } catch (e) {
+    debugPrint("Supabase Initialization Error: $e");
+  }
 
-  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  // 2. Local Notifications Initialization with Try-Catch
+  try {
+    // Note: Ensure that '@mipmap/ic_launcher' exists in android/app/src/main/res/mipmap...
+    // Agar custom icon hai toh usay use karein, default 'ic_launcher' hota hai.
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  } catch (e) {
+    debugPrint("Local Notification Initialization Error: $e");
+  }
 
+  // 3. System UI Overlay
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: bgDark,
     statusBarColor: Colors.transparent,
   ));
 
+  // 4. Run the App (Ab yeh hamesha call hoga)
   runApp(const AdminApp());
 }
 
