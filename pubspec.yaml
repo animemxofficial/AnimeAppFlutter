@@ -16,6 +16,15 @@ dependencies:
   image_picker: ^1.1.2
   url_launcher: ^6.3.0
   shared_preferences: ^2.2.3
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_logo.png"
+  adaptive_icon_background: "#000000" # Yeh tumhare background ko black kar dega
+  adaptive_icon_foreground: "assets/icon/app_logo.png" # Yeh tumhara Z wala transparent logo lagayega
+
 
 dev_dependencies:
   flutter_test:
