@@ -374,22 +374,30 @@ class LatestEpisodeItem {
 }
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  String secureUrl = utf8.decode(base64Decode('aHR0cHM6Ly95bmd6ZmdmcHl1ZnVzcmJpdGFnbC5zdXBhYmFzZS5jbw=='));
-  String secureKey = utf8.decode(base64Decode('c2JfcHVibGlzaGFibGVfNkJEMG1vRXBPblVUZmloYlJVcGRPUV9VMmdKQ0g1VQ=='));
-  await Supabase.initialize(url: secureUrl, anonKey: secureKey);
-  
-  SharedPreferences prefs = await SharedPreferences.getInstance();
+  // App ko crash hone se bachane ka Safety Net
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    String secureUrl = utf8.decode(base64Decode('aHR0cHM6Ly95bmd6ZmdmcHl1ZnVzcmJpdGFnbC5zdXBhYmFzZS5jbw=='));
+    String secureKey = utf8.decode(base64Decode('c2JfcHVibGlzaGFibGVfNkJEMG1vRXBPblVUZmloYlJVcGRPUV9VMmdKQ0g1VQ=='));
+    await Supabase.initialize(url: secureUrl, anonKey: secureKey);
+    
+    SharedPreferences prefs = await SharedPreferences.getInstance();
 
-  localProfileImagePath = prefs.getString('local_avatar_path') ?? "";
-  
-  String? lastSeenStr = prefs.getString('last_seen_notification');
-  if (lastSeenStr != null) {
-    globalLastSeenNotification = DateTime.parse(lastSeenStr);
+    localProfileImagePath = prefs.getString('local_avatar_path') ?? "";
+    
+    String? lastSeenStr = prefs.getString('last_seen_notification');
+    if (lastSeenStr != null) {
+      globalLastSeenNotification = DateTime.parse(lastSeenStr);
+    }
+  } catch (e) {
+    debugPrint("Startup Error: $e");
   }
 
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
+  
+  // App yahan har haal me start hoga, white screen par nahi atkega!
   runApp(const AniXApp());
 }
 
