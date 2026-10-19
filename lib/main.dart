@@ -588,13 +588,21 @@ class _AuthGateState extends State<AuthGate> {
 
   Future<void> _checkDeviceAndAuth() async {
     try {
-      bool vpnActive = await checkVpnConnection();
-      if (vpnActive) { if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen())); return; }
+      bool vpnActive = await checkVpnConnection().timeout(const Duration(seconds: 5));
+      if (vpnActive) { 
+        if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen())); 
+        return; 
+      }
       
       currentHardwareId = await getHardwareDeviceId(); 
       currentDeviceName = await getActualDeviceName();
 
-      final existingUser = await Supabase.instance.client.from('user_preferences').select().eq('device_id', currentHardwareId).maybeSingle();
+      final existingUser = await Supabase.instance.client
+          .from('user_preferences')
+          .select()
+          .eq('device_id', currentHardwareId)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 10));
       
       if (existingUser != null) {
         currentUserId = existingUser['id']; 
@@ -602,15 +610,16 @@ class _AuthGateState extends State<AuthGate> {
         currentUserUid = existingUser['uid'] ?? currentUserId.substring(0,8).toUpperCase();
         
         if (existingUser['status'] == 'Inactive') {
-          if(mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(title: "Account Suspended", message: "Your account has been restricted due to violation of policies.", isSuspended: true)));
+          if(mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(title: "Account Suspended", message: "Your account has been restricted.", isSuspended: true)));
           return;
         }
         if(mounted) Navigator.pushReplacement(context, SmoothPageRoute(page: const MainScreen()));
         return;
       }
 
+      // Naya Session Banane Ki Koshish
       await Supabase.instance.client.auth.signOut();
-      await Supabase.instance.client.auth.signInAnonymously();
+      await Supabase.instance.client.auth.signInAnonymously().timeout(const Duration(seconds: 10));
       
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear(); 
@@ -620,17 +629,19 @@ class _AuthGateState extends State<AuthGate> {
       myListNotifier.value.clear();
 
       final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) { throw Exception("Failed to create User Session."); }
+      if (user == null) { throw Exception("Failed to create user session"); }
       
       currentUserId = user.id;
 
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
 
     } catch (e) { 
+      // YAHAN HAME ASLI ERROR DIKHEGA SCREEN PAR
+      debugPrint("Auth Flow Error: $e");
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SecurityBlockScreen(
-          title: "Connection Failed", 
-          message: "No internet connection. Please check your network settings and try again."
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SecurityBlockScreen(
+          title: "Supabase Error", 
+          message: "Reason: ${e.toString()}\n\n1. Agar 'Anonymous Auth Disabled' likha hai, toh Supabase settings me use ON karo.\n2. Agar 'Rate Limit' likha hai, toh 1 Ghante ka wait karo."
         )));
       }
     }
