@@ -447,7 +447,7 @@ class AppUpdateScreen extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Image.network(
-                      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh_gSU8bVNnDdR8xyPlOmEvtD1-Dv6llkolJU3gso11Ljqf4T-2sfpDVVS5tyQMQHJaeZTCsyFyQ8yS4qL6IJca6ikDeJrw40zRpCWdc_lCqGxRs0yiE51qh9L1rn7ztiqcDWzIy_YoEcs3a1aXio2cszUKyAVR1jW8pa0nrZRRNNprtwNGbmj1Oe1c1X8/s512/ic_launcher.png",
+                      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgzwWmpS-HEyqBkWnSSFblqCtbvz3lQHr7w9OiqYAkx16F-r5gllZW61gydx1SlA8WjZxBUDy39mtNYDEDKqknkGA_TqdeMyKnzyvU9fYN5OJI1VPIggjqHkRtwyf_X9tSY5-em1xvoZC818AHsMAL7n2wufum4kK92lK9IjU9ofwreAVaw3RXiy-PMsSQ/s1024/app_logo.png",
                       fit: BoxFit.cover,
                       errorBuilder: (c,e,s) => Container(color: animeMxPurple, child: const Icon(Icons.tv, color: Colors.white, size: 50))
                     ),
@@ -716,7 +716,7 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Image.network(
-                      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi5xXtmlCe-0Kwff9NukiWGaJlrFq83SlfDQGMyuTLJQWBzXxIIaAxN8J0ltje6lLtfXqNKgjkM3aWvrYCUJ_lW7HnTXbMPAa4ObqaJgcP_ntDTmzKrG4heSUQDwkfIYE1MO2ZwzR-bRCZT-2Boq1WZ5ViHJs1A24mnpIPwBtxqjsuB0KsCh8bEDrDPOmU/s1254/1790418407475.png",
+                      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgzwWmpS-HEyqBkWnSSFblqCtbvz3lQHr7w9OiqYAkx16F-r5gllZW61gydx1SlA8WjZxBUDy39mtNYDEDKqknkGA_TqdeMyKnzyvU9fYN5OJI1VPIggjqHkRtwyf_X9tSY5-em1xvoZC818AHsMAL7n2wufum4kK92lK9IjU9ofwreAVaw3RXiy-PMsSQ/s1024/app_logo.png",
                       fit: BoxFit.cover,
                       errorBuilder: (c,e,s) => Container(color: animeMxPurple, child: const Icon(Icons.tv, color: Colors.white, size: 50))
                     ),
@@ -866,10 +866,11 @@ class _MainScreenState extends State<MainScreen> {
     await _fetchGlobalPlan();
     await fetchGlobalAnimeViews(); 
     
+    // YAHAN CACHING LOGIC LAGA HAI 
     if (animeListNotifier.value.isEmpty) {
       await _fetchDatabaseCatalog(); 
     } else {
-      _fetchDatabaseCatalog(); 
+      _fetchDatabaseCatalog(); // Load silently in background without showing loader
     }
     
     await _fetchUserPreferences(); 
@@ -893,7 +894,7 @@ class _MainScreenState extends State<MainScreen> {
         if(res['upi_id'] != null) globalUpiId = res['upi_id'];
         if(res['support_email'] != null) globalSupportEmail = res['support_email'];
         
-        // ADMIN FLAG SECURE CONTROLLER
+        // ADMIN FLAG SECURE CONTROLLER (REPLACED WITH NEW PACKAGE)
         try {
           if (res['block_screenshots'] != null) {
              globalBlockScreenshots = res['block_screenshots'] == true;
@@ -2849,6 +2850,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
         updatedOrders.add(order);
       }
       
+      // SORTING FIX: Latest payment always at the top
       updatedOrders.sort((a, b) {
          if (a['created_at'] == null || b['created_at'] == null) return 0;
          return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
@@ -4391,7 +4393,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> with TickerProviderSt
   void _toggleControls() { 
     setState(() {
       _showControls = !_showControls;
-      if (!_showControls) _isSpeedMenuVisible = false; 
+      if (!_showControls) _isSpeedMenuVisible = false; // Hide menu when hiding controls
     }); 
     if (_showControls) {
       _startHideTimer();
