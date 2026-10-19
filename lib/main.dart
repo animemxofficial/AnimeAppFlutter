@@ -81,28 +81,66 @@ class AdminApp extends StatelessWidget {
 }
 
 // ==========================================
-// AUTH GATE
+// AUTH GATE (FIXED INFINITE LOADING)
 // ==========================================
-class AdminAuthGate extends StatelessWidget {
+class AdminAuthGate extends StatefulWidget {
   const AdminAuthGate({super.key});
 
   @override
+  State<AdminAuthGate> createState() => _AdminAuthGateState();
+}
+
+class _AdminAuthGateState extends State<AdminAuthGate> {
+  bool _isLoading = true;
+  bool _isLoggedIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialSession();
+  }
+
+  Future<void> _checkInitialSession() async {
+    try {
+      // Turant check karega ki koi purana session hai ya nahi
+      final session = Supabase.instance.client.auth.currentSession;
+      if (mounted) {
+        setState(() {
+          _isLoggedIn = session != null;
+          _isLoading = false;
+        });
+      }
+
+      // Future login/logout ko listen karne ke liye
+      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+        if (mounted) {
+          setState(() {
+            _isLoggedIn = data.session != null;
+          });
+        }
+      });
+    } catch (e) {
+      // Agar internet ya Supabase me koi error aayi toh loading rok dega
+      debugPrint("Auth Check Error: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator(color: adminPurple))
-          );
-        }
-        final session = snapshot.data?.session;
-        if (session != null) {
-          return const AdminDashboard();
-        }
-        return const AdminLoginScreen();
-      },
-    );
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: bgDark, // Background dark rahega
+        body: Center(child: CircularProgressIndicator(color: adminPurple))
+      );
+    }
+    
+    // Agar logged in hai toh Dashboard, warna Login Screen
+    return _isLoggedIn ? const AdminDashboard() : const AdminLoginScreen();
   }
 }
 
