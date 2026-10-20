@@ -2447,31 +2447,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     "https://api.dicebear.com/7.x/bottts/png?seed=Zynox3",
   ];
 
-  // SMART IMAGE PICKER (Gallery Se Select Karne Ke Liye)
+  // SMART IMAGE PICKER (FIXED)
   Future<void> _pickImage() async {
     try {
       final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); 
       if (pickedFile != null) { 
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('local_avatar_path', pickedFile.path);
+        // 1. UI turant update karo (Error aane se pehle)
         setState(() { 
           localProfileImagePath = pickedFile.path;
         }); 
         if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Photo Updated Successfully!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
+        
+        // 2. Silent Save (Agar package fail bhi ho toh red screen na aaye)
+        try {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setString('local_avatar_path', pickedFile.path);
+        } catch(e) {
+          debugPrint("Ignored Error: $e");
+        }
       } 
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error picking image: $e", style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to open gallery. Check permissions.", style: TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent));
     }
   }
 
+  // REMOVE IMAGE (FIXED)
   Future<void> _removeImage() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove('local_avatar_path');
     setState(() { 
       localProfileImagePath = "";
     }); 
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove('local_avatar_path');
+    } catch(e) {}
   }
 
+  // CONFIRM AVATAR (FIXED)
   Future<void> _confirmAvatar(String url) async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -2516,12 +2527,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     if (confirm == true) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('local_avatar_path', url);
+      // 1. UI turant update karo
       setState(() {
         localProfileImagePath = url;
       });
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Avatar Updated Successfully!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
+      
+      // 2. Silent Save
+      try {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('local_avatar_path', url);
+      } catch(e) {}
     }
   }
 
