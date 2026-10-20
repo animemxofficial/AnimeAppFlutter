@@ -24,5 +24,3 @@ plugins {
 }
 
 include(":app")
-
-android.newDsl=false
