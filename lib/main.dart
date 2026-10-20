@@ -1,4 +1,4 @@
-import 'dart:io'; 
+
 import 'dart:async';
 import 'dart:math';
 import 'dart:convert'; 
@@ -586,6 +586,7 @@ class _AuthGateState extends State<AuthGate> {
     _checkDeviceAndAuth(); 
   }
 
+  // SMART ANTI-LOOP AUTH FLOW (Handles Admin Account Deletion Automatically)
   Future<void> _checkDeviceAndAuth() async {
     try {
       bool vpnActive = await checkVpnConnection().timeout(const Duration(seconds: 5));
@@ -597,7 +598,7 @@ class _AuthGateState extends State<AuthGate> {
       currentHardwareId = await getHardwareDeviceId(); 
       currentDeviceName = await getActualDeviceName();
 
-      // 1. Check in Database
+      // 1. Check in Database for existing profile
       final existingUser = await Supabase.instance.client
           .from('user_preferences')
           .select()
@@ -618,7 +619,8 @@ class _AuthGateState extends State<AuthGate> {
         return;
       }
 
-      // 2. Agar Admin ne account delete kar diya hai (existingUser null hai)
+      // 2. Profile not found (Deleted by Admin or Brand New User)
+      // Purana Kachra Clear Karo
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear(); 
       
@@ -626,10 +628,10 @@ class _AuthGateState extends State<AuthGate> {
       continueWatchingNotifier.value.clear();
       myListNotifier.value.clear();
 
-      // Check karo ki phone me pehle se token hai ya nahi
+      // Check karo ki app me pehle se Supabase Auth Token hai ya nahi
       var user = Supabase.instance.client.auth.currentUser;
       
-      // Agar phone bilkul naya hai aur token nahi hai, sirf tab naya account banao
+      // Sirf tab naya auth banao jab token na ho (Aisa karne se IP block/spam error nahi ayega)
       if (user == null) {
         await Supabase.instance.client.auth.signInAnonymously().timeout(const Duration(seconds: 10));
         user = Supabase.instance.client.auth.currentUser;
@@ -639,7 +641,7 @@ class _AuthGateState extends State<AuthGate> {
       
       currentUserId = user.id;
 
-      // Seedha Name Entry Screen par bhej do (Database me wapas data dalne ke liye)
+      // User Profile dobara set karne ke liye seedha Name Entry Screen par bhej do
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
 
     } catch (e) { 
@@ -647,7 +649,7 @@ class _AuthGateState extends State<AuthGate> {
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => SecurityBlockScreen(
           title: "Connection Error", 
-          message: "Unable to connect. Tap Retry.\n(Error: ${e.toString().split('\n')[0]})"
+          message: "Unable to connect. Please check your internet and tap Retry.\n(Error: ${e.toString().split('\n')[0]})"
         )));
       }
     }
@@ -2431,16 +2433,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     "https://api.dicebear.com/7.x/bottts/png?seed=Zynox3",
   ];
 
+  // SMART IMAGE PICKER (Gallery Se Select Karne Ke Liye)
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); 
-    if (pickedFile != null) { 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setString('local_avatar_path', pickedFile.path);
-      setState(() { 
-        localProfileImagePath = pickedFile.path;
-      }); 
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Photo Updated Successfully!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
-    } 
+    try {
+      final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery); 
+      if (pickedFile != null) { 
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('local_avatar_path', pickedFile.path);
+        setState(() { 
+          localProfileImagePath = pickedFile.path;
+        }); 
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile Photo Updated Successfully!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
+      } 
+    } catch (e) {
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error picking image: $e", style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent));
+    }
   }
 
   Future<void> _removeImage() async {
