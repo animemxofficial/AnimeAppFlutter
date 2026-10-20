@@ -620,9 +620,13 @@ class _AuthGateState extends State<AuthGate> {
       }
 
       // 2. Profile not found (Deleted by Admin or Brand New User)
-      // Purana Kachra Clear Karo
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.clear(); 
+      // Purana Kachra Clear Karo (Wrapped in try-catch to prevent app crash if package fails)
+      try {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.clear(); 
+      } catch (e) {
+        debugPrint("SharedPreferences Error Ignored: $e");
+      }
       
       animeListNotifier.value.clear();
       continueWatchingNotifier.value.clear();
@@ -631,15 +635,23 @@ class _AuthGateState extends State<AuthGate> {
       // Check karo ki app me pehle se Supabase Auth Token hai ya nahi
       var user = Supabase.instance.client.auth.currentUser;
       
-      // Sirf tab naya auth banao jab token na ho (Aisa karne se IP block/spam error nahi ayega)
+      // Sirf tab naya auth banao jab token na ho
       if (user == null) {
-        await Supabase.instance.client.auth.signInAnonymously().timeout(const Duration(seconds: 10));
-        user = Supabase.instance.client.auth.currentUser;
+        try {
+          await Supabase.instance.client.auth.signInAnonymously().timeout(const Duration(seconds: 10));
+          user = Supabase.instance.client.auth.currentUser;
+        } catch (e) {
+          debugPrint("Anonymous Auth Error: $e");
+        }
       }
       
-      if (user == null) { throw Exception("Failed to create User Session."); }
-      
-      currentUserId = user.id;
+      // Failsafe: Agar package error ki wajah se Supabase auth fail ho jaye, 
+      // tab bhi app NameEntryScreen par jana chahiye
+      if (user == null) { 
+         currentUserId = const Uuid().v4(); 
+      } else {
+         currentUserId = user.id;
+      }
 
       // User Profile dobara set karne ke liye seedha Name Entry Screen par bhej do
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const NameEntryScreen())); 
@@ -706,8 +718,10 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
       currentUserName = fullName;
       currentUserUid = shortUid;
       
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('tour_completed', false);
+      try {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('tour_completed', false);
+      } catch(e) {}
 
       if (mounted) Navigator.pushReplacement(context, SmoothPageRoute(page: const MainScreen()));
     } catch (e) { 
