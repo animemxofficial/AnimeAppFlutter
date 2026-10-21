@@ -17,25 +17,34 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterL
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // 1. Supabase Initialization with Try-Catch
   try {
-    // ⚠️ BHAI YAHAN APNI ASLI 'eyJ...' WALI ANON KEY DALNA, WARNA CONNECT NAHI HOGA ⚠️
     await Supabase.initialize(
       url: 'https://yngzfgfpyufusrbitagl.supabase.co',          
-      anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', // CHANGE THIS TO REAL JWT KEY
+      anonKey: 'sb_publishable_6BD0moEpOnUTfihbRUpdOQ_U2gJCH5U', 
     );
   } catch (e) {
-    debugPrint("Supabase Init Error: $e");
+    debugPrint("Supabase Initialization Error: $e");
   }
 
-  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
-  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  // 2. Local Notifications Initialization with Try-Catch
+  try {
+    // Note: Ensure that '@mipmap/ic_launcher' exists in android/app/src/main/res/mipmap...
+    // Agar custom icon hai toh usay use karein, default 'ic_launcher' hota hai.
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  } catch (e) {
+    debugPrint("Local Notification Initialization Error: $e");
+  }
 
+  // 3. System UI Overlay
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: bgDark,
     statusBarColor: Colors.transparent,
   ));
 
+  // 4. Run the App (Ab yeh hamesha call hoga)
   runApp(const AdminApp());
 }
 
@@ -72,7 +81,7 @@ class AdminApp extends StatelessWidget {
 }
 
 // ==========================================
-// AUTH GATE (FIXED)
+// AUTH GATE (FIXED INFINITE LOADING)
 // ==========================================
 class AdminAuthGate extends StatefulWidget {
   const AdminAuthGate({super.key});
@@ -88,11 +97,12 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
   @override
   void initState() {
     super.initState();
-    _checkSession();
+    _checkInitialSession();
   }
 
-  Future<void> _checkSession() async {
+  Future<void> _checkInitialSession() async {
     try {
+      // Turant check karega ki koi purana session hai ya nahi
       final session = Supabase.instance.client.auth.currentSession;
       if (mounted) {
         setState(() {
@@ -101,6 +111,7 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
         });
       }
 
+      // Future login/logout ko listen karne ke liye
       Supabase.instance.client.auth.onAuthStateChange.listen((data) {
         if (mounted) {
           setState(() {
@@ -109,15 +120,26 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
         }
       });
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      // Agar internet ya Supabase me koi error aayi toh loading rok dega
+      debugPrint("Auth Check Error: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(backgroundColor: bgDark, body: Center(child: CircularProgressIndicator(color: adminPurple)));
+      return const Scaffold(
+        backgroundColor: bgDark, // Background dark rahega
+        body: Center(child: CircularProgressIndicator(color: adminPurple))
+      );
     }
+    
+    // Agar logged in hai toh Dashboard, warna Login Screen
     return _isLoggedIn ? const AdminDashboard() : const AdminLoginScreen();
   }
 }
@@ -139,10 +161,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   bool _obscureText = true;
 
   Future<void> _login() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Email and Password required!"), backgroundColor: Colors.orange));
-      return;
-    }
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
     setState(() => _isLoading = true);
     try {
       await Supabase.instance.client.auth.signInWithPassword(
@@ -151,7 +170,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent, duration: const Duration(seconds: 4))
+        SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent)
       );
     } finally {
       if(mounted) setState(() => _isLoading = false);
@@ -168,7 +187,12 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
             top: -100, left: -50, right: -50,
             child: Container(
               height: 500, 
-              decoration: BoxDecoration(gradient: RadialGradient(colors: [adminPurple.withOpacity(0.2), Colors.transparent], radius: 0.8))
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  colors: [adminPurple.withOpacity(0.2), Colors.transparent], 
+                  radius: 0.8
+                )
+              )
             ),
           ),
           Center(
@@ -189,7 +213,10 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(color: adminPurple.withOpacity(0.1), shape: BoxShape.circle),
+                      decoration: BoxDecoration(
+                        color: adminPurple.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
                       child: const Icon(Icons.shield_moon_outlined, size: 60, color: adminPurple),
                     ),
                     const SizedBox(height: 16),
@@ -214,7 +241,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         hintStyle: const TextStyle(color: Colors.white38),
                         filled: true, 
                         fillColor: bgDark, 
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1.5)),
                       )
                     ),
                     const SizedBox(height: 16),
@@ -232,7 +260,8 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
                         hintStyle: const TextStyle(color: Colors.white38),
                         filled: true, 
                         fillColor: bgDark, 
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPurple, width: 1.5)),
                       )
                     ),
                     const SizedBox(height: 32),
@@ -461,11 +490,74 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   List<String> _weekLabels = ["", "", "", "", "", "", ""];
   
   bool _isLoading = true;
+  RealtimeChannel? _dbChannel;
 
   @override
   void initState() {
     super.initState();
+    _requestNotificationPermission(); 
     _fetchStats();
+    _initRealtime();
+  }
+
+  Future<void> _requestNotificationPermission() async {
+    final androidImplementation = flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+    }
+  }
+
+  Future<void> _showPaymentNotification() async {
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'admin_payment_alerts', 'Payment Alerts',
+      channelDescription: 'Notifications for new user payments',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+      enableVibration: true,
+      playSound: true,
+    );
+    final NotificationDetails platformDetails = NotificationDetails(android: androidDetails);
+    await flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecond, 
+      "New Payment Received! 💰", 
+      "A user has just submitted a new payment proof. Please review it.", 
+      platformDetails
+    );
+  }
+
+  void _initRealtime() {
+    _dbChannel = Supabase.instance.client.channel('public:admin_dashboard')
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'user_preferences',
+          callback: (payload) => _fetchStats())
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.insert, 
+          schema: 'public',
+          table: 'payment_requests',
+          callback: (payload) {
+             _showPaymentNotification();
+             _fetchStats();
+          })
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'payment_requests',
+          callback: (payload) => _fetchStats())
+      ..onPostgresChanges(
+          event: PostgresChangeEvent.delete,
+          schema: 'public',
+          table: 'payment_requests',
+          callback: (payload) => _fetchStats())
+      ..subscribe();
+  }
+
+  @override
+  void dispose() {
+    _dbChannel?.unsubscribe();
+    super.dispose();
   }
 
   final List<String> _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -473,6 +565,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   Future<void> _fetchStats() async {
     try {
       final now = DateTime.now();
+      
       List<String> tempLabels = [];
       for(int i = 6; i >= 0; i--) {
         DateTime d = now.subtract(Duration(days: i));
@@ -480,17 +573,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       }
       
       final userRes = await Supabase.instance.client.from('user_preferences').select('id, created_at');
+      
       Set<String> uniqueIds = {};
       List<int> counts = List.filled(7, 0);
       
       for(var r in userRes) { 
         if(r['id'] != null) uniqueIds.add(r['id'].toString()); 
+        
         if(r['created_at'] != null) {
           DateTime ca = DateTime.parse(r['created_at']).toLocal();
           DateTime today = DateTime(now.year, now.month, now.day);
           DateTime createdDate = DateTime(ca.year, ca.month, ca.day);
           int diffDays = today.difference(createdDate).inDays;
-          if(diffDays >= 0 && diffDays <= 6) counts[6 - diffDays]++; 
+          
+          if(diffDays >= 0 && diffDays <= 6) {
+            counts[6 - diffDays]++; 
+          }
         }
       }
       totalUsers = uniqueIds.length;
@@ -502,6 +600,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       if(freeUsers < 0) freeUsers = 0;
       offlineUsers = totalUsers; 
 
+      final startOfToday = DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
+      try {
+        final dailyRes = await Supabase.instance.client.from('user_views').select('user_id').gte('created_at', startOfToday);
+        Set<String> uniqueDaily = {};
+        for(var r in dailyRes) { 
+          if(r['user_id'] != null) uniqueDaily.add(r['user_id'].toString()); 
+        }
+        dailyActiveUsers = uniqueDaily.length;
+      } catch(e) { }
+      
       if (mounted) {
         setState(() {
           _weeklyGrowth = counts;
@@ -510,8 +618,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         });
       }
     } catch(e) { 
-      debugPrint("Dashboard Fetch Error: $e");
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Dashboard Error: $e"), backgroundColor: Colors.red));
       if (mounted) setState(() => _isLoading = false); 
     }
   }
@@ -791,8 +897,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
         _filteredRequests = data;
       });
     } catch (e) {
-      debugPrint("Error fetching payments: $e");
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error loading payments: $e")));
     } finally { 
       setState(() => _isLoading = false); 
     }
@@ -826,9 +930,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
       await Supabase.instance.client.from('payment_requests').update({'status': newStatus}).eq('id', id.toString());
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment $newStatus Successfully! Old packages revoked!"), backgroundColor: newStatus == 'Approved' ? Colors.green : Colors.orange));
       _fetchRequests();
-    } catch(e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Update Failed: $e")));
-    }
+    } catch(e) { }
   }
 
   Future<void> _deleteRequestDialog(dynamic id) async {
@@ -855,10 +957,95 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
         await Supabase.instance.client.from('payment_requests').delete().eq('id', id.toString());
         if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record Deleted"), backgroundColor: Colors.redAccent));
         _fetchRequests();
-      } catch(e) {
-         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Delete Failed: $e")));
-      }
+      } catch(e) { }
     }
+  }
+
+  Future<void> _editPaymentDialog(Map<String, dynamic> req) async {
+    TextEditingController planController = TextEditingController(text: req['plan'] ?? '');
+    TextEditingController amountController = TextEditingController(text: req['amount']?.toString() ?? '');
+    
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
+        title: const Text("Edit Payment Info", style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: planController, 
+              style: const TextStyle(color: Colors.white), 
+              decoration: InputDecoration(labelText: "Plan Name", labelStyle: const TextStyle(color: adminPurple), filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountController, 
+              style: const TextStyle(color: Colors.white), 
+              decoration: InputDecoration(labelText: "Amount (₹)", labelStyle: const TextStyle(color: adminPurple), filled: true, fillColor: bgDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))
+            )
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await Supabase.instance.client.from('payment_requests').update({
+                  'plan': planController.text,
+                  'amount': amountController.text
+                }).eq('id', req['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchRequests();
+              } catch(e) {}
+            },
+            child: const Text("Save")
+          )
+        ]
+      )
+    );
+  }
+
+  void _showProofDialog(String imageUrl, String utr) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("UTR: $utr", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 16),
+            imageUrl.startsWith('http') 
+              ? ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(imageUrl, height: 350, fit: BoxFit.cover)) 
+              : const Text("No Proof Image", style: TextStyle(color: Colors.white54))
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close", style: TextStyle(color: adminPurple)))
+        ]
+      )
+    );
+  }
+
+  String _formatDateGroup(String? isoString) {
+    if (isoString == null) return "Unknown Time";
+    DateTime parsedDate = DateTime.parse(isoString);
+    DateTime date = DateTime(parsedDate.year, parsedDate.month, parsedDate.day, parsedDate.hour, parsedDate.minute);
+    DateTime now = DateTime.now();
+    DateTime today = DateTime(now.year, now.month, now.day);
+    DateTime yesterday = today.subtract(const Duration(days: 1));
+    DateTime checkDate = DateTime(date.year, date.month, date.day);
+
+    String ampm = date.hour >= 12 ? 'PM' : 'AM';
+    int hr = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    String timeStr = "$hr:${date.minute.toString().padLeft(2, '0')} $ampm";
+
+    if (checkDate == today) return "Today at $timeStr";
+    if (checkDate == yesterday) return "Yesterday at $timeStr";
+    return "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} at $timeStr";
   }
 
   @override
@@ -915,9 +1102,13 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                   itemCount: _filteredRequests.length, 
                   itemBuilder: (context, index) { 
                     final req = _filteredRequests[index]; 
+                    String displayTime = _formatDateGroup(req['created_at']); 
+                    
                     String userName = req['user_name'] ?? req['name'] ?? "Unknown User"; 
                     String uid = req['uid'] ?? req['user_id'] ?? req['transaction_id']?.toString().substring(0, 8) ?? "N/A"; 
+                    
                     String dbUserIdLink = req['user_id'] ?? "Unknown";
+
                     String amount = req['amount']?.toString() ?? "0";
                     Color statusColor = req['status'] == 'Approved' ? const Color(0xFF10B981) : (req['status'] == 'Rejected' ? const Color(0xFFEF4444) : const Color(0xFFF59E0B));
 
@@ -960,13 +1151,34 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                             ),
                             const SizedBox(height: 16),
                             
+                            Row(
+                              children: [
+                                Expanded(child: _buildInfoItem(Icons.auto_graph, "Plan", req['plan'] ?? 'Unknown')),
+                                Expanded(child: _buildInfoItem(Icons.calendar_month, "Date & Time", displayTime, color: const Color(0xFFF59E0B))),
+                                Expanded(child: _buildInfoItem(Icons.monetization_on_outlined, "Amount", "₹$amount")),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            Row(
+                              children: [
+                                const Text("UTR  ", style: TextStyle(color: adminPurple, fontWeight: FontWeight.bold, fontSize: 13)),
+                                Text(req['transaction_id'] ?? 'N/A', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                                const Spacer(),
+                                const Icon(Icons.copy, color: adminPurple, size: 16)
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
                               alignment: WrapAlignment.start,
                               children: [
+                                _buildActionButton(Icons.image, "Proof", const Color(0xFF3B82F6), () => _showProofDialog(req['image_path'], req['transaction_id'])),
                                 _buildActionButton(Icons.check, "Approve", const Color(0xFF10B981), () => _updateStatus(req['id'], 'Approved', dbUserIdLink)),
                                 _buildActionButton(Icons.close, "Reject", const Color(0xFFF59E0B), () => _updateStatus(req['id'], 'Rejected', dbUserIdLink)),
+                                _buildActionButton(Icons.edit, "Edit", adminPurple, () => _editPaymentDialog(req)),
                                 _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequestDialog(req['id'])),
                               ],
                             )
@@ -996,6 +1208,23 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     );
   }
 
+  Widget _buildInfoItem(IconData icon, String label, String value, {Color color = adminPurple}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 12),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: label == "Date & Time" ? color : Colors.white, fontSize: 12, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+      ],
+    );
+  }
+
   Widget _buildActionButton(IconData icon, String label, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -1017,7 +1246,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 }
 
 // ==========================================
-// 2.5 ACTIVE SUBSCRIPTIONS 
+// 2.5 NAYA SECTION: ACTIVE SUBSCRIPTIONS (PREMIUM USERS)
 // ==========================================
 class ActiveSubscriptionsScreen extends StatefulWidget {
   const ActiveSubscriptionsScreen({super.key});
@@ -1060,12 +1289,17 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
             }
          }
       }
+      
+      activeOnly.sort((a, b) {
+        if (a['created_at'] == null || b['created_at'] == null) return 0;
+        return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
+      });
+      
       setState(() {
         _allSubs = activeOnly;
         _filteredSubs = activeOnly;
       });
     } catch(e) {
-      debugPrint("Error subs: $e");
     } finally {
       setState(() => _isLoading = false);
     }
@@ -1084,6 +1318,57 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
         return name.contains(q) || uid.contains(q);
       }).toList();
     });
+  }
+
+  Future<void> _extendPlanDialog(Map<String, dynamic> sub) async {
+    TextEditingController daysController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Modify Plan Expiry", style: TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("User: ${sub['user_name'] ?? 'Unknown'}", style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: daysController, 
+              keyboardType: const TextInputType.numberWithOptions(signed: true),
+              style: const TextStyle(color: Colors.white), 
+              decoration: InputDecoration(
+                labelText: "Add/Remove Days (e.g. 10 or -5)", 
+                labelStyle: const TextStyle(color: adminPurple), 
+                filled: true, fillColor: bgDark, 
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none)
+              )
+            )
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            onPressed: () async {
+              int? extraDays = int.tryParse(daysController.text);
+              if (extraDays != null && extraDays != 0) {
+                 try {
+                    DateTime currentCreated = DateTime.parse(sub['created_at']);
+                    DateTime newCreated = currentCreated.add(Duration(days: extraDays)); 
+                    await Supabase.instance.client.from('payment_requests').update({'created_at': newCreated.toIso8601String()}).eq('id', sub['id']);
+                    if(mounted) Navigator.pop(context);
+                    String actionMsg = extraDays > 0 ? "Added $extraDays days" : "Removed ${extraDays.abs()} days";
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$actionMsg to the plan!"), backgroundColor: Colors.green));
+                    _fetchSubscriptions();
+                 } catch(e) {}
+              }
+            },
+            child: const Text("Update Plan")
+          )
+        ]
+      )
+    );
   }
 
   String _formatExpDate(DateTime date) {
@@ -1119,6 +1404,7 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
           ),
         ),
 
+        // Search Bar
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: TextField(
@@ -1131,6 +1417,7 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
               prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
               filled: true,
               fillColor: cardDark,
+              contentPadding: const EdgeInsets.symmetric(vertical: 0),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
@@ -1196,6 +1483,16 @@ class _ActiveSubscriptionsScreenState extends State<ActiveSubscriptionsScreen> {
                                   Text("($daysLeft days left)", style: const TextStyle(color: Colors.white38, fontSize: 10)),
                                 ],
                               ),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF3B82F6),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                                ),
+                                onPressed: () => _extendPlanDialog(sub), 
+                                icon: const Icon(Icons.edit_calendar, color: Colors.white, size: 16),
+                                label: const Text("Edit Days", style: TextStyle(color: Colors.white, fontSize: 12))
+                              )
                             ],
                           )
                         ],
@@ -1241,8 +1538,6 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
       final data = await Supabase.instance.client.from('anime_list').select().order('created_at', ascending: false);
       setState(() => _animeList = data);
     } catch (e) {
-      debugPrint("Error fetching anime: $e");
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
     } finally { 
       setState(() => _isLoading = false); 
     }
@@ -1267,9 +1562,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
       _mainCategoryController.clear(); 
       _subCategoryController.clear();
       _fetchAnime();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Add Error: $e"), backgroundColor: Colors.red));
-    }
+    } catch (e) {}
   }
 
   Future<void> _deleteAnimeDialog(dynamic id) async {
@@ -1292,15 +1585,12 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     );
 
     if (confirm == true) {
-      try {
-        await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString());
-        _fetchAnime();
-      } catch(e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Delete Error: $e"), backgroundColor: Colors.red));
-      }
+      await Supabase.instance.client.from('anime_list').delete().eq('id', id.toString());
+      _fetchAnime();
     }
   }
 
+  // --- UPDATED EDIT ANIME METHOD (Full Access) ---
   Future<void> _editAnime(Map<String, dynamic> anime) async {
     _titleController.text = anime['title'] ?? '';
     _descController.text = anime['description'] ?? '';
@@ -1309,6 +1599,7 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     _subCategoryController.text = anime['sub_category'] ?? '';
     
     String editDub = anime['dub_status'] ?? 'Z DUB';
+    if (editDub == 'ZTV-DUB') editDub = 'Z DUB'; // Auto-fix old records
     if (!['Z DUB', 'FAN DUB', 'MIX O/D'].contains(editDub)) editDub = 'Z DUB';
 
     await showDialog(
@@ -1347,25 +1638,21 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
             ElevatedButton(
               onPressed: () async {
-                try {
-                  await Supabase.instance.client.from('anime_list').update({
-                    'title': _titleController.text,
-                    'description': _descController.text,
-                    'image_url': _imageController.text,
-                    'category': _mainCategoryController.text,
-                    'sub_category': _subCategoryController.text,
-                    'dub_status': editDub, 
-                  }).eq('id', anime['id'].toString());
-                  if(mounted) Navigator.pop(context);
-                  _titleController.clear(); 
-                  _descController.clear();
-                  _imageController.clear(); 
-                  _mainCategoryController.clear(); 
-                  _subCategoryController.clear();
-                  _fetchAnime();
-                } catch(e) {
-                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Update Error: $e"), backgroundColor: Colors.red));
-                }
+                await Supabase.instance.client.from('anime_list').update({
+                  'title': _titleController.text,
+                  'description': _descController.text,
+                  'image_url': _imageController.text,
+                  'category': _mainCategoryController.text,
+                  'sub_category': _subCategoryController.text,
+                  'dub_status': editDub, 
+                }).eq('id', anime['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _titleController.clear(); 
+                _descController.clear();
+                _imageController.clear(); 
+                _mainCategoryController.clear(); 
+                _subCategoryController.clear();
+                _fetchAnime();
               },
               child: const Text("Update")
             )
@@ -1557,7 +1844,6 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
         } 
       });
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally { 
       setState(() => _isLoading = false); 
     }
@@ -1574,9 +1860,7 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
         } 
       }
       setState(() => _episodeList = allEps);
-    } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error fetching episodes: $e")));
-    }
+    } catch (e) {}
   }
 
   Future<void> _uploadEpisode() async {
@@ -1610,7 +1894,6 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
       _videoUrlController.clear();
       _fetchEpisodesForAnime(_selectedAnimeId!);
     } catch (e) {
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
     } finally { 
       setState(() => _isLoading = false); 
     }
@@ -1636,15 +1919,12 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
     );
 
     if (confirm == true) {
-      try {
-        await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString());
-        if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
-      } catch(e) {
-         if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting: $e"), backgroundColor: Colors.red));
-      }
+      await Supabase.instance.client.from('anime_episodes').delete().eq('id', id.toString());
+      if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
     }
   }
 
+  // --- UPDATED EDIT EPISODE METHOD (Full Access) ---
   Future<void> _editEpisodeDialog(Map<String, dynamic> ep) async {
     TextEditingController titleCtrl = TextEditingController(text: ep['episode_title'] ?? '');
     TextEditingController urlCtrl = TextEditingController(text: ep['video_url'] ?? '');
@@ -1675,18 +1955,14 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              try {
-                await Supabase.instance.client.from('anime_episodes').update({
-                  'episode_title': titleCtrl.text,
-                  'image_url': imgCtrl.text,
-                  'duration': durCtrl.text,
-                  'video_url': urlCtrl.text
-                }).eq('id', ep['id'].toString());
-                if(mounted) Navigator.pop(context);
-                if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
-              } catch(e) {
-                 if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error updating: $e"), backgroundColor: Colors.red));
-              }
+              await Supabase.instance.client.from('anime_episodes').update({
+                'episode_title': titleCtrl.text,
+                'image_url': imgCtrl.text,
+                'duration': durCtrl.text,
+                'video_url': urlCtrl.text
+              }).eq('id', ep['id'].toString());
+              if(mounted) Navigator.pop(context);
+              if(_selectedAnimeId != null) _fetchEpisodesForAnime(_selectedAnimeId!);
             },
             child: const Text("Update")
           )
@@ -1893,9 +2169,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
         _animeList = animes; 
         _heroItems = heroes; 
       });
-    } catch (e) {
-      debugPrint("Error fetching hero data: $e");
-    }
+    } catch (e) {}
   }
 
   Future<void> _addHero() async {
@@ -1911,9 +2185,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
       _imageController.clear(); 
       _tagController.clear(); 
       _fetchData();
-    } catch (e) {
-       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Add Error: $e"), backgroundColor: Colors.red));
-    }
+    } catch (e) {}
   }
 
   Future<void> _deleteHeroDialog(dynamic id) async {
@@ -1936,13 +2208,9 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
     );
 
     if (confirm == true) {
-      try {
-        await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString());
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Banner Deleted"), backgroundColor: Colors.redAccent));
-        _fetchData();
-      } catch(e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Delete Error: $e"), backgroundColor: Colors.red));
-      }
+      await Supabase.instance.client.from('hero_slider').delete().eq('id', id.toString());
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Banner Deleted"), backgroundColor: Colors.redAccent));
+      _fetchData();
     }
   }
 
@@ -1980,17 +2248,13 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
             ElevatedButton(
               onPressed: () async {
-                try {
-                  await Supabase.instance.client.from('hero_slider').update({
-                    'image_url': editImage.text,
-                    'tag': editTag.text,
-                    'tag_color': editColor
-                  }).eq('id', item['id'].toString());
-                  if(mounted) Navigator.pop(context);
-                  _fetchData();
-                } catch(e) {
-                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Update Error: $e"), backgroundColor: Colors.red));
-                }
+                await Supabase.instance.client.from('hero_slider').update({
+                  'image_url': editImage.text,
+                  'tag': editTag.text,
+                  'tag_color': editColor
+                }).eq('id', item['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchData();
               },
               child: const Text("Save", style: TextStyle(color: Colors.white))
             )
@@ -2181,8 +2445,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
         _filteredUsers = data;
       });
     } catch (e) {
-      debugPrint("Error fetching users: $e");
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
     } finally { 
       if(mounted) setState(() => _isLoading = false); 
     }
@@ -2235,9 +2497,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
         
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User & Associated Payments Deleted"), backgroundColor: Colors.redAccent));
         _fetchUsers();
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Delete Error: $e"), backgroundColor: Colors.red));
-      }
+      } catch (e) {}
     }
   }
 
@@ -2286,17 +2546,13 @@ class _UsersListScreenState extends State<UsersListScreen> {
             TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
             ElevatedButton(
               onPressed: () async {
-                try {
-                  await Supabase.instance.client.from('user_preferences').update({
-                    'name': editName.text,
-                    'device_name': editDevice.text,
-                    'status': currentStatus
-                  }).eq('id', user['id'].toString());
-                  if(mounted) Navigator.pop(context);
-                  _fetchUsers();
-                } catch(e) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Update Error: $e"), backgroundColor: Colors.red));
-                }
+                await Supabase.instance.client.from('user_preferences').update({
+                  'name': editName.text,
+                  'device_name': editDevice.text,
+                  'status': currentStatus
+                }).eq('id', user['id'].toString());
+                if(mounted) Navigator.pop(context);
+                _fetchUsers();
               },
               child: const Text("Save", style: TextStyle(color: Colors.white))
             )
@@ -2334,6 +2590,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
     return Column(
       children: [
+        // Security Info Banner
         Container(
           margin: const EdgeInsets.all(16),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
@@ -2349,6 +2606,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
           )
         ),
         
+        // Search Bar
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
@@ -2386,6 +2644,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
         ),
         const SizedBox(height: 16),
 
+        // User Stats Grid
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
@@ -2402,6 +2661,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
         ),
         const SizedBox(height: 16),
 
+        // User List
         Expanded(
           child: _isLoading 
             ? const Center(child: CircularProgressIndicator(color: adminPurple))
@@ -2572,8 +2832,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _supportEmailController = TextEditingController(); 
   final _qrUrlController = TextEditingController();
   final _upiIdController = TextEditingController();
-  bool _blockScreenshots = false; 
-  bool _isLoading = true;
+  bool _blockScreenshots = false; // FLAG SECURE TOGGLE
   
   @override void initState() { super.initState(); _fetchSettings(); }
 
@@ -2586,34 +2845,24 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           _blockScreenshots = res['block_screenshots'] ?? false;
         });
       }
-    } catch(e) {
-       debugPrint("Settings Fetch Error: $e");
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    } catch(e) {}
   }
 
   Future<void> _saveSettings() async {
-    setState(() => _isLoading = true);
     try {
       await Supabase.instance.client.from('app_settings').update({'website_url': _urlController.text.trim(), 'app_logo_url': _logoController.text.trim(), 'telegram_url': _telegramController.text.trim(), 'telegram_group_url': _telegramGroupController.text.trim(), 'youtube_url': _youtubeController.text.trim(), 'whatsapp_url': _whatsappController.text.trim(), 'instagram_url': _instagramController.text.trim(), 'support_email': _supportEmailController.text.trim(), 'payment_qr_url': _qrUrlController.text.trim(), 'upi_id': _upiIdController.text.trim(), 'block_screenshots': _blockScreenshots}).eq('id', 1);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Settings Updated Successfully!"), backgroundColor: Colors.green));
-    } catch(e) { 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red)); 
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    } catch(e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red)); }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: CircularProgressIndicator(color: adminPurple));
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // SECURE SETTINGS SECTION
           const Text("Security Settings", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), 
           const SizedBox(height: 12),
           Container(
@@ -2671,9 +2920,7 @@ class _ManagePagesScreenState extends State<ManagePagesScreen> {
     try {
       final res = await Supabase.instance.client.from('app_settings').select('privacy_policy, terms_conditions').eq('id', 1).maybeSingle();
       if(res != null) { setState(() { _privacyPolicyController.text = res['privacy_policy'] ?? ""; _termsController.text = res['terms_conditions'] ?? ""; }); }
-    } catch(e) {
-      debugPrint("Pages Fetch Error: $e");
-    } finally { setState(() => _isLoading = false); }
+    } catch(e) { } finally { setState(() => _isLoading = false); }
   }
 
   Future<void> _savePages() async {
@@ -2681,9 +2928,7 @@ class _ManagePagesScreenState extends State<ManagePagesScreen> {
     try {
       await Supabase.instance.client.from('app_settings').update({'privacy_policy': _privacyPolicyController.text.trim(), 'terms_conditions': _termsController.text.trim()}).eq('id', 1);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Pages Updated Successfully!"), backgroundColor: Colors.green));
-    } catch(e) { 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red)); 
-    } finally { setState(() => _isLoading = false); }
+    } catch(e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red)); } finally { setState(() => _isLoading = false); }
   }
 
   @override
