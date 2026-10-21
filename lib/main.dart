@@ -29,8 +29,6 @@ void main() async {
 
   // 2. Local Notifications Initialization with Try-Catch
   try {
-    // Note: Ensure that '@mipmap/ic_launcher' exists in android/app/src/main/res/mipmap...
-    // Agar custom icon hai toh usay use karein, default 'ic_launcher' hota hai.
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
@@ -44,7 +42,7 @@ void main() async {
     statusBarColor: Colors.transparent,
   ));
 
-  // 4. Run the App (Ab yeh hamesha call hoga)
+  // 4. Run the App
   runApp(const AdminApp());
 }
 
@@ -81,7 +79,7 @@ class AdminApp extends StatelessWidget {
 }
 
 // ==========================================
-// AUTH GATE (FIXED INFINITE LOADING)
+// AUTH GATE (FIXED PERSISTENT LOGIN)
 // ==========================================
 class AdminAuthGate extends StatefulWidget {
   const AdminAuthGate({super.key});
@@ -97,49 +95,26 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
   @override
   void initState() {
     super.initState();
-    _checkInitialSession();
-  }
-
-  Future<void> _checkInitialSession() async {
-    try {
-      // Turant check karega ki koi purana session hai ya nahi
-      final session = Supabase.instance.client.auth.currentSession;
+    // Ye listener app start hote hi purana session dhoondh lega aur admin ko logout hone nahi dega
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       if (mounted) {
         setState(() {
-          _isLoggedIn = session != null;
+          _isLoggedIn = data.session != null;
           _isLoading = false;
         });
       }
-
-      // Future login/logout ko listen karne ke liye
-      Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-        if (mounted) {
-          setState(() {
-            _isLoggedIn = data.session != null;
-          });
-        }
-      });
-    } catch (e) {
-      // Agar internet ya Supabase me koi error aayi toh loading rok dega
-      debugPrint("Auth Check Error: $e");
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        backgroundColor: bgDark, // Background dark rahega
+        backgroundColor: bgDark,
         body: Center(child: CircularProgressIndicator(color: adminPurple))
       );
     }
     
-    // Agar logged in hai toh Dashboard, warna Login Screen
     return _isLoggedIn ? const AdminDashboard() : const AdminLoginScreen();
   }
 }
@@ -891,6 +866,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   Future<void> _fetchRequests() async {
     setState(() => _isLoading = true);
     try {
+      // FIX 1: Newest payments first
       final data = await Supabase.instance.client.from('payment_requests').select().order('created_at', ascending: false);
       setState(() {
         _requests = data;
@@ -1863,10 +1839,19 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
 
   Future<void> _fetchEpisodesForAnime(String animeId) async {
     try {
-      final data = await Supabase.instance.client.from('anime_seasons').select('id, season_name, anime_episodes(id, episode_title, video_url, image_url, duration)').eq('anime_id', animeId);
+      final data = await Supabase.instance.client.from('anime_seasons').select('id, season_name, anime_episodes(id, episode_title, video_url, image_url, duration, created_at)').eq('anime_id', animeId);
       List<dynamic> allEps = [];
       for (var season in data) { 
-        for (var ep in season['anime_episodes']) { 
+        List<dynamic> eps = season['anime_episodes'];
+        
+        // FIX 3: 1st Episode always at Top, new episodes go below it
+        eps.sort((a, b) {
+           int idA = int.tryParse(a['id'].toString()) ?? 0;
+           int idB = int.tryParse(b['id'].toString()) ?? 0;
+           return idA.compareTo(idB);
+        });
+
+        for (var ep in eps) { 
           ep['season_name'] = season['season_name']; 
           allEps.add(ep); 
         } 
@@ -2427,7 +2412,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
 }
 
 // ==========================================
-// 6. MANAGE USERS (FIXED DELETE LOGIC)
+// 6. MANAGE USERS (FIXED DELETE LOGIC & SORTING)
 // ==========================================
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
@@ -2451,6 +2436,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
+      // FIX 1: Newest Users first
       final data = await Supabase.instance.client.from('user_preferences').select('id, name, uid, device_name, status, created_at').order('created_at', ascending: false);
       setState(() {
         _allUsers = data;
