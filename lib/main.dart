@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Added for Hard Lock
+import 'package:shared_preferences/shared_preferences.dart'; 
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 
@@ -80,7 +80,7 @@ class AdminApp extends StatelessWidget {
 }
 
 // ==========================================
-// AUTH GATE (HARD LOCK - NEVER AUTO LOGOUT)
+// AUTH GATE (HARD LOCK WITH SILENT ERROR HANDLING)
 // ==========================================
 class AdminAuthGate extends StatefulWidget {
   const AdminAuthGate({super.key});
@@ -100,19 +100,31 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
   }
 
   Future<void> _checkHardLoginLock() async {
+    bool lockedIn = false;
+    
+    // 1. Pehle Hard Lock check karega (Silent try-catch so it won't crash)
     try {
-      // Supabase ke auto-logout ko ignore karke apni memory se check karega
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      bool lockedIn = prefs.getBool('admin_hard_lock') ?? false;
-      
-      if (mounted) {
-        setState(() {
-          _isLoggedIn = lockedIn;
-          _isLoading = false;
-        });
-      }
+      lockedIn = prefs.getBool('admin_hard_lock') ?? false;
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      debugPrint("Prefs Error Ignored in AuthGate");
+    }
+
+    // 2. Agar Hard Lock fail hua, toh Supabase Session check karega
+    if (!lockedIn) {
+      try {
+        final session = Supabase.instance.client.auth.currentSession;
+        lockedIn = session != null;
+      } catch(e) {
+        debugPrint("Supabase session check error ignored");
+      }
+    }
+    
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = lockedIn;
+        _isLoading = false;
+      });
     }
   }
 
@@ -148,20 +160,28 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) return;
     setState(() => _isLoading = true);
+    
     try {
+      // 1. Execute Supabase Login
       await Supabase.instance.client.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
       
-      // LOGIN SUCCESS: HARD LOCK ENABLED
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('admin_hard_lock', true);
+      // 2. Set Hard Lock securely (Wrapped in try-catch so it NEVER crashes the login flow)
+      try {
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('admin_hard_lock', true);
+      } catch (prefsError) {
+        debugPrint("Ignored Prefs Error During Login: $prefsError");
+      }
 
+      // 3. Navigate to Dashboard safely
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()));
       }
     } catch (e) {
+      // This will only show if Email or Password is wrong
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent)
       );
@@ -308,11 +328,21 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Navigator.pop(context); 
   }
 
-  // MANUAL LOGOUT FUNCTION
+  // MANUAL LOGOUT FUNCTION (Safely unloads session)
   Future<void> _performLogout() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('admin_hard_lock', false); // Lock Tuta
-    await Supabase.instance.client.auth.signOut();
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('admin_hard_lock', false); 
+    } catch(e) {
+      debugPrint("Ignored Prefs Error on Logout");
+    }
+    
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch(e) {
+      debugPrint("Ignored Auth Signout Error");
+    }
+
     if(mounted) {
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()), (route) => false);
     }
@@ -392,7 +422,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
                     title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                    onTap: _performLogout, // Attached Manual Logout
+                    onTap: _performLogout, 
                   )
                 ],
               ),
@@ -625,11 +655,15 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     }
   }
 
-  // MANUAL LOGOUT FUNCTION
-  Future<void> _performLogout() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('admin_hard_lock', false); 
-    await Supabase.instance.client.auth.signOut();
+  // Helper method for stats logout
+  Future<void> _performStatsLogout() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('admin_hard_lock', false); 
+    } catch(e) {}
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch(e) {}
     if(mounted) {
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()), (route) => false);
     }
@@ -698,7 +732,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 _buildStatCard("Offline Users", offlineUsers.toString(), Icons.cloud_off, const Color(0xFFDC2626), "-2.1%"),
                 
                 GestureDetector(
-                  onTap: _performLogout, // Attached Manual Logout
+                  onTap: _performStatsLogout, 
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
@@ -904,7 +938,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   Future<void> _fetchRequests() async {
     setState(() => _isLoading = true);
     try {
-      // FIX 1: Newest payments first
       final data = await Supabase.instance.client.from('payment_requests').select().order('created_at', ascending: false);
       setState(() {
         _requests = data;
@@ -947,7 +980,6 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     } catch(e) { }
   }
 
-  // --- UPDATED PAYMENT DELETE LOGIC (DELETES FROM STORAGE TOO) ---
   Future<void> _deleteRequestDialog(Map<String, dynamic> req) async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -969,14 +1001,12 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 
     if (confirm == true) {
       try {
-        // 1. Delete Image from Supabase Storage
         String imageUrl = req['image_path'] ?? "";
         if (imageUrl.isNotEmpty && imageUrl.contains('/payment_proofs/')) {
           String fileName = imageUrl.split('/').last;
           await Supabase.instance.client.storage.from('payment_proofs').remove([fileName]);
         }
         
-        // 2. Delete Database Record
         await Supabase.instance.client.from('payment_requests').delete().eq('id', req['id'].toString());
         
         if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record & Proof Deleted"), backgroundColor: Colors.redAccent));
@@ -1616,7 +1646,6 @@ class _ManageAnimeScreenState extends State<ManageAnimeScreen> {
     }
   }
 
-  // --- UPDATED EDIT ANIME METHOD (Full Access) ---
   Future<void> _editAnime(Map<String, dynamic> anime) async {
     _titleController.text = anime['title'] ?? '';
     _descController.text = anime['description'] ?? '';
@@ -1959,7 +1988,6 @@ class _ManageEpisodesScreenState extends State<ManageEpisodesScreen> {
     }
   }
 
-  // --- UPDATED EDIT EPISODE METHOD (Full Access) ---
   Future<void> _editEpisodeDialog(Map<String, dynamic> ep) async {
     TextEditingController titleCtrl = TextEditingController(text: ep['episode_title'] ?? '');
     TextEditingController urlCtrl = TextEditingController(text: ep['video_url'] ?? '');
