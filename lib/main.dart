@@ -933,14 +933,15 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     } catch(e) { }
   }
 
-  Future<void> _deleteRequestDialog(dynamic id) async {
+  // --- UPDATED PAYMENT DELETE LOGIC (DELETES FROM STORAGE TOO) ---
+  Future<void> _deleteRequestDialog(Map<String, dynamic> req) async {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
         title: const Text("Delete Payment?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text("Are you sure you want to delete this payment record?", style: TextStyle(color: Colors.white70)),
+        content: const Text("Are you sure you want to delete this payment record and its image from storage?", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
           ElevatedButton(
@@ -954,10 +955,21 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 
     if (confirm == true) {
       try {
-        await Supabase.instance.client.from('payment_requests').delete().eq('id', id.toString());
-        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record Deleted"), backgroundColor: Colors.redAccent));
+        // 1. Delete Image from Supabase Storage
+        String imageUrl = req['image_path'] ?? "";
+        if (imageUrl.isNotEmpty && imageUrl.contains('/payment_proofs/')) {
+          String fileName = imageUrl.split('/').last;
+          await Supabase.instance.client.storage.from('payment_proofs').remove([fileName]);
+        }
+        
+        // 2. Delete Database Record
+        await Supabase.instance.client.from('payment_requests').delete().eq('id', req['id'].toString());
+        
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record & Proof Deleted"), backgroundColor: Colors.redAccent));
         _fetchRequests();
-      } catch(e) { }
+      } catch(e) {
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.redAccent));
+      }
     }
   }
 
@@ -1179,7 +1191,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
                                 _buildActionButton(Icons.check, "Approve", const Color(0xFF10B981), () => _updateStatus(req['id'], 'Approved', dbUserIdLink)),
                                 _buildActionButton(Icons.close, "Reject", const Color(0xFFF59E0B), () => _updateStatus(req['id'], 'Rejected', dbUserIdLink)),
                                 _buildActionButton(Icons.edit, "Edit", adminPurple, () => _editPaymentDialog(req)),
-                                _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequestDialog(req['id'])),
+                                _buildActionButton(Icons.delete, "Delete", const Color(0xFFEF4444), () => _deleteRequestDialog(req)),
                               ],
                             )
                           ],
@@ -2415,7 +2427,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
 }
 
 // ==========================================
-// 6. MANAGE USERS 
+// 6. MANAGE USERS (FIXED DELETE LOGIC)
 // ==========================================
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
@@ -2465,6 +2477,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
     });
   }
 
+  // --- UPDATED USER DELETE LOGIC (DELETES FROM STORAGE & ALL TABLES) ---
   Future<void> _deleteUserDialog(Map<String, dynamic> user) async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -2472,7 +2485,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
         backgroundColor: cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white10)),
         title: const Text("Delete User?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text("Are you sure you want to permanently delete this user? This will also clean up their associated payments.", style: TextStyle(color: Colors.white70)),
+        content: const Text("Are you sure you want to permanently delete this user? This will also clean up their associated payments, history, and likes.", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel", style: TextStyle(color: Colors.white54))),
           ElevatedButton(
@@ -2486,18 +2499,36 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
     if (confirm == true) {
       try {
-        String userUid = user['uid']?.toString() ?? user['id']?.toString() ?? '';
+        String userId = user['id'].toString();
         
-        if (userUid.isNotEmpty) {
-          await Supabase.instance.client.from('payment_requests').delete().eq('uid', userUid);
-          await Supabase.instance.client.from('payment_requests').delete().eq('user_id', userUid);
+        // 1. Storage se is User ki payment images uda do (Taki Storage full na ho)
+        final userPayments = await Supabase.instance.client.from('payment_requests').select('image_path').eq('user_id', userId);
+        List<String> filesToDelete = [];
+        for (var p in userPayments) {
+           String imgUrl = p['image_path'] ?? "";
+           if (imgUrl.isNotEmpty && imgUrl.contains('/payment_proofs/')) {
+             filesToDelete.add(imgUrl.split('/').last);
+           }
         }
+        if (filesToDelete.isNotEmpty) {
+           await Supabase.instance.client.storage.from('payment_proofs').remove(filesToDelete);
+        }
+
+        // 2. Database ke baaki tables se kachra saaf karo pehle (Foreign Key error se bachne ke liye)
+        await Supabase.instance.client.from('user_daily_watch').delete().eq('user_id', userId);
+        await Supabase.instance.client.from('payment_requests').delete().eq('user_id', userId);
+        await Supabase.instance.client.from('axion_episode_reactions').delete().eq('user_id', userId);
+        await Supabase.instance.client.from('axion_anime_ratings').delete().eq('user_id', userId);
+        await Supabase.instance.client.from('user_views').delete().eq('user_id', userId);
+
+        // 3. Aakhir me User Profile delete karo
+        await Supabase.instance.client.from('user_preferences').delete().eq('id', userId);
         
-        await Supabase.instance.client.from('user_preferences').delete().eq('id', user['id'].toString());
-        
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User & Associated Payments Deleted"), backgroundColor: Colors.redAccent));
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User completely deleted from Database!"), backgroundColor: Colors.redAccent));
         _fetchUsers();
-      } catch (e) {}
+      } catch (e) {
+        if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error deleting user: $e"), backgroundColor: Colors.redAccent));
+      }
     }
   }
 
