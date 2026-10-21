@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Added for Hard Lock
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 
@@ -79,7 +80,7 @@ class AdminApp extends StatelessWidget {
 }
 
 // ==========================================
-// AUTH GATE (FIXED PERSISTENT LOGIN)
+// AUTH GATE (HARD LOCK - NEVER AUTO LOGOUT)
 // ==========================================
 class AdminAuthGate extends StatefulWidget {
   const AdminAuthGate({super.key});
@@ -95,15 +96,24 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
   @override
   void initState() {
     super.initState();
-    // Ye listener app start hote hi purana session dhoondh lega aur admin ko logout hone nahi dega
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _checkHardLoginLock();
+  }
+
+  Future<void> _checkHardLoginLock() async {
+    try {
+      // Supabase ke auto-logout ko ignore karke apni memory se check karega
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      bool lockedIn = prefs.getBool('admin_hard_lock') ?? false;
+      
       if (mounted) {
         setState(() {
-          _isLoggedIn = data.session != null;
+          _isLoggedIn = lockedIn;
           _isLoading = false;
         });
       }
-    });
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -143,6 +153,14 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      
+      // LOGIN SUCCESS: HARD LOCK ENABLED
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('admin_hard_lock', true);
+
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()));
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent)
@@ -290,6 +308,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Navigator.pop(context); 
   }
 
+  // MANUAL LOGOUT FUNCTION
+  Future<void> _performLogout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('admin_hard_lock', false); // Lock Tuta
+    await Supabase.instance.client.auth.signOut();
+    if(mounted) {
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()), (route) => false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -364,7 +392,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
                     title: const Text("Log Out", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                    onTap: () => Supabase.instance.client.auth.signOut(),
+                    onTap: _performLogout, // Attached Manual Logout
                   )
                 ],
               ),
@@ -597,6 +625,16 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     }
   }
 
+  // MANUAL LOGOUT FUNCTION
+  Future<void> _performLogout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('admin_hard_lock', false); 
+    await Supabase.instance.client.auth.signOut();
+    if(mounted) {
+      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()), (route) => false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if(_isLoading) return const Center(child: CircularProgressIndicator(color: adminPurple));
@@ -660,7 +698,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 _buildStatCard("Offline Users", offlineUsers.toString(), Icons.cloud_off, const Color(0xFFDC2626), "-2.1%"),
                 
                 GestureDetector(
-                  onTap: () => Supabase.instance.client.auth.signOut(),
+                  onTap: _performLogout, // Attached Manual Logout
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
