@@ -80,7 +80,7 @@ class AdminApp extends StatelessWidget {
 }
 
 // ==========================================
-// AUTH GATE (100% MANUAL LOCK - NO AUTO LOGOUT)
+// AUTH GATE (HARD LOCK WITH SILENT ERROR HANDLING)
 // ==========================================
 class AdminAuthGate extends StatefulWidget {
   const AdminAuthGate({super.key});
@@ -102,12 +102,22 @@ class _AdminAuthGateState extends State<AdminAuthGate> {
   Future<void> _checkHardLoginLock() async {
     bool lockedIn = false;
     
-    // Supabase auto-logout listener HATA DIYA HAI. Ab sirf local memory se check hoga.
+    // 1. Pehle Hard Lock check karega (Silent try-catch so it won't crash)
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       lockedIn = prefs.getBool('admin_hard_lock') ?? false;
     } catch (e) {
-      debugPrint("Prefs Error Ignored");
+      debugPrint("Prefs Error Ignored in AuthGate");
+    }
+
+    // 2. Agar Hard Lock fail hua, toh Supabase Session check karega
+    if (!lockedIn) {
+      try {
+        final session = Supabase.instance.client.auth.currentSession;
+        lockedIn = session != null;
+      } catch(e) {
+        debugPrint("Supabase session check error ignored");
+      }
     }
     
     if (mounted) {
@@ -152,20 +162,26 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     setState(() => _isLoading = true);
     
     try {
+      // 1. Execute Supabase Login
       await Supabase.instance.client.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
       
+      // 2. Set Hard Lock securely (Wrapped in try-catch so it NEVER crashes the login flow)
       try {
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('admin_hard_lock', true);
-      } catch (prefsError) {}
+      } catch (prefsError) {
+        debugPrint("Ignored Prefs Error During Login: $prefsError");
+      }
 
+      // 3. Navigate to Dashboard safely
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()));
       }
     } catch (e) {
+      // This will only show if Email or Password is wrong
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Login Failed: $e"), backgroundColor: Colors.redAccent)
       );
@@ -312,16 +328,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
     Navigator.pop(context); 
   }
 
-  // MANUAL LOGOUT FUNCTION (Sirf yahi dabane par logout hoga)
+  // MANUAL LOGOUT FUNCTION (Safely unloads session)
   Future<void> _performLogout() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool('admin_hard_lock', false); 
-    } catch(e) {}
+    } catch(e) {
+      debugPrint("Ignored Prefs Error on Logout");
+    }
     
     try {
       await Supabase.instance.client.auth.signOut();
-    } catch(e) {}
+    } catch(e) {
+      debugPrint("Ignored Auth Signout Error");
+    }
 
     if(mounted) {
       Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const AdminAuthGate()), (route) => false);
@@ -635,6 +655,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     }
   }
 
+  // Helper method for stats logout
   Future<void> _performStatsLogout() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -917,6 +938,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
   Future<void> _fetchRequests() async {
     setState(() => _isLoading = true);
     try {
+      // FIX 1: Newest payments first
       final data = await Supabase.instance.client.from('payment_requests').select().order('created_at', ascending: false);
       setState(() {
         _requests = data;
@@ -959,6 +981,7 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
     } catch(e) { }
   }
 
+  // --- UPDATED PAYMENT DELETE LOGIC (DELETES FROM STORAGE TOO) ---
   Future<void> _deleteRequestDialog(Map<String, dynamic> req) async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -980,12 +1003,14 @@ class _ManagePaymentsScreenState extends State<ManagePaymentsScreen> {
 
     if (confirm == true) {
       try {
+        // 1. Delete Image from Supabase Storage
         String imageUrl = req['image_path'] ?? "";
         if (imageUrl.isNotEmpty && imageUrl.contains('/payment_proofs/')) {
           String fileName = imageUrl.split('/').last;
           await Supabase.instance.client.storage.from('payment_proofs').remove([fileName]);
         }
         
+        // 2. Delete Database Record
         await Supabase.instance.client.from('payment_requests').delete().eq('id', req['id'].toString());
         
         if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Record & Proof Deleted"), backgroundColor: Colors.redAccent));
@@ -2457,7 +2482,7 @@ class _ManageHeroScreenState extends State<ManageHeroScreen> {
 }
 
 // ==========================================
-// 6. MANAGE USERS (FIXED DELETE LOGIC & SORTING)
+// 6. MANAGE USERS (NEW BIG BUTTONS DESIGN)
 // ==========================================
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
@@ -2481,7 +2506,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
   Future<void> _fetchUsers() async {
     setState(() => _isLoading = true);
     try {
-      // Hide deleted users, and sort by newest first
       final data = await Supabase.instance.client
           .from('user_preferences')
           .select('id, name, uid, device_name, status, created_at')
@@ -2513,7 +2537,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
     });
   }
 
-  // --- UPDATED USER DELETE LOGIC (SILENT BYPASS FOR UUID ERROR) ---
   Future<void> _deleteUserDialog(Map<String, dynamic> user) async {
     bool? confirm = await showDialog<bool>(
       context: context,
@@ -2537,7 +2560,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
       try {
         String userId = user['id'].toString();
         
-        // 1. Silent Storage Cleanup
         try {
           final userPayments = await Supabase.instance.client.from('payment_requests').select('image_path').eq('user_id', userId);
           List<String> filesToDelete = [];
@@ -2552,11 +2574,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
           }
         } catch (_) {}
 
-        // 2. Database Delete (Try to delete, if fails due to trigger, fallback to soft-delete)
         try {
           await Supabase.instance.client.from('user_preferences').delete().eq('id', userId);
         } catch (e) {
-          // Fallback: This hides the user from the panel without throwing red crash
           await Supabase.instance.client.from('user_preferences').update({'status': 'Deleted'}).eq('id', userId);
         }
         
@@ -2726,8 +2746,6 @@ class _UsersListScreenState extends State<UsersListScreen> {
               Expanded(child: _buildTopStatCard("Active Users", active.toString(), const Color(0xFF10B981), Icons.person_add_alt_1)),
               const SizedBox(width: 8),
               Expanded(child: _buildTopStatCard("Inactive Users", inactive.toString(), const Color(0xFFF59E0B), Icons.person_off)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildTopStatCard("Deleted Users", "0", const Color(0xFFEF4444), Icons.delete_outline)),
             ],
           ),
         ),
@@ -2753,101 +2771,92 @@ class _UsersListScreenState extends State<UsersListScreen> {
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12), 
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(color: cardDark, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
-                                  child: const Icon(Icons.person, color: adminPurple, size: 28)
-                                ), 
-                                const SizedBox(width: 16), 
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          const Text("UID: ", style: TextStyle(color: adminPurple, fontSize: 12, fontWeight: FontWeight.bold)),
-                                          Text(uid, style: const TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 0.5)),
-                                        ],
-                                      )
-                                    ],
-                                  )
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.more_vert, color: adminPurple),
-                                  onPressed: () => _editUserDialog(user),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: adminPurple.withOpacity(0.2), shape: BoxShape.circle),
+                                child: const Icon(Icons.person, color: adminPurple, size: 28)
+                              ), 
+                              const SizedBox(width: 12), 
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                                    const SizedBox(height: 2),
+                                    Text("UID: $uid", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                  ],
                                 )
-                              ]
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  flex: 1,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text("Status", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
-                                        child: Text(status, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                                      )
-                                    ],
-                                  )
-                                ),
-                                Container(height: 30, width: 1, color: Colors.white10),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text("Joined On", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                                      const SizedBox(height: 4),
-                                      Text(joined, style: const TextStyle(color: Colors.white, fontSize: 11)),
-                                    ],
-                                  )
-                                ),
-                                Container(height: 30, width: 1, color: Colors.white10),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  flex: 2,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text("Device", style: TextStyle(color: Colors.white54, fontSize: 10)),
-                                          const SizedBox(height: 4),
-                                          Text(device, style: const TextStyle(color: Colors.white, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                        ],
-                                      ),
-                                      Container(
-                                        decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.15), shape: BoxShape.circle),
-                                        child: IconButton(icon: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 18), onPressed: () => _deleteUserDialog(user), constraints: const BoxConstraints(minWidth: 36, minHeight: 36)),
-                                      )
-                                    ],
-                                  )
-                                ),
-                              ],
-                            )
-                          ]
-                        )
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                                child: Text(status, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                              )
+                            ],
+                          ),
+                          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(color: Colors.white10, height: 1)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Device", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                  const SizedBox(height: 4),
+                                  Text(device, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Text("Joined On", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                  const SizedBox(height: 4),
+                                  Text(joined, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+                                ],
+                              )
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // BIG BUTTONS FOR EDIT AND DELETE
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: adminPurple.withOpacity(0.2),
+                                    foregroundColor: adminPurple,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+                                  ),
+                                  icon: const Icon(Icons.edit, size: 18),
+                                  label: const Text("Edit"),
+                                  onPressed: () => _editUserDialog(user),
+                                )
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent.withOpacity(0.2),
+                                    foregroundColor: Colors.redAccent,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
+                                  ),
+                                  icon: const Icon(Icons.delete_outline, size: 18),
+                                  label: const Text("Delete"),
+                                  onPressed: () => _deleteUserDialog(user),
+                                )
+                              )
+                            ],
+                          )
+                        ]
                       )
                     );
                   }
