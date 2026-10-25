@@ -16,7 +16,7 @@ import 'package:http/http.dart' as http;
 import 'package:screen_protector/screen_protector.dart';
 
 // ZYNOX FINAL SYNC VERSION
-const String CURRENT_APP_VERSION = "1.0.3"; 
+const String CURRENT_APP_VERSION = "1.0.4"; 
 
 // SUPABASE AUTH UUID & USER INFO
 String currentUserId = ""; 
@@ -49,7 +49,7 @@ String globalTermsConditions = "Terms and Conditions will be updated soon.";
 bool globalBlockScreenshots = false;
 
 // UPDATE SYSTEM VARIABLES 
-String globalLatestAppVersion = "1.0.3";
+String globalLatestAppVersion = "1.0.4";
 String globalAppApkUrl = "https://google.com"; 
 List<String> globalUpdateFeatures = [
   "New Zynox branding and logos",
